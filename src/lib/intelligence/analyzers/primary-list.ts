@@ -1,6 +1,7 @@
 import { and, eq, isNull, ne, sql } from 'drizzle-orm'
 
 import { lists } from '@/db/schema'
+import { m } from '@/paraglide/messages.js'
 
 import type { Analyzer } from '../analyzer'
 import { combineHashes, sha256Hex } from '../hash'
@@ -25,6 +26,7 @@ export const primaryListAnalyzer: Analyzer = {
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()
+		const o = { locale: ctx.locale }
 		if (ctx.subject.kind === 'dependent') {
 			return {
 				recs: [],
@@ -90,7 +92,7 @@ export const primaryListAnalyzer: Analyzer = {
 			return { recs: [], steps, inputHash: combineHashes([inputHash]) }
 		}
 
-		const subjectName = userLists.find(l => l.ownerName)?.ownerName ?? 'You'
+		const subjectName = userLists.find(l => l.ownerName)?.ownerName ?? m.intel_common_you({}, o)
 		const listSubject: ListRef['subject'] = { kind: 'user', name: subjectName, image: ctx.subject.image }
 		const eligibleRefs: Array<ListRef> = eligible.map(l => ({
 			id: String(l.id),
@@ -105,11 +107,11 @@ export const primaryListAnalyzer: Analyzer = {
 				{
 					kind: 'no-primary',
 					severity: 'important',
-					title: 'Pick a primary list',
-					body: `You have ${eligible.length} active list${eligible.length === 1 ? '' : 's'} but none are marked primary. Your primary list is the one shoppers see first, so picking one helps gifters know where to look.`,
+					title: m.intel_primary_list_title({}, o),
+					body: m.intel_primary_list_body({ count: eligible.length }, o),
 					interaction: {
 						kind: 'list-picker',
-						saveLabel: 'Save as Primary',
+						saveLabel: m.intel_primary_list_save_label({}, o),
 						eligibleLists: eligibleRefs,
 					},
 					affected: undefined,

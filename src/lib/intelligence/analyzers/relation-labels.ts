@@ -14,6 +14,7 @@ import { eq, sql } from 'drizzle-orm'
 
 import { userRelationLabels } from '@/db/schema'
 import { nextOccurrence } from '@/lib/holidays'
+import { m } from '@/paraglide/messages.js'
 
 import type { Analyzer } from '../analyzer'
 import { combineHashes, sha256Hex } from '../hash'
@@ -28,6 +29,7 @@ export const relationLabelsAnalyzer: Analyzer = {
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()
+		const o = { locale: ctx.locale }
 		const baseHash = sha256Hex('relation-labels|skip')
 
 		// Per-user only. Dependents are non-actors here.
@@ -90,10 +92,12 @@ export const relationLabelsAnalyzer: Analyzer = {
 		}
 
 		// Build the body around whichever labels are missing.
-		const missingLabels: Array<string> = []
-		if (missingMother) missingLabels.push('mothers')
-		if (missingFather) missingLabels.push('fathers')
-		const noun = missingLabels.join(' and ')
+		const body =
+			missingMother && missingFather
+				? m.intel_relation_labels_body_both({}, o)
+				: missingMother
+					? m.intel_relation_labels_body_mothers({}, o)
+					: m.intel_relation_labels_body_fathers({}, o)
 
 		// Anchor year for stickiness: the next holiday's calendar year.
 		const anchorYear =
@@ -108,13 +112,13 @@ export const relationLabelsAnalyzer: Analyzer = {
 				{
 					kind: 'set-relation-labels',
 					severity: 'suggest',
-					title: `Tell us who you shop for`,
-					body: `${cap(noun)} won’t see this list, but tagging the ${noun} you shop for lets us send you a reminder before the holiday and surface their lists in Suggestions. Head to your profile to add them.`,
+					title: m.intel_relation_labels_title({}, o),
+					body,
 					interaction: { kind: 'standard' },
 					actions: [
 						{
-							label: 'Open Settings',
-							description: 'Add the people you shop for in your profile.',
+							label: m.intel_relation_labels_action_settings_label({}, o),
+							description: m.intel_relation_labels_action_settings_description({}, o),
 							intent: 'do',
 							nav: { path: '/settings/' },
 						},
@@ -129,8 +133,4 @@ export const relationLabelsAnalyzer: Analyzer = {
 			inputHash: combineHashes([inputHash]),
 		}
 	},
-}
-
-function cap(s: string): string {
-	return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1)
 }

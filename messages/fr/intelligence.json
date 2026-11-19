@@ -267,5 +267,454 @@
 	"list_impact_change_tomorrow": "{eventTitle} est demain. Après cette modification, aucune liste ne sera révélée automatiquement ce jour-là.",
 	"list_impact_change_in_days": "{eventTitle} est dans {count} jours. Après cette modification, aucune liste ne sera révélée automatiquement ce jour-là.",
 	"item_clone_placeholder": "Bonjour \"/(core)/item/clone\" !",
-	"intelligence_run_failed": "La dernière analyse n’a pas abouti. Réessayez plus tard."
+	"intelligence_run_failed": "La dernière analyse n’a pas abouti. Réessayez plus tard.",
+	"intel_common_you": "Vous",
+	"intel_common_noun_item": "article",
+	"intel_common_noun_items": "articles",
+	"intel_common_noun_list": "liste",
+	"intel_common_dismiss_list_bundle": "Masquez cette suggestion pour cette liste. Nous ne l’afficherons plus, sauf si ces articles changent.",
+	"intel_common_line_item_on_list": "{title} · dans « {listName} »",
+	"intel_common_action_open_list_label": "Ouvrir la liste",
+	"intel_common_action_keep_separate_label": "Garder séparés",
+	"intel_common_action_group_pick_one_label": "Grouper en « un au choix »",
+	"intel_common_action_group_pick_one_description": "Dès qu’un article est réservé, les autres sont verrouillés. Vous pourrez réorganiser ou scinder le groupe plus tard.",
+	"intel_common_list_type_wishlist": "Liste de souhaits",
+	"intel_common_list_type_title_wishlist": "Liste de souhaits",
+	"intel_common_list_type_christmas": "Noël",
+	"intel_common_list_type_title_christmas": "Noël",
+	"intel_common_list_type_birthday": "Anniversaire",
+	"intel_common_list_type_title_birthday": "Anniversaire",
+	"intel_common_list_type_holiday": "Fête",
+	"intel_common_list_type_title_holiday": "Fête",
+	"intel_common_list_type_giftideas": "Idées cadeaux",
+	"intel_common_list_type_title_giftideas": "Idées cadeaux",
+	"intel_common_list_type_todos": "Tâches",
+	"intel_common_list_type_title_todos": "Tâches",
+	"intel_common_list_type_test": "Test",
+	"intel_common_list_type_title_test": "Test",
+	"intel_common_event_birthday": "Anniversaire",
+	"intel_common_event_christmas": "Noël",
+	"intel_clothing_prefs_detail_default": "Aucune taille ni couleur indiquée pour le moment.",
+	"intel_clothing_prefs_title": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Précisez la taille d’un article de la liste « {listName} »",
+				"countPlural=*": "Précisez la taille des articles de la liste « {listName} »"
+			}
+		}
+	],
+	"intel_clothing_prefs_body": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Ce vêtement n’a ni taille ni couleur précisée. Sans cela, vos proches risquent de se tromper.",
+				"countPlural=*": "Ces vêtements n’ont ni taille ni couleur précisée. Sans cela, vos proches risquent de se tromper. Une note figure sous chaque article ci-dessous."
+			}
+		}
+	],
+	"intel_clothing_prefs_line": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{listName} · {count} vêtement sans taille ni couleur",
+				"countPlural=*": "{listName} · {count} vêtements sans taille ni couleur"
+			}
+		}
+	],
+	"intel_missing_image_detail": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} image proposée",
+				"countPlural=*": "{count} images proposées"
+			}
+		}
+	],
+	"intel_missing_image_title": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Choisissez une image pour un article de la liste « {listName} »",
+				"countPlural=*": "Choisissez des images pour les articles de la liste « {listName} »"
+			}
+		}
+	],
+	"intel_missing_image_body": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Nous avons récupéré des images sur la page liée, mais aucune n’est encore associée à cet article.",
+				"countPlural=*": "Nous avons récupéré des images sur les pages liées à ces articles, mais aucune n’a encore été choisie. Ouvrez la liste pour en choisir plusieurs d’un coup, ou utilisez Modifier / Passer sur chaque article ci-dessous."
+			}
+		}
+	],
+	"intel_missing_image_line": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{listName} · {count} article sans image choisie",
+				"countPlural=*": "{listName} · {count} articles sans image choisie"
+			}
+		}
+	],
+	"intel_missing_price_title": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Ajoutez un prix à un article de la liste « {listName} »",
+				"countPlural=*": "Ajoutez des prix aux articles de la liste « {listName} »"
+			}
+		}
+	],
+	"intel_missing_price_body": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Cet article a un lien mais pas de prix. En indiquer un aide vos proches à prévoir leur budget et le fait apparaître dans les vues filtrées par prix.",
+				"countPlural=*": "Ces articles ont un lien mais pas de prix. Les renseigner aide vos proches à prévoir leur budget et les fait apparaître dans les vues filtrées par prix. Ouvrez la liste pour en corriger plusieurs d’un coup, ou utilisez Modifier / Passer sur chaque article ci-dessous."
+			}
+		}
+	],
+	"intel_missing_price_line": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{listName} · {count} article sans prix",
+				"countPlural=*": "{listName} · {count} articles sans prix"
+			}
+		}
+	],
+	"intel_primary_list_title": "Choisissez une liste principale",
+	"intel_primary_list_body": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Vous avez {count} liste active, mais aucune liste principale. Votre liste principale est celle que vos proches voient en premier : en choisir une les aide à savoir où regarder.",
+				"countPlural=*": "Vous avez {count} listes actives, mais aucune liste principale. Votre liste principale est celle que vos proches voient en premier : en choisir une les aide à savoir où regarder."
+			}
+		}
+	],
+	"intel_primary_list_save_label": "Définir comme principale",
+	"intel_relation_labels_title": "Dites-nous à qui vous offrez des cadeaux",
+	"intel_relation_labels_body_mothers": "Les mères ne verront pas cette liste, mais indiquer les mères à qui vous offrez des cadeaux nous permet de vous envoyer un rappel avant la fête et de mettre leurs listes en avant dans Suggestions. Rendez-vous dans votre profil pour les ajouter.",
+	"intel_relation_labels_body_fathers": "Les pères ne verront pas cette liste, mais indiquer les pères à qui vous offrez des cadeaux nous permet de vous envoyer un rappel avant la fête et de mettre leurs listes en avant dans Suggestions. Rendez-vous dans votre profil pour les ajouter.",
+	"intel_relation_labels_body_both": "Les mères et les pères ne verront pas cette liste, mais indiquer les mères et les pères à qui vous offrez des cadeaux nous permet de vous envoyer un rappel avant la fête et de mettre leurs listes en avant dans Suggestions. Rendez-vous dans votre profil pour les ajouter.",
+	"intel_relation_labels_action_settings_label": "Ouvrir les paramètres",
+	"intel_relation_labels_action_settings_description": "Ajoutez dans votre profil les personnes à qui vous offrez des cadeaux.",
+	"intel_stale_scrape_detail_never": "Détails jamais récupérés",
+	"intel_stale_scrape_detail_age": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Dernière récupération il y a {count} jour",
+				"countPlural=*": "Dernière récupération il y a {count} jours"
+			}
+		}
+	],
+	"intel_stale_scrape_unscraped_title": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Récupérez les détails d’un article de la liste « {listName} »",
+				"countPlural=*": "Récupérez les détails des articles de la liste « {listName} »"
+			}
+		}
+	],
+	"intel_stale_scrape_stale_title": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Actualisez les détails d’un article de la liste « {listName} »",
+				"countPlural=*": "Actualisez les détails des articles de la liste « {listName} »"
+			}
+		}
+	],
+	"intel_stale_scrape_unscraped_body": "Ces articles ont un lien, mais nous n’avons pas encore récupéré leur titre, leur prix ou leur image. Ouvrez la liste pour tout actualiser d’un coup, ou utilisez Modifier / Passer sur chaque article ci-dessous.",
+	"intel_stale_scrape_stale_body": "Les détails des produits liés n’ont pas été actualisés depuis plus de {days} jours : le prix et la disponibilité ne sont peut-être plus à jour. Ouvrez la liste pour tout actualiser d’un coup, ou utilisez Modifier / Passer sur chaque article ci-dessous.",
+	"intel_stale_scrape_dismiss": "Masquez cette suggestion pour cette liste. Nous ne l’afficherons plus, sauf si l’historique de récupération change.",
+	"intel_stale_scrape_unscraped_line": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{listName} · {count} article jamais récupéré",
+				"countPlural=*": "{listName} · {count} articles jamais récupérés"
+			}
+		}
+	],
+	"intel_stale_scrape_stale_line": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{listName} · {count} article à actualiser",
+				"countPlural=*": "{listName} · {count} articles à actualiser"
+			}
+		}
+	],
+	"intel_duplicates_title": "Même article sur deux listes",
+	"intel_duplicates_body_same_url": "Les deux articles renvoient vers la même page produit : il s’agit donc du même article en double.",
+	"intel_duplicates_body_same_product": "Les deux articles décrivent le même produit : il s’agit sans doute du même article en double.",
+	"intel_duplicates_body_similar_titles": "Ces titres sont presque identiques : il s’agit sans doute du même produit sur deux listes.",
+	"intel_duplicates_action_open_label": "Ouvrir « {listName} »",
+	"intel_duplicates_action_open_description": "Accédez à la liste « {listName} » pour vérifier ou supprimer cet exemplaire.",
+	"intel_duplicates_action_keep_both_label": "Garder les deux",
+	"intel_duplicates_action_keep_both_description": "Ce sont en réalité deux articles différents. Nous ne signalerons plus cette paire.",
+	"intel_stale_items_dismiss": "Masquez cette recommandation. Nous ne la proposerons plus, sauf si ces articles changent.",
+	"intel_stale_items_line_last_edited": "{title} · dernière modification il y a {days} jours",
+	"intel_stale_items_action_open_list_description": "Accédez à la liste « {listName} » pour modifier ou retirer ces articles un par un.",
+	"intel_stale_items_action_edit_label": "Modifier l’article",
+	"intel_stale_items_action_edit_description": "Actualisez les détails ou mettez à jour les notes pour que cet article ne paraisse plus oublié.",
+	"intel_stale_items_action_delete_item_label": "Supprimer l’article",
+	"intel_stale_items_action_delete_item_description": "Supprimez définitivement cet article. Personne ne l’a réservé, donc aucun de vos proches n’est concerné.",
+	"intel_stale_items_action_delete_confirm": "Supprimer définitivement « {title} » de la liste « {listName} » ? Cette action est irréversible.",
+	"intel_stale_items_action_delete_label": "Supprimer",
+	"intel_stale_items_action_delete_description": "Supprimer « {title} ».",
+	"intel_stale_items_pick_one_open_list_description": "Accédez à la liste « {listName} » pour modifier ces articles individuellement.",
+	"intel_stale_items_pick_one_keep_separate_description": "Ce ne sont pas vraiment des alternatives. Nous ne proposerons plus de les grouper.",
+	"intel_stale_items_heuristic_title": "Articles anciens dans la liste « {listName} »",
+	"intel_stale_items_heuristic_body": "{count} articles de cette liste n’ont pas été modifiés depuis plus de six mois. Ils méritent peut-être un coup d’œil.",
+	"intel_stale_items_heuristic_open_list_description": "Accédez à la liste « {listName} » pour y jeter un œil.",
+	"intel_grouping_title_or": "Groupez ces articles en « un au choix »",
+	"intel_grouping_title_order": "Groupez ces articles « dans l’ordre »",
+	"intel_grouping_action_order_label": "Grouper « dans l’ordre »",
+	"intel_grouping_action_order_description": "Les premiers articles doivent être réservés avant les suivants. Vous pourrez réorganiser ou scinder le groupe plus tard.",
+	"intel_grouping_keep_separate_description": "Ces articles ne forment pas vraiment un ensemble. Nous ne proposerons plus de les grouper.",
+	"intel_grouping_add_title_or": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Ajoutez cet article à un groupe « un au choix »",
+				"countPlural=*": "Ajoutez ces articles à un groupe « un au choix »"
+			}
+		}
+	],
+	"intel_grouping_add_title_order": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Ajoutez cet article à un groupe « dans l’ordre »",
+				"countPlural=*": "Ajoutez ces articles à un groupe « dans l’ordre »"
+			}
+		}
+	],
+	"intel_grouping_add_action_label": "Ajouter au groupe",
+	"intel_grouping_add_action_description_or": "Dès qu’un article du groupe est réservé, les autres sont verrouillés. Vous pourrez réorganiser ou scinder le groupe plus tard.",
+	"intel_grouping_add_action_description_order": "Ces articles viennent après ceux déjà dans le groupe. Vous pourrez réorganiser ou scinder le groupe plus tard.",
+	"intel_grouping_add_keep_separate_description": "Ces articles n’ont pas leur place dans ce groupe. Nous ne proposerons plus de les y ajouter.",
+	"intel_grouping_line_add": "{title} · à ajouter au groupe",
+	"intel_grouping_line_existing": "{title} · déjà dans le groupe",
+	"intel_list_hygiene_convert_title": "Adaptez la liste « {listName} » pour l’événement « {eventTitle} »",
+	"intel_list_hygiene_convert_body_self": [
+		{
+			"declarations": ["input count", "input eventTitle", "input listName", "input listType", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{eventTitle} : plus que {count} jour, et la liste « {listName} », celle que vos proches verront sans doute en premier, n’est pas configurée pour l’occasion. Convertissez-la en liste de type « {listType} » pour que les cadeaux soient révélés automatiquement le bon jour.",
+				"countPlural=*": "{eventTitle} : plus que {count} jours, et la liste « {listName} », celle que vos proches verront sans doute en premier, n’est pas configurée pour l’occasion. Convertissez-la en liste de type « {listType} » pour que les cadeaux soient révélés automatiquement le bon jour."
+			}
+		}
+	],
+	"intel_list_hygiene_convert_body_self_rename": [
+		{
+			"declarations": [
+				"input count",
+				"input eventTitle",
+				"input listName",
+				"input listType",
+				"input newName",
+				"local countPlural = count: plural"
+			],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{eventTitle} : plus que {count} jour, et la liste « {listName} », celle que vos proches verront sans doute en premier, n’est pas configurée pour l’occasion. Convertissez-la en liste de type « {listType} » et renommez-la « {newName} » pour que les cadeaux soient révélés automatiquement le bon jour.",
+				"countPlural=*": "{eventTitle} : plus que {count} jours, et la liste « {listName} », celle que vos proches verront sans doute en premier, n’est pas configurée pour l’occasion. Convertissez-la en liste de type « {listType} » et renommez-la « {newName} » pour que les cadeaux soient révélés automatiquement le bon jour."
+			}
+		}
+	],
+	"intel_list_hygiene_convert_body_dependent": [
+		{
+			"declarations": [
+				"input count",
+				"input name",
+				"input eventTitle",
+				"input listName",
+				"input listType",
+				"local countPlural = count: plural"
+			],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{eventTitle} de {name} : plus que {count} jour, et la liste « {listName} », celle que vos proches verront sans doute en premier, n’est pas configurée pour l’occasion. Convertissez-la en liste de type « {listType} » pour que les cadeaux soient révélés automatiquement le bon jour.",
+				"countPlural=*": "{eventTitle} de {name} : plus que {count} jours, et la liste « {listName} », celle que vos proches verront sans doute en premier, n’est pas configurée pour l’occasion. Convertissez-la en liste de type « {listType} » pour que les cadeaux soient révélés automatiquement le bon jour."
+			}
+		}
+	],
+	"intel_list_hygiene_convert_body_dependent_rename": [
+		{
+			"declarations": [
+				"input count",
+				"input name",
+				"input eventTitle",
+				"input listName",
+				"input listType",
+				"input newName",
+				"local countPlural = count: plural"
+			],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{eventTitle} de {name} : plus que {count} jour, et la liste « {listName} », celle que vos proches verront sans doute en premier, n’est pas configurée pour l’occasion. Convertissez-la en liste de type « {listType} » et renommez-la « {newName} » pour que les cadeaux soient révélés automatiquement le bon jour.",
+				"countPlural=*": "{eventTitle} de {name} : plus que {count} jours, et la liste « {listName} », celle que vos proches verront sans doute en premier, n’est pas configurée pour l’occasion. Convertissez-la en liste de type « {listType} » et renommez-la « {newName} » pour que les cadeaux soient révélés automatiquement le bon jour."
+			}
+		}
+	],
+	"intel_list_hygiene_convert_action_label": "Convertir en liste « {listType} »",
+	"intel_list_hygiene_convert_action_description": "Change le type de la liste. Les articles et les réservations existantes sont conservés.",
+	"intel_list_hygiene_convert_action_description_rename": "Change le type de la liste et la renomme. Les articles et les réservations existantes sont conservés.",
+	"intel_list_hygiene_privacy_title": "Rendez publique la liste « {listName} » pour l’événement « {eventTitle} »",
+	"intel_list_hygiene_privacy_body_self": [
+		{
+			"declarations": ["input count", "input eventTitle", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{eventTitle} : plus que {count} jour. La liste « {listName} » est prête pour l’occasion, mais elle est privée : vos proches ne peuvent pas la voir. La rendre publique leur permettra d’y choisir des cadeaux.",
+				"countPlural=*": "{eventTitle} : plus que {count} jours. La liste « {listName} » est prête pour l’occasion, mais elle est privée : vos proches ne peuvent pas la voir. La rendre publique leur permettra d’y choisir des cadeaux."
+			}
+		}
+	],
+	"intel_list_hygiene_create_body_self": [
+		{
+			"declarations": ["input count", "input eventTitle", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{eventTitle} : plus que {count} jour, et aucune liste n’est prévue pour révéler automatiquement les cadeaux ce jour-là. Voulez-vous en créer une ?",
+				"countPlural=*": "{eventTitle} : plus que {count} jours, et aucune liste n’est prévue pour révéler automatiquement les cadeaux ce jour-là. Voulez-vous en créer une ?"
+			}
+		}
+	],
+	"intel_list_hygiene_privacy_body_dependent": [
+		{
+			"declarations": ["input count", "input name", "input eventTitle", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{eventTitle} de {name} : plus que {count} jour. La liste « {listName} » est prête pour l’occasion, mais elle est privée : vos proches ne peuvent pas la voir. La rendre publique leur permettra d’y choisir des cadeaux.",
+				"countPlural=*": "{eventTitle} de {name} : plus que {count} jours. La liste « {listName} » est prête pour l’occasion, mais elle est privée : vos proches ne peuvent pas la voir. La rendre publique leur permettra d’y choisir des cadeaux."
+			}
+		}
+	],
+	"intel_list_hygiene_create_body_dependent": [
+		{
+			"declarations": ["input count", "input name", "input eventTitle", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{eventTitle} de {name} : plus que {count} jour, et aucune liste n’est prévue pour révéler automatiquement les cadeaux ce jour-là. Voulez-vous en créer une ?",
+				"countPlural=*": "{eventTitle} de {name} : plus que {count} jours, et aucune liste n’est prévue pour révéler automatiquement les cadeaux ce jour-là. Voulez-vous en créer une ?"
+			}
+		}
+	],
+	"intel_list_hygiene_privacy_action_label": "Rendre publique",
+	"intel_list_hygiene_privacy_action_description": "Rend la liste publique pour que vos proches puissent la trouver.",
+	"intel_list_hygiene_create_title": "Créez une liste de type « {listType} » pour l’événement « {eventTitle} »",
+	"intel_list_hygiene_create_action_label": "Créer « {name} »",
+	"intel_list_hygiene_create_action_description": "Crée une liste privée déjà nommée pour l’occasion. Vous pourrez la rendre publique une fois quelques articles ajoutés.",
+	"intel_list_hygiene_primary_title": "Définissez la liste « {listName} » comme principale pour l’événement « {eventTitle} »",
+	"intel_list_hygiene_primary_body": [
+		{
+			"declarations": ["input count", "input eventTitle", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{eventTitle} : plus que {count} jour, mais la liste « {listName} » n’est pas votre liste principale. En faire votre liste principale permet d’y ajouter les nouveaux articles par défaut.",
+				"countPlural=*": "{eventTitle} : plus que {count} jours, mais la liste « {listName} » n’est pas votre liste principale. En faire votre liste principale permet d’y ajouter les nouveaux articles par défaut."
+			}
+		}
+	],
+	"intel_list_hygiene_primary_action_label": "Définir comme principale",
+	"intel_list_hygiene_primary_action_description": "Fait de cette liste votre liste principale. Votre liste principale actuelle redevient une liste ordinaire.",
+	"intel_list_hygiene_merge_title": [
+		{
+			"declarations": ["input count", "input survivorName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Fusionnez {count} ancienne liste dans « {survivorName} »",
+				"countPlural=*": "Fusionnez {count} anciennes listes dans « {survivorName} »"
+			}
+		}
+	],
+	"intel_list_hygiene_merge_body": [
+		{
+			"declarations": ["input count", "input total", "input listType", "input survivorName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Vous avez {total} listes actives de type « {listType} ». La liste « {survivorName} » est la plus récente, et l’autre n’a pas été modifiée depuis plus d’un an. La fusion déplace les articles vers la liste la plus récente et archive l’ancienne.",
+				"countPlural=*": "Vous avez {total} listes actives de type « {listType} ». La liste « {survivorName} » est la plus récente, et les autres n’ont pas été modifiées depuis plus d’un an. La fusion déplace les articles vers la liste la plus récente et archive les anciennes."
+			}
+		}
+	],
+	"intel_list_hygiene_merge_action_label": "Fusionner dans la plus récente",
+	"intel_list_hygiene_merge_action_description": "Déplace les articles, les groupes d’articles et les cadeaux hors liste vers la liste la plus récente ; les réservations existantes suivent leurs articles. Les anciennes listes sont archivées, pas supprimées : vous pourrez les rétablir.",
+	"intel_list_hygiene_stale_title": "La liste « {listName} » semble à l’abandon",
+	"intel_list_hygiene_stale_body_inactive": "La liste « {listName} » n’a pas été modifiée depuis plus d’un an. Archivez-la si vous n’en avez plus besoin, ou convertissez-la en simple liste de souhaits si elle vous sert encore.",
+	"intel_list_hygiene_stale_body_inactive_wishlist": "La liste « {listName} » n’a pas été modifiée depuis plus d’un an. Archivez-la si vous n’en avez plus besoin.",
+	"intel_list_hygiene_stale_body_event": [
+		{
+			"declarations": ["input count", "input eventTitle", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Dernière occurrence de l’événement « {eventTitle} » : il y a {count} jour, et la liste « {listName} » est toujours active. Archivez-la si vous n’en avez plus besoin, ou convertissez-la en simple liste de souhaits si elle vous sert encore.",
+				"countPlural=*": "Dernière occurrence de l’événement « {eventTitle} » : il y a {count} jours, et la liste « {listName} » est toujours active. Archivez-la si vous n’en avez plus besoin, ou convertissez-la en simple liste de souhaits si elle vous sert encore."
+			}
+		}
+	],
+	"intel_list_hygiene_stale_body_event_wishlist": [
+		{
+			"declarations": ["input count", "input eventTitle", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Dernière occurrence de l’événement « {eventTitle} » : il y a {count} jour, et la liste « {listName} » est toujours active. Archivez-la si vous n’en avez plus besoin.",
+				"countPlural=*": "Dernière occurrence de l’événement « {eventTitle} » : il y a {count} jours, et la liste « {listName} » est toujours active. Archivez-la si vous n’en avez plus besoin."
+			}
+		}
+	],
+	"intel_list_hygiene_stale_body_event_inactive": [
+		{
+			"declarations": ["input count", "input eventTitle", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Dernière occurrence de l’événement « {eventTitle} » : il y a {count} jour, et la liste « {listName} » est toujours active. Archivez-la si vous n’en avez plus besoin, ou convertissez-la en simple liste de souhaits si elle vous sert encore. Elle n’a pas non plus été modifiée depuis plus d’un an.",
+				"countPlural=*": "Dernière occurrence de l’événement « {eventTitle} » : il y a {count} jours, et la liste « {listName} » est toujours active. Archivez-la si vous n’en avez plus besoin, ou convertissez-la en simple liste de souhaits si elle vous sert encore. Elle n’a pas non plus été modifiée depuis plus d’un an."
+			}
+		}
+	],
+	"intel_list_hygiene_stale_body_event_inactive_wishlist": [
+		{
+			"declarations": ["input count", "input eventTitle", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Dernière occurrence de l’événement « {eventTitle} » : il y a {count} jour, et la liste « {listName} » est toujours active. Archivez-la si vous n’en avez plus besoin. Elle n’a pas non plus été modifiée depuis plus d’un an.",
+				"countPlural=*": "Dernière occurrence de l’événement « {eventTitle} » : il y a {count} jours, et la liste « {listName} » est toujours active. Archivez-la si vous n’en avez plus besoin. Elle n’a pas non plus été modifiée depuis plus d’un an."
+			}
+		}
+	],
+	"intel_list_hygiene_stale_archive_label": "Archiver la liste",
+	"intel_list_hygiene_stale_archive_description": "Rend la liste inactive. Ses articles et les cadeaux passés sont conservés, et vous pourrez la désarchiver plus tard.",
+	"intel_list_hygiene_stale_convert_label": "Convertir en liste de souhaits",
+	"intel_list_hygiene_stale_convert_description": "La transforme en simple liste de souhaits, sans lien avec un événement. Pratique si la liste vous sert toute l’année.",
+	"intel_list_hygiene_wishlist_fallback_name": "Liste de souhaits",
+	"intel_common_noun_lists": "listes"
 }

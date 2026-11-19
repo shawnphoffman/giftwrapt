@@ -267,5 +267,454 @@
 	"list_impact_change_tomorrow": "{eventTitle} is tomorrow. After this change, no list will auto-reveal on that day.",
 	"list_impact_change_in_days": "{eventTitle} is in {count} days. After this change, no list will auto-reveal on that day.",
 	"item_clone_placeholder": "Hello \"/(core)/item/clone\"!",
-	"intelligence_run_failed": "The last run did not finish. Try again later."
+	"intelligence_run_failed": "The last run did not finish. Try again later.",
+	"intel_common_you": "You",
+	"intel_common_noun_item": "item",
+	"intel_common_noun_items": "items",
+	"intel_common_noun_list": "list",
+	"intel_common_dismiss_list_bundle": "Hide this suggestion for this list. We won't surface it again unless something changes about these items.",
+	"intel_common_line_item_on_list": "{title} · on {listName}",
+	"intel_common_action_open_list_label": "Open List",
+	"intel_common_action_keep_separate_label": "Keep Separate",
+	"intel_common_action_group_pick_one_label": "Group as Pick One",
+	"intel_common_action_group_pick_one_description": "Claiming one will lock the others. You can rearrange or split the group later.",
+	"intel_common_list_type_wishlist": "wishlist",
+	"intel_common_list_type_title_wishlist": "Wishlist",
+	"intel_common_list_type_christmas": "Christmas",
+	"intel_common_list_type_title_christmas": "Christmas",
+	"intel_common_list_type_birthday": "birthday",
+	"intel_common_list_type_title_birthday": "Birthday",
+	"intel_common_list_type_holiday": "holiday",
+	"intel_common_list_type_title_holiday": "Holiday",
+	"intel_common_list_type_giftideas": "gift ideas",
+	"intel_common_list_type_title_giftideas": "Gift Ideas",
+	"intel_common_list_type_todos": "todo",
+	"intel_common_list_type_title_todos": "Todo",
+	"intel_common_list_type_test": "test",
+	"intel_common_list_type_title_test": "Test",
+	"intel_common_event_birthday": "Birthday",
+	"intel_common_event_christmas": "Christmas",
+	"intel_clothing_prefs_detail_default": "No size or color recorded yet.",
+	"intel_clothing_prefs_title": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Pin down sizing on an item on {listName}",
+				"countPlural=*": "Pin down sizing on items on {listName}"
+			}
+		}
+	],
+	"intel_clothing_prefs_body": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "This clothing item doesn't have a size or color pinned down. Gifters can guess wrong without one.",
+				"countPlural=*": "These clothing items don't have a size or color pinned down. Gifters can guess wrong without one. There's a note on each item below."
+			}
+		}
+	],
+	"intel_clothing_prefs_line": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{listName} · {count} clothing item missing sizing or color",
+				"countPlural=*": "{listName} · {count} clothing items missing sizing or color"
+			}
+		}
+	],
+	"intel_missing_image_detail": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} candidate image available",
+				"countPlural=*": "{count} candidate images available"
+			}
+		}
+	],
+	"intel_missing_image_title": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Pick an image for an item on {listName}",
+				"countPlural=*": "Pick images for items on {listName}"
+			}
+		}
+	],
+	"intel_missing_image_body": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "We pulled candidate images from the linked page but none are set on this item yet.",
+				"countPlural=*": "These items have candidate images we scraped from their linked pages, but none of those have been picked yet. Open the list to choose images for several at once, or use Edit / Skip on each item below."
+			}
+		}
+	],
+	"intel_missing_image_line": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{listName} · {count} item with unselected images",
+				"countPlural=*": "{listName} · {count} items with unselected images"
+			}
+		}
+	],
+	"intel_missing_price_title": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Add a price to an item on {listName}",
+				"countPlural=*": "Add prices to items on {listName}"
+			}
+		}
+	],
+	"intel_missing_price_body": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "This item has a link but no price. Filling one in helps gifters budget and surfaces it on price-filtered views.",
+				"countPlural=*": "These items have links but no price set. Filling them in helps gifters budget and surfaces them on price-filtered views. Open the list to fix several at once, or use Edit / Skip on each item below."
+			}
+		}
+	],
+	"intel_missing_price_line": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{listName} · {count} item missing a price",
+				"countPlural=*": "{listName} · {count} items missing a price"
+			}
+		}
+	],
+	"intel_primary_list_title": "Pick a primary list",
+	"intel_primary_list_body": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "You have {count} active list but none are marked primary. Your primary list is the one shoppers see first, so picking one helps gifters know where to look.",
+				"countPlural=*": "You have {count} active lists but none are marked primary. Your primary list is the one shoppers see first, so picking one helps gifters know where to look."
+			}
+		}
+	],
+	"intel_primary_list_save_label": "Save as Primary",
+	"intel_relation_labels_title": "Tell us who you shop for",
+	"intel_relation_labels_body_mothers": "Mothers won’t see this list, but tagging the mothers you shop for lets us send you a reminder before the holiday and surface their lists in Suggestions. Head to your profile to add them.",
+	"intel_relation_labels_body_fathers": "Fathers won’t see this list, but tagging the fathers you shop for lets us send you a reminder before the holiday and surface their lists in Suggestions. Head to your profile to add them.",
+	"intel_relation_labels_body_both": "Mothers and fathers won’t see this list, but tagging the mothers and fathers you shop for lets us send you a reminder before the holiday and surface their lists in Suggestions. Head to your profile to add them.",
+	"intel_relation_labels_action_settings_label": "Open Settings",
+	"intel_relation_labels_action_settings_description": "Add the people you shop for in your profile.",
+	"intel_stale_scrape_detail_never": "Never scraped",
+	"intel_stale_scrape_detail_age": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Last scraped {count} day ago",
+				"countPlural=*": "Last scraped {count} days ago"
+			}
+		}
+	],
+	"intel_stale_scrape_unscraped_title": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Pull details for an item on {listName}",
+				"countPlural=*": "Pull details for items on {listName}"
+			}
+		}
+	],
+	"intel_stale_scrape_stale_title": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Refresh details for an item on {listName}",
+				"countPlural=*": "Refresh details for items on {listName}"
+			}
+		}
+	],
+	"intel_stale_scrape_unscraped_body": "These items have links but we haven't pulled their title, price, or image yet. Open the list to bulk-refresh, or use Edit / Skip on each item below.",
+	"intel_stale_scrape_stale_body": "Linked product details haven't been refreshed in over {days} days, so price and availability may be out of date. Open the list to bulk-refresh, or use Edit / Skip on each item below.",
+	"intel_stale_scrape_dismiss": "Hide this suggestion for this list. We won't surface it again unless the underlying scrape history changes.",
+	"intel_stale_scrape_unscraped_line": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{listName} · {count} unscraped item",
+				"countPlural=*": "{listName} · {count} unscraped items"
+			}
+		}
+	],
+	"intel_stale_scrape_stale_line": [
+		{
+			"declarations": ["input count", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{listName} · {count} stale item",
+				"countPlural=*": "{listName} · {count} stale items"
+			}
+		}
+	],
+	"intel_duplicates_title": "Same item on two lists",
+	"intel_duplicates_body_same_url": "Both items link to the same product page, so this is the same item appearing twice.",
+	"intel_duplicates_body_same_product": "Both items describe the same product, so this looks like the same item appearing twice.",
+	"intel_duplicates_body_similar_titles": "These titles are nearly identical, so this looks like the same product on two lists.",
+	"intel_duplicates_action_open_label": "Open {listName}",
+	"intel_duplicates_action_open_description": "Jump to {listName} so you can review or delete this copy.",
+	"intel_duplicates_action_keep_both_label": "Keep Both",
+	"intel_duplicates_action_keep_both_description": "These are actually different items. We won't flag this pair again.",
+	"intel_stale_items_dismiss": "Hide this recommendation. We won't suggest it again unless these items change.",
+	"intel_stale_items_line_last_edited": "{title} · last edited {days} days ago",
+	"intel_stale_items_action_open_list_description": "Jump to {listName} so you can edit or remove these items one at a time.",
+	"intel_stale_items_action_edit_label": "Edit Item",
+	"intel_stale_items_action_edit_description": "Refresh the details or update notes so this item stops looking stale.",
+	"intel_stale_items_action_delete_item_label": "Delete Item",
+	"intel_stale_items_action_delete_item_description": "Permanently delete this item. It has no claims, so no gifters are affected.",
+	"intel_stale_items_action_delete_confirm": "Permanently delete \"{title}\" from {listName}? This cannot be undone.",
+	"intel_stale_items_action_delete_label": "Delete",
+	"intel_stale_items_action_delete_description": "Delete \"{title}\".",
+	"intel_stale_items_pick_one_open_list_description": "Jump to {listName} to edit these items individually.",
+	"intel_stale_items_pick_one_keep_separate_description": "These aren't really alternatives. We won't suggest grouping them again.",
+	"intel_stale_items_heuristic_title": "Old items on {listName}",
+	"intel_stale_items_heuristic_body": "{count} items here haven't been edited in over six months. They might be worth a quick look.",
+	"intel_stale_items_heuristic_open_list_description": "Jump to {listName} to review.",
+	"intel_grouping_title_or": "Group these as \"pick one\"",
+	"intel_grouping_title_order": "Group these in order",
+	"intel_grouping_action_order_label": "Group in Order",
+	"intel_grouping_action_order_description": "Earlier items must be claimed before later ones. You can rearrange or split the group later.",
+	"intel_grouping_keep_separate_description": "These aren't really a set. We won't suggest grouping them again.",
+	"intel_grouping_add_title_or": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Add this to a \"pick one\" group",
+				"countPlural=*": "Add these to a \"pick one\" group"
+			}
+		}
+	],
+	"intel_grouping_add_title_order": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Add this to an ordered group",
+				"countPlural=*": "Add these to an ordered group"
+			}
+		}
+	],
+	"intel_grouping_add_action_label": "Add to Group",
+	"intel_grouping_add_action_description_or": "Claiming any item in the group locks the others. You can rearrange or split the group later.",
+	"intel_grouping_add_action_description_order": "These go after the items already in the group. You can rearrange or split the group later.",
+	"intel_grouping_add_keep_separate_description": "These don't belong in that group. We won't suggest adding them again.",
+	"intel_grouping_line_add": "{title} · add to group",
+	"intel_grouping_line_existing": "{title} · already in group",
+	"intel_list_hygiene_convert_title": "Reshape \"{listName}\" for {eventTitle}",
+	"intel_list_hygiene_convert_body_self": [
+		{
+			"declarations": ["input count", "input eventTitle", "input listName", "input listType", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Your {eventTitle} is in {count} day, and \"{listName}\", the list gifters are most likely to see, isn't set up for it. Convert it to a {listType} list so gifts auto-reveal on the right day.",
+				"countPlural=*": "Your {eventTitle} is in {count} days, and \"{listName}\", the list gifters are most likely to see, isn't set up for it. Convert it to a {listType} list so gifts auto-reveal on the right day."
+			}
+		}
+	],
+	"intel_list_hygiene_convert_body_self_rename": [
+		{
+			"declarations": [
+				"input count",
+				"input eventTitle",
+				"input listName",
+				"input listType",
+				"input newName",
+				"local countPlural = count: plural"
+			],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Your {eventTitle} is in {count} day, and \"{listName}\", the list gifters are most likely to see, isn't set up for it. Convert it to a {listType} list and rename it to \"{newName}\" so gifts auto-reveal on the right day.",
+				"countPlural=*": "Your {eventTitle} is in {count} days, and \"{listName}\", the list gifters are most likely to see, isn't set up for it. Convert it to a {listType} list and rename it to \"{newName}\" so gifts auto-reveal on the right day."
+			}
+		}
+	],
+	"intel_list_hygiene_convert_body_dependent": [
+		{
+			"declarations": [
+				"input count",
+				"input name",
+				"input eventTitle",
+				"input listName",
+				"input listType",
+				"local countPlural = count: plural"
+			],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{name}'s {eventTitle} is in {count} day, and \"{listName}\", the list gifters are most likely to see, isn't set up for it. Convert it to a {listType} list so gifts auto-reveal on the right day.",
+				"countPlural=*": "{name}'s {eventTitle} is in {count} days, and \"{listName}\", the list gifters are most likely to see, isn't set up for it. Convert it to a {listType} list so gifts auto-reveal on the right day."
+			}
+		}
+	],
+	"intel_list_hygiene_convert_body_dependent_rename": [
+		{
+			"declarations": [
+				"input count",
+				"input name",
+				"input eventTitle",
+				"input listName",
+				"input listType",
+				"input newName",
+				"local countPlural = count: plural"
+			],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{name}'s {eventTitle} is in {count} day, and \"{listName}\", the list gifters are most likely to see, isn't set up for it. Convert it to a {listType} list and rename it to \"{newName}\" so gifts auto-reveal on the right day.",
+				"countPlural=*": "{name}'s {eventTitle} is in {count} days, and \"{listName}\", the list gifters are most likely to see, isn't set up for it. Convert it to a {listType} list and rename it to \"{newName}\" so gifts auto-reveal on the right day."
+			}
+		}
+	],
+	"intel_list_hygiene_convert_action_label": "Convert to {listType}",
+	"intel_list_hygiene_convert_action_description": "Change the list's type. Items and existing claims stay put.",
+	"intel_list_hygiene_convert_action_description_rename": "Change the list's type and rename it. Items and existing claims stay put.",
+	"intel_list_hygiene_privacy_title": "Make \"{listName}\" public for {eventTitle}",
+	"intel_list_hygiene_privacy_body_self": [
+		{
+			"declarations": ["input count", "input eventTitle", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Your {eventTitle} is in {count} day. \"{listName}\" is set up for the event, but it's private, so gifters can't see it. Making it public lets people shop from it.",
+				"countPlural=*": "Your {eventTitle} is in {count} days. \"{listName}\" is set up for the event, but it's private, so gifters can't see it. Making it public lets people shop from it."
+			}
+		}
+	],
+	"intel_list_hygiene_create_body_self": [
+		{
+			"declarations": ["input count", "input eventTitle", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Your {eventTitle} is in {count} day, and there's no list set up to auto-reveal gifts on that day. Want to create one?",
+				"countPlural=*": "Your {eventTitle} is in {count} days, and there's no list set up to auto-reveal gifts on that day. Want to create one?"
+			}
+		}
+	],
+	"intel_list_hygiene_privacy_body_dependent": [
+		{
+			"declarations": ["input count", "input name", "input eventTitle", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{name}'s {eventTitle} is in {count} day. \"{listName}\" is set up for the event, but it's private, so gifters can't see it. Making it public lets people shop from it.",
+				"countPlural=*": "{name}'s {eventTitle} is in {count} days. \"{listName}\" is set up for the event, but it's private, so gifters can't see it. Making it public lets people shop from it."
+			}
+		}
+	],
+	"intel_list_hygiene_create_body_dependent": [
+		{
+			"declarations": ["input count", "input name", "input eventTitle", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{name}'s {eventTitle} is in {count} day, and there's no list set up to auto-reveal gifts on that day. Want to create one?",
+				"countPlural=*": "{name}'s {eventTitle} is in {count} days, and there's no list set up to auto-reveal gifts on that day. Want to create one?"
+			}
+		}
+	],
+	"intel_list_hygiene_privacy_action_label": "Make Public",
+	"intel_list_hygiene_privacy_action_description": "Flip the list to public so gifters can find it.",
+	"intel_list_hygiene_create_title": "Create a {listType} list for {eventTitle}",
+	"intel_list_hygiene_create_action_label": "Create \"{name}\"",
+	"intel_list_hygiene_create_action_description": "Creates a private list pre-named for the event. You can flip it to public once you add some items.",
+	"intel_list_hygiene_primary_title": "Set \"{listName}\" as your primary for {eventTitle}",
+	"intel_list_hygiene_primary_body": [
+		{
+			"declarations": ["input count", "input eventTitle", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Your {eventTitle} is in {count} day but \"{listName}\" isn't your primary list. Making it primary means new items default into it.",
+				"countPlural=*": "Your {eventTitle} is in {count} days but \"{listName}\" isn't your primary list. Making it primary means new items default into it."
+			}
+		}
+	],
+	"intel_list_hygiene_primary_action_label": "Set as Primary",
+	"intel_list_hygiene_primary_action_description": "Makes this your primary list. Your current primary goes back to being a regular list.",
+	"intel_list_hygiene_merge_title": [
+		{
+			"declarations": ["input count", "input survivorName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Merge {count} older list into \"{survivorName}\"",
+				"countPlural=*": "Merge {count} older lists into \"{survivorName}\""
+			}
+		}
+	],
+	"intel_list_hygiene_merge_body": [
+		{
+			"declarations": ["input count", "input total", "input listType", "input survivorName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "You have {total} active {listType} lists. \"{survivorName}\" is the newest, and the older one hasn't been touched in over a year. Merging moves items into the newer list and archives the older one.",
+				"countPlural=*": "You have {total} active {listType} lists. \"{survivorName}\" is the newest, and the older ones haven't been touched in over a year. Merging moves items into the newer list and archives the older ones."
+			}
+		}
+	],
+	"intel_list_hygiene_merge_action_label": "Merge Into Newest",
+	"intel_list_hygiene_merge_action_description": "Moves items, item groups, and list addons onto the newer list, and existing claims move with their items. The older lists are archived, not deleted, so you can bring them back.",
+	"intel_list_hygiene_stale_title": "\"{listName}\" looks stale",
+	"intel_list_hygiene_stale_body_inactive": "\"{listName}\" hasn't been touched in over a year. Archive it if you're done, or convert it to a plain wishlist if it's still useful.",
+	"intel_list_hygiene_stale_body_inactive_wishlist": "\"{listName}\" hasn't been touched in over a year. Archive it if you're done.",
+	"intel_list_hygiene_stale_body_event": [
+		{
+			"declarations": ["input count", "input eventTitle", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Last {eventTitle} was {count} day ago and \"{listName}\" is still active. Archive it if you're done, or convert it to a plain wishlist if it's still useful.",
+				"countPlural=*": "Last {eventTitle} was {count} days ago and \"{listName}\" is still active. Archive it if you're done, or convert it to a plain wishlist if it's still useful."
+			}
+		}
+	],
+	"intel_list_hygiene_stale_body_event_wishlist": [
+		{
+			"declarations": ["input count", "input eventTitle", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Last {eventTitle} was {count} day ago and \"{listName}\" is still active. Archive it if you're done.",
+				"countPlural=*": "Last {eventTitle} was {count} days ago and \"{listName}\" is still active. Archive it if you're done."
+			}
+		}
+	],
+	"intel_list_hygiene_stale_body_event_inactive": [
+		{
+			"declarations": ["input count", "input eventTitle", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Last {eventTitle} was {count} day ago and \"{listName}\" is still active. Archive it if you're done, or convert it to a plain wishlist if it's still useful. It also hasn't been touched in over a year.",
+				"countPlural=*": "Last {eventTitle} was {count} days ago and \"{listName}\" is still active. Archive it if you're done, or convert it to a plain wishlist if it's still useful. It also hasn't been touched in over a year."
+			}
+		}
+	],
+	"intel_list_hygiene_stale_body_event_inactive_wishlist": [
+		{
+			"declarations": ["input count", "input eventTitle", "input listName", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Last {eventTitle} was {count} day ago and \"{listName}\" is still active. Archive it if you're done. It also hasn't been touched in over a year.",
+				"countPlural=*": "Last {eventTitle} was {count} days ago and \"{listName}\" is still active. Archive it if you're done. It also hasn't been touched in over a year."
+			}
+		}
+	],
+	"intel_list_hygiene_stale_archive_label": "Archive List",
+	"intel_list_hygiene_stale_archive_description": "Marks the list inactive. Its items and past gifts are kept, and you can unarchive it later.",
+	"intel_list_hygiene_stale_convert_label": "Convert to Wishlist",
+	"intel_list_hygiene_stale_convert_description": "Turns it into a plain wishlist that isn't tied to an event. Handy if the list is still useful year-round.",
+	"intel_list_hygiene_wishlist_fallback_name": "Wishlist",
+	"intel_common_noun_lists": "lists"
 }

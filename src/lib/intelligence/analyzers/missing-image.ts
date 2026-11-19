@@ -1,7 +1,9 @@
 import { and, eq, isNull, ne, sql } from 'drizzle-orm'
 
 import { items, itemScrapes, lists } from '@/db/schema'
+import type { Locale } from '@/lib/i18n/locales'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { m } from '@/paraglide/messages.js'
 
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
@@ -72,7 +74,7 @@ export const missingImageAnalyzer: Analyzer = {
 			return { recs: [], steps: [loadStep], inputHash: combineHashes([inputHash]) }
 		}
 
-		const recs = buildBundles(candidates, ctx.subject)
+		const recs = buildBundles(candidates, ctx.subject, ctx.locale)
 		return { recs, steps: [loadStep], inputHash: combineHashes([inputHash]) }
 	},
 }
@@ -91,7 +93,8 @@ type CandidateRow = {
 	candidateImages: Array<string> | null
 }
 
-function buildBundles(rows: ReadonlyArray<CandidateRow>, subject: AnalyzerSubject): Array<AnalyzerRecOutput> {
+function buildBundles(rows: ReadonlyArray<CandidateRow>, subject: AnalyzerSubject, locale: Locale): Array<AnalyzerRecOutput> {
+	const o = { locale }
 	const byList = new Map<number, Array<CandidateRow>>()
 	for (const row of rows) {
 		const arr = byList.get(row.listId) ?? []
@@ -108,7 +111,7 @@ function buildBundles(rows: ReadonlyArray<CandidateRow>, subject: AnalyzerSubjec
 			return {
 				id: String(c.itemId),
 				title: c.title,
-				detail: `${n} candidate image${n === 1 ? '' : 's'} available`,
+				detail: m.intel_missing_image_detail({ count: n }, o),
 				thumbnailUrl: c.imageUrl,
 				nav: { listId: String(c.listId), itemId: String(c.itemId), openEdit: true },
 			}
@@ -117,17 +120,14 @@ function buildBundles(rows: ReadonlyArray<CandidateRow>, subject: AnalyzerSubjec
 		recs.push({
 			kind: 'missing-image-selection',
 			severity: 'info',
-			title: count === 1 ? `Pick an image for an item on ${first.listName}` : `Pick images for items on ${first.listName}`,
-			body:
-				count === 1
-					? 'We pulled candidate images from the linked page but none are set on this item yet.'
-					: 'These items have candidate images we scraped from their linked pages, but none of those have been picked yet. Open the list to choose images for several at once, or use Edit / Skip on each item below.',
+			title: m.intel_missing_image_title({ count, listName: first.listName }, o),
+			body: m.intel_missing_image_body({ count }, o),
 			actions: [],
-			dismissDescription: "Hide this suggestion for this list. We won't surface it again unless something changes about these items.",
+			dismissDescription: m.intel_common_dismiss_list_bundle({}, o),
 			affected: {
-				noun: count === 1 ? 'item' : 'items',
+				noun: count === 1 ? m.intel_common_noun_item({}, o) : m.intel_common_noun_items({}, o),
 				count,
-				lines: [`${first.listName} · ${count} item${count === 1 ? '' : 's'} with unselected images`],
+				lines: [m.intel_missing_image_line({ count, listName: first.listName }, o)],
 				listChips: [listRef],
 			},
 			relatedLists: [listRef],

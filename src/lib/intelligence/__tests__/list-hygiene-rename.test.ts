@@ -157,6 +157,7 @@ function buildCtx(opts: Partial<AnalyzerContext> = {}): AnalyzerContext {
 		dryRun: false,
 		dependentId: null,
 		subject: { kind: 'user', name: 'You', image: null },
+		locale: 'en',
 		...opts,
 	}
 }

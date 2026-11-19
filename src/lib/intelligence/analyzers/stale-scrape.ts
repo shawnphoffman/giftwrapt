@@ -1,7 +1,9 @@
 import { and, eq, isNotNull, isNull, ne, sql } from 'drizzle-orm'
 
 import { items, itemScrapes, lists } from '@/db/schema'
+import type { Locale } from '@/lib/i18n/locales'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { m } from '@/paraglide/messages.js'
 
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
@@ -72,7 +74,7 @@ export const staleScrapeAnalyzer: Analyzer = {
 			return { recs: [], steps: [loadStep], inputHash: combineHashes([inputHash]) }
 		}
 
-		const recs = buildBundles(candidates, ctx.now, ctx.subject)
+		const recs = buildBundles(candidates, ctx.now, ctx.subject, ctx.locale)
 		return { recs, steps: [loadStep], inputHash: combineHashes([inputHash]) }
 	},
 }
@@ -93,7 +95,8 @@ type CandidateRow = {
 
 type BundleKey = `${number}:unscraped-url` | `${number}:stale-scrape`
 
-function buildBundles(rows: ReadonlyArray<CandidateRow>, now: Date, subject: AnalyzerSubject): Array<AnalyzerRecOutput> {
+function buildBundles(rows: ReadonlyArray<CandidateRow>, now: Date, subject: AnalyzerSubject, locale: Locale): Array<AnalyzerRecOutput> {
+	const o = { locale }
 	const byBundle = new Map<BundleKey, { kind: 'unscraped-url' | 'stale-scrape'; listId: number; rows: Array<CandidateRow> }>()
 	for (const row of rows) {
 		const kind: 'unscraped-url' | 'stale-scrape' = row.latestScrapeAt === null ? 'unscraped-url' : 'stale-scrape'
@@ -112,7 +115,7 @@ function buildBundles(rows: ReadonlyArray<CandidateRow>, now: Date, subject: Ana
 		const listRef = makeListRef(first, subject)
 		const subItems: Array<RecSubItem> = bundle.rows.map(c => {
 			const ageDays = c.latestScrapeAt === null ? null : Math.max(0, Math.floor((now.getTime() - c.latestScrapeAt.getTime()) / 86400000))
-			const detail = ageDays === null ? 'Never scraped' : `Last scraped ${ageDays} day${ageDays === 1 ? '' : 's'} ago`
+			const detail = ageDays === null ? m.intel_stale_scrape_detail_never({}, o) : m.intel_stale_scrape_detail_age({ count: ageDays }, o)
 			return {
 				id: String(c.itemId),
 				title: c.title,
@@ -127,21 +130,21 @@ function buildBundles(rows: ReadonlyArray<CandidateRow>, now: Date, subject: Ana
 			kind: bundle.kind,
 			severity: 'info',
 			title: isUnscraped
-				? count === 1
-					? `Pull details for an item on ${first.listName}`
-					: `Pull details for items on ${first.listName}`
-				: count === 1
-					? `Refresh details for an item on ${first.listName}`
-					: `Refresh details for items on ${first.listName}`,
+				? m.intel_stale_scrape_unscraped_title({ count, listName: first.listName }, o)
+				: m.intel_stale_scrape_stale_title({ count, listName: first.listName }, o),
 			body: isUnscraped
-				? "These items have links but we haven't pulled their title, price, or image yet. Open the list to bulk-refresh, or use Edit / Skip on each item below."
-				: `Linked product details haven't been refreshed in over ${STALE_SCRAPE_THRESHOLD_DAYS} days, so price and availability may be out of date. Open the list to bulk-refresh, or use Edit / Skip on each item below.`,
+				? m.intel_stale_scrape_unscraped_body({}, o)
+				: m.intel_stale_scrape_stale_body({ days: STALE_SCRAPE_THRESHOLD_DAYS }, o),
 			actions: [],
-			dismissDescription: "Hide this suggestion for this list. We won't surface it again unless the underlying scrape history changes.",
+			dismissDescription: m.intel_stale_scrape_dismiss({}, o),
 			affected: {
-				noun: count === 1 ? 'item' : 'items',
+				noun: count === 1 ? m.intel_common_noun_item({}, o) : m.intel_common_noun_items({}, o),
 				count,
-				lines: [`${first.listName} · ${count} ${isUnscraped ? 'unscraped' : 'stale'} item${count === 1 ? '' : 's'}`],
+				lines: [
+					isUnscraped
+						? m.intel_stale_scrape_unscraped_line({ count, listName: first.listName }, o)
+						: m.intel_stale_scrape_stale_line({ count, listName: first.listName }, o),
+				],
 				listChips: [listRef],
 			},
 			relatedLists: [listRef],

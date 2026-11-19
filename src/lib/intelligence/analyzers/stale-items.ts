@@ -1,7 +1,10 @@
 import { and, asc, desc, eq, isNull, ne, sql } from 'drizzle-orm'
 
 import { items, lists } from '@/db/schema'
+import { outputLanguageInstruction } from '@/lib/i18n/ai-language'
+import type { Locale } from '@/lib/i18n/locales'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { m } from '@/paraglide/messages.js'
 
 import { composeForLog, generateObjectCached } from '../ai-call'
 import type { Analyzer } from '../analyzer'
@@ -104,7 +107,7 @@ export const staleItemsAnalyzer: Analyzer = {
 				if (group.length < 2) continue
 				const listRef = listRefFor(listId, group, ctx.subject)
 				const itemRefs = itemRefsFor(group)
-				recs.push(buildHeuristicRec({ list: listRef, items: itemRefs }))
+				recs.push(buildHeuristicRec({ list: listRef, items: itemRefs, locale: ctx.locale }))
 			}
 			return { recs, steps, inputHash: finalInputHash }
 		}
@@ -119,7 +122,7 @@ export const staleItemsAnalyzer: Analyzer = {
 			availability: c.availability,
 		}))
 
-		const userPrompt = buildStaleItemsUserPrompt({ candidates: promptCandidates, now: ctx.now })
+		const userPrompt = buildStaleItemsUserPrompt({ candidates: promptCandidates, now: ctx.now }) + outputLanguageInstruction(ctx.locale)
 		const stepStart = Date.now()
 		let parsed: unknown = null
 		let responseRaw: string | null = null
@@ -204,8 +207,24 @@ export const staleItemsAnalyzer: Analyzer = {
 				const groupPriority = pickGroupPriority(flaggedRows.map(r => r.priority))
 				recs.push(
 					intent === 'pick-one'
-						? buildPickOneRec({ itemRefs, listRef, headline: ai.headline, rationale: ai.rationale, severity: ai.severity, groupPriority })
-						: buildCleanupRec({ itemRefs, listRef, headline: ai.headline, rationale: ai.rationale, severity: ai.severity, now: ctx.now })
+						? buildPickOneRec({
+								itemRefs,
+								listRef,
+								headline: ai.headline,
+								rationale: ai.rationale,
+								severity: ai.severity,
+								groupPriority,
+								locale: ctx.locale,
+							})
+						: buildCleanupRec({
+								itemRefs,
+								listRef,
+								headline: ai.headline,
+								rationale: ai.rationale,
+								severity: ai.severity,
+								now: ctx.now,
+								locale: ctx.locale,
+							})
 				)
 			}
 		}
@@ -272,6 +291,7 @@ function buildCleanupRec({
 	rationale,
 	severity,
 	now,
+	locale,
 }: {
 	itemRefs: Array<ItemRef>
 	listRef: ListRef
@@ -279,18 +299,20 @@ function buildCleanupRec({
 	rationale: string
 	severity: 'info' | 'suggest' | 'important'
 	now: Date
+	locale: Locale
 }): AnalyzerRecOutput {
+	const o = { locale }
 	return {
 		kind: itemRefs.length === 1 ? 'old-item' : 'old-items',
 		severity,
 		title: headline,
 		body: rationale,
-		actions: buildCleanupActions(itemRefs, listRef),
-		dismissDescription: "Hide this recommendation. We won't suggest it again unless these items change.",
+		actions: buildCleanupActions(itemRefs, listRef, locale),
+		dismissDescription: m.intel_stale_items_dismiss({}, o),
 		affected: {
-			noun: itemRefs.length === 1 ? 'item' : 'items',
+			noun: itemRefs.length === 1 ? m.intel_common_noun_item({}, o) : m.intel_common_noun_items({}, o),
 			count: itemRefs.length,
-			lines: itemRefs.map(it => `${it.title} · last edited ${daysSince(it.updatedAt, now)} days ago`),
+			lines: itemRefs.map(it => m.intel_stale_items_line_last_edited({ title: it.title, days: daysSince(it.updatedAt, now) }, o)),
 			listChips: [listRef],
 		},
 		relatedItems: itemRefs,
@@ -299,10 +321,11 @@ function buildCleanupRec({
 	}
 }
 
-function buildCleanupActions(itemRefs: Array<ItemRef>, listRef: ListRef): Array<RecommendationAction> {
+function buildCleanupActions(itemRefs: Array<ItemRef>, listRef: ListRef, locale: Locale): Array<RecommendationAction> {
+	const o = { locale }
 	const openList: RecommendationAction = {
-		label: 'Open List',
-		description: `Jump to ${listRef.name} so you can edit or remove these items one at a time.`,
+		label: m.intel_common_action_open_list_label({}, o),
+		description: m.intel_stale_items_action_open_list_description({ listName: listRef.name }, o),
 		intent: 'do',
 		// Land on the first flagged item rather than the top of the list so
 		// the user doesn't have to hunt for it (single-item recs land on the
@@ -315,16 +338,16 @@ function buildCleanupActions(itemRefs: Array<ItemRef>, listRef: ListRef): Array<
 		return [
 			openList,
 			{
-				label: 'Edit Item',
-				description: 'Refresh the details or update notes so this item stops looking stale.',
+				label: m.intel_stale_items_action_edit_label({}, o),
+				description: m.intel_stale_items_action_edit_description({}, o),
 				intent: 'do',
 				editItem: { listId: listRef.id, itemId: it.id },
 			},
 			{
-				label: 'Delete Item',
-				description: 'Permanently delete this item. It has no claims, so no gifters are affected.',
+				label: m.intel_stale_items_action_delete_item_label({}, o),
+				description: m.intel_stale_items_action_delete_item_description({}, o),
 				intent: 'destructive',
-				confirmCopy: `Permanently delete "${it.title}" from ${listRef.name}? This cannot be undone.`,
+				confirmCopy: m.intel_stale_items_action_delete_confirm({ title: it.title, listName: listRef.name }, o),
 				apply: { kind: 'delete-items', listId: listRef.id, itemIds: [it.id] },
 			},
 		]
@@ -334,10 +357,10 @@ function buildCleanupActions(itemRefs: Array<ItemRef>, listRef: ListRef): Array<
 		openList,
 		...itemRefs.map(
 			(it): RecommendationAction => ({
-				label: 'Delete',
-				description: `Delete "${it.title}".`,
+				label: m.intel_stale_items_action_delete_label({}, o),
+				description: m.intel_stale_items_action_delete_description({ title: it.title }, o),
 				intent: 'destructive',
-				confirmCopy: `Permanently delete "${it.title}" from ${listRef.name}? This cannot be undone.`,
+				confirmCopy: m.intel_stale_items_action_delete_confirm({ title: it.title, listName: listRef.name }, o),
 				apply: { kind: 'delete-items', listId: listRef.id, itemIds: [it.id] },
 			})
 		),
@@ -360,6 +383,7 @@ function buildPickOneRec({
 	rationale,
 	severity,
 	groupPriority,
+	locale,
 }: {
 	itemRefs: Array<ItemRef>
 	listRef: ListRef
@@ -367,7 +391,9 @@ function buildPickOneRec({
 	rationale: string
 	severity: 'info' | 'suggest' | 'important'
 	groupPriority: 'very-high' | 'high' | 'normal' | 'low'
+	locale: Locale
 }): AnalyzerRecOutput {
+	const o = { locale }
 	const itemIds = itemRefs.map(it => it.id)
 	return {
 		kind: 'group-suggestion',
@@ -376,28 +402,28 @@ function buildPickOneRec({
 		body: rationale,
 		actions: [
 			{
-				label: 'Group as Pick One',
-				description: 'Claiming one will lock the others. You can rearrange or split the group later.',
+				label: m.intel_common_action_group_pick_one_label({}, o),
+				description: m.intel_common_action_group_pick_one_description({}, o),
 				intent: 'do',
 				apply: { kind: 'create-group', listId: listRef.id, groupType: 'or', itemIds, priority: groupPriority },
 			},
 			{
-				label: 'Open List',
-				description: `Jump to ${listRef.name} to edit these items individually.`,
+				label: m.intel_common_action_open_list_label({}, o),
+				description: m.intel_stale_items_pick_one_open_list_description({ listName: listRef.name }, o),
 				intent: 'do',
 				nav: { listId: listRef.id, itemId: itemRefs[0].id },
 			},
 			{
-				label: 'Keep Separate',
-				description: "These aren't really alternatives. We won't suggest grouping them again.",
+				label: m.intel_common_action_keep_separate_label({}, o),
+				description: m.intel_stale_items_pick_one_keep_separate_description({}, o),
 				intent: 'noop',
 			},
 		],
-		dismissDescription: "Hide this recommendation. We won't suggest it again unless these items change.",
+		dismissDescription: m.intel_stale_items_dismiss({}, o),
 		affected: {
-			noun: 'items',
+			noun: m.intel_common_noun_items({}, o),
 			count: itemRefs.length,
-			lines: itemRefs.map(it => `${it.title} · on ${it.listName}`),
+			lines: itemRefs.map(it => m.intel_common_line_item_on_list({ title: it.title, listName: it.listName }, o)),
 			listChips: [listRef],
 		},
 		relatedItems: itemRefs,
@@ -406,24 +432,25 @@ function buildPickOneRec({
 	}
 }
 
-function buildHeuristicRec({ list, items: itemRefs }: { list: ListRef; items: Array<ItemRef> }): AnalyzerRecOutput {
+function buildHeuristicRec({ list, items: itemRefs, locale }: { list: ListRef; items: Array<ItemRef>; locale: Locale }): AnalyzerRecOutput {
+	const o = { locale }
 	// No model available: we can't tell pick-one from cleanup, so default
 	// to cleanup (the safer framing - "old items, take a look").
 	return {
 		kind: 'old-items',
 		severity: 'info',
-		title: `Old items on ${list.name}`,
-		body: `${itemRefs.length} items here haven't been edited in over six months. They might be worth a quick look.`,
+		title: m.intel_stale_items_heuristic_title({ listName: list.name }, o),
+		body: m.intel_stale_items_heuristic_body({ count: itemRefs.length }, o),
 		actions: [
 			{
-				label: 'Open List',
-				description: `Jump to ${list.name} to review.`,
+				label: m.intel_common_action_open_list_label({}, o),
+				description: m.intel_stale_items_heuristic_open_list_description({ listName: list.name }, o),
 				intent: 'do',
 				nav: { listId: list.id, itemId: itemRefs[0].id },
 			},
 		],
 		affected: {
-			noun: 'items',
+			noun: m.intel_common_noun_items({}, o),
 			count: itemRefs.length,
 			lines: itemRefs.map(it => it.title),
 			listChips: [list],

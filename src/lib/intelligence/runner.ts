@@ -22,10 +22,13 @@ import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig, type ResolvedAiConfig } from '@/lib/ai-config'
 import { estimateStepCostMicroUsd } from '@/lib/ai-cost'
 import { slotForAnalyzer } from '@/lib/ai-slots'
+import type { Locale } from '@/lib/i18n/locales'
+import { recipientLocale } from '@/lib/i18n/recipient-locale'
 import { createLogger } from '@/lib/logger'
 import { intelligenceRunsCompletedTotal } from '@/lib/observability/metrics'
 import { type AppSettings, DEFAULT_APP_SETTINGS } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
+import { m } from '@/paraglide/messages.js'
 
 import type { AnalyzerContext, AnalyzerSubject } from './context'
 import { runEnrichment } from './enrichment'
@@ -99,7 +102,12 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 		// separate analyzer pass; outputs are persisted in one batch so
 		// the per-user advisory lock and skip semantics still cover all of
 		// them atomically.
-		const userSubject = await loadUserSubject(db, userId)
+		// Recommendations are written in the user's language (their own choice,
+		// else the deployment default) and stored as written.
+		const localeRow = await db.select({ locale: users.locale }).from(users).where(eq(users.id, userId)).limit(1)
+		const locale = recipientLocale(localeRow[0]?.locale, settings.defaultLocale)
+		const localeTag = locale === 'en' ? '' : `@${locale}`
+		const userSubject = await loadUserSubject(db, userId, locale)
 		const dependentSubjects = await loadDependentSubjects(db, userId)
 		const passes: Array<{ dependentId: string | null; subject: AnalyzerSubject }> = [
 			{ dependentId: null, subject: userSubject },
@@ -155,6 +163,7 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 						logger: log,
 						now,
 						source,
+						locale,
 					})
 					for (const step of enrichment.steps) {
 						totalIn += step.tokensIn ?? 0
@@ -172,7 +181,11 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 			for (const pass of passes) {
 				for (const analyzer of ANALYZERS) {
 					if (!isAnalyzerEnabled(analyzer, settings.intelligencePerAnalyzerEnabled)) continue
-					const scopeKey = `${pass.dependentId ?? 'self'}:${analyzer.id}`
+					// A scope's stored text is in one language, so the language is
+					// part of its key: after a language change there is no prior
+					// hash and the scope is written again. English keeps the bare
+					// key so existing rows still match.
+					const scopeKey = `${pass.dependentId ?? 'self'}:${analyzer.id}${localeTag}`
 					// Record index access lies at the type level: missing keys
 					// return undefined at runtime. Cast so we branch correctly.
 					const prior = priorScopeHashes[scopeKey] as { hash: string; generatedAt: string } | undefined
@@ -187,6 +200,7 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 						userId,
 						model: modelFor(analyzer.id),
 						settings,
+						locale,
 						logger: log,
 						now,
 						candidateCap: settings.intelligenceCandidateCap,
@@ -201,7 +215,7 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 						// Tag the input-hash slice with the dependent scope so a
 						// rec set that's identical "shape" but different scope
 						// doesn't collide on the combined hash.
-						inputHashSlices.push(result.inputHash ? `${pass.dependentId ?? 'self'}:${result.inputHash}` : result.inputHash)
+						inputHashSlices.push(result.inputHash ? `${pass.dependentId ?? 'self'}${localeTag}:${result.inputHash}` : result.inputHash)
 						if (result.unchanged && result.inputHash) {
 							// Inputs identical to the prior generation: keep the
 							// scope's existing rec rows and copy the prior
@@ -555,13 +569,14 @@ async function persistBatch(
 
 // ─── Subject resolution ─────────────────────────────────────────────────────
 
-async function loadUserSubject(db: Database, userId: string): Promise<AnalyzerSubject> {
+async function loadUserSubject(db: Database, userId: string, locale: Locale): Promise<AnalyzerSubject> {
+	const o = { locale }
 	const rows = await db.select({ name: users.name, image: users.image }).from(users).where(eq(users.id, userId)).limit(1)
-	if (rows.length === 0) return { kind: 'user', name: 'You', image: null }
+	if (rows.length === 0) return { kind: 'user', name: m.intel_common_you({}, o), image: null }
 	const row = rows[0]
 	return {
 		kind: 'user',
-		name: row.name ?? 'You',
+		name: row.name ?? m.intel_common_you({}, o),
 		image: row.image ?? null,
 	}
 }

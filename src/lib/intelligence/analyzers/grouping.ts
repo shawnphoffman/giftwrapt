@@ -3,7 +3,10 @@ import { and, eq, inArray, isNull, ne } from 'drizzle-orm'
 import type { Database } from '@/db'
 import { intelligenceVerdicts, itemGroups, items, lists, recommendations } from '@/db/schema'
 import type { AiCallSource } from '@/lib/ai-call'
+import { outputLanguageInstruction } from '@/lib/i18n/ai-language'
+import type { Locale } from '@/lib/i18n/locales'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { m } from '@/paraglide/messages.js'
 
 import { composeForLog, generateObjectCached } from '../ai-call'
 import type { Analyzer } from '../analyzer'
@@ -136,15 +139,17 @@ export const groupingAnalyzer: Analyzer = {
 
 		// Verdict cache: lists whose exact contents were already judged
 		// replay the stored suggestions; only changed lists go to the model.
+		// A verdict carries the model's rationale, which is prose in the
+		// language it was asked for, so the stored key is per language
+		// (English keeps the bare key). The input hash above is not: the
+		// runner already keeps languages apart there.
 		const cacheStart = Date.now()
-		const cachedVerdicts = await loadListVerdicts(
-			ctx.db,
-			ctx.userId,
-			candidates.map(c => c.key)
-		)
+		const verdictLocaleTag = ctx.locale === 'en' ? '' : `@${ctx.locale}`
+		const verdictKey = (candidate: ListCandidate) => `${candidate.key}${verdictLocaleTag}`
+		const cachedVerdicts = await loadListVerdicts(ctx.db, ctx.userId, candidates.map(verdictKey))
 		const misses: Array<ListCandidate> = []
 		for (const candidate of candidates) {
-			const verdict = cachedVerdicts.get(candidate.key)
+			const verdict = cachedVerdicts.get(verdictKey(candidate))
 			const suggestions = verdict ? resolveStoredVerdict(verdict, candidate) : null
 			if (suggestions) resolved.push({ candidate, suggestions })
 			else misses.push(candidate)
@@ -164,14 +169,14 @@ export const groupingAnalyzer: Analyzer = {
 			for (let i = 0; i < toAsk.length; i += MODEL_CONCURRENCY) {
 				const batch = toAsk.slice(i, i + MODEL_CONCURRENCY)
 				const results = await Promise.all(
-					batch.map(candidate => judgeList(model, { db: ctx.db, userId: ctx.userId, source: ctx.source }, candidate))
+					batch.map(candidate => judgeList(model, { db: ctx.db, userId: ctx.userId, source: ctx.source }, candidate, ctx.locale))
 				)
 				for (let j = 0; j < batch.length; j++) {
 					const { step, suggestions } = results[j]
 					steps.push(step)
 					if (!suggestions) continue
 					resolved.push({ candidate: batch[j], suggestions })
-					verdictsToStore.push({ key: batch[j].key, verdict: toStoredVerdict(suggestions) })
+					verdictsToStore.push({ key: verdictKey(batch[j]), verdict: toStoredVerdict(suggestions) })
 				}
 			}
 			if (!ctx.dryRun && verdictsToStore.length > 0) {
@@ -182,8 +187,8 @@ export const groupingAnalyzer: Analyzer = {
 		const allRecs = resolved.flatMap(({ candidate, suggestions }) =>
 			suggestions.map(s =>
 				s.action === 'new'
-					? buildGroupRec(s.rows, candidate.listId, candidate.listName, s.groupType, s.rationale, ctx.subject)
-					: buildAddToGroupRec(s.rows, s.group, candidate.listId, candidate.listName, s.rationale, ctx.subject)
+					? buildGroupRec(s.rows, candidate.listId, candidate.listName, s.groupType, s.rationale, ctx.subject, ctx.locale)
+					: buildAddToGroupRec(s.rows, s.group, candidate.listId, candidate.listName, s.rationale, ctx.subject, ctx.locale)
 			)
 		)
 		return { recs: await capFreshRecs(ctx.db, ctx.userId, ctx.dependentId, allRecs), steps, inputHash: finalInputHash }
@@ -243,14 +248,15 @@ function buildListCandidates(rows: ReadonlyArray<Row>): Array<ListCandidate> {
 async function judgeList(
 	model: NonNullable<Parameters<Analyzer['run']>[0]['model']>,
 	scope: { db: Database; userId: string; source?: AiCallSource },
-	candidate: ListCandidate
+	candidate: ListCandidate,
+	locale: Locale
 ): Promise<{ step: AnalyzerStep; suggestions: Array<ResolvedSuggestion> | null }> {
 	const promptList: GroupingListCandidate = {
 		listName: candidate.listName,
-		groups: candidate.groups.map(g => ({ groupId: String(g.id), type: g.type, titles: g.members.map(m => m.title) })),
+		groups: candidate.groups.map(g => ({ groupId: String(g.id), type: g.type, titles: g.members.map(member => member.title) })),
 		items: candidate.items.map(r => ({ itemId: String(r.itemId), title: r.title })),
 	}
-	const userPrompt = buildGroupingUserPrompt(promptList)
+	const userPrompt = buildGroupingUserPrompt(promptList) + outputLanguageInstruction(locale)
 	const start = Date.now()
 	try {
 		const result = await generateObjectCached({
@@ -353,7 +359,7 @@ export function listVerdictKey(
 	ungrouped: ReadonlyArray<{ title: string }>,
 	groups: ReadonlyArray<{ id: number; type: GroupDecision; members: ReadonlyArray<{ title: string }> }>
 ): string {
-	const groupPart = groups.map(g => `${g.id}:${g.type}:${g.members.map(m => normalizeTitle(m.title)).join('>')}`).join('|')
+	const groupPart = groups.map(g => `${g.id}:${g.type}:${g.members.map(member => normalizeTitle(member.title)).join('>')}`).join('|')
 	const itemPart = ungrouped
 		.map(r => normalizeTitle(r.title))
 		.sort()
@@ -656,19 +662,19 @@ function buildGroupRec(
 	listName: string,
 	decision: 'or' | 'order',
 	rationale: string,
-	subject: AnalyzerSubject
+	subject: AnalyzerSubject,
+	locale: Locale
 ): AnalyzerRecOutput {
+	const o = { locale }
 	const listRef = listRefFor(rows[0], listId, listName, subject)
 	const itemRefs: Array<ItemRef> = rows.map(itemRefFor)
 	const priority = pickGroupPriority(rows.map(r => r.priority))
 	const itemIds = rows.map(r => String(r.itemId))
 
 	const isOr = decision === 'or'
-	const title = isOr ? 'Group these as "pick one"' : 'Group these in order'
-	const applyLabel = isOr ? 'Group as Pick One' : 'Group in Order'
-	const applyDescription = isOr
-		? 'Claiming one will lock the others. You can rearrange or split the group later.'
-		: 'Earlier items must be claimed before later ones. You can rearrange or split the group later.'
+	const title = isOr ? m.intel_grouping_title_or({}, o) : m.intel_grouping_title_order({}, o)
+	const applyLabel = isOr ? m.intel_common_action_group_pick_one_label({}, o) : m.intel_grouping_action_order_label({}, o)
+	const applyDescription = isOr ? m.intel_common_action_group_pick_one_description({}, o) : m.intel_grouping_action_order_description({}, o)
 
 	return {
 		kind: 'group-suggestion',
@@ -683,15 +689,15 @@ function buildGroupRec(
 				apply: { kind: 'create-group', listId: String(listId), groupType: decision, itemIds, priority },
 			},
 			{
-				label: 'Keep Separate',
-				description: "These aren't really a set. We won't suggest grouping them again.",
+				label: m.intel_common_action_keep_separate_label({}, o),
+				description: m.intel_grouping_keep_separate_description({}, o),
 				intent: 'noop',
 			},
 		],
 		affected: {
-			noun: 'items',
+			noun: m.intel_common_noun_items({}, o),
 			count: rows.length,
-			lines: rows.map(r => `${r.title} · on ${r.listName}`),
+			lines: rows.map(r => m.intel_common_line_item_on_list({ title: r.title, listName: r.listName }, o)),
 			listChips: [listRef],
 		},
 		relatedItems: itemRefs,
@@ -708,37 +714,39 @@ function buildAddToGroupRec(
 	listId: number,
 	listName: string,
 	rationale: string,
-	subject: AnalyzerSubject
+	subject: AnalyzerSubject,
+	locale: Locale
 ): AnalyzerRecOutput {
+	const o = { locale }
 	const listRef = listRefFor(rows[0], listId, listName, subject)
 	const itemIds = rows.map(r => String(r.itemId))
 	const isOr = group.type === 'or'
-	const noun = rows.length === 1 ? 'this' : 'these'
 
 	return {
 		kind: 'group-suggestion',
 		severity: 'suggest',
-		title: isOr ? `Add ${noun} to a "pick one" group` : `Add ${noun} to an ordered group`,
+		title: isOr ? m.intel_grouping_add_title_or({ count: rows.length }, o) : m.intel_grouping_add_title_order({ count: rows.length }, o),
 		body: rationale,
 		actions: [
 			{
-				label: 'Add to Group',
-				description: isOr
-					? 'Claiming any item in the group locks the others. You can rearrange or split the group later.'
-					: 'These go after the items already in the group. You can rearrange or split the group later.',
+				label: m.intel_grouping_add_action_label({}, o),
+				description: isOr ? m.intel_grouping_add_action_description_or({}, o) : m.intel_grouping_add_action_description_order({}, o),
 				intent: 'do',
 				apply: { kind: 'add-to-group', listId: String(listId), groupId: String(group.id), itemIds },
 			},
 			{
-				label: 'Keep Separate',
-				description: "These don't belong in that group. We won't suggest adding them again.",
+				label: m.intel_common_action_keep_separate_label({}, o),
+				description: m.intel_grouping_add_keep_separate_description({}, o),
 				intent: 'noop',
 			},
 		],
 		affected: {
-			noun: 'items',
+			noun: m.intel_common_noun_items({}, o),
 			count: rows.length,
-			lines: [...rows.map(r => `${r.title} · add to group`), ...group.members.map(m => `${m.title} · already in group`)],
+			lines: [
+				...rows.map(r => m.intel_grouping_line_add({ title: r.title }, o)),
+				...group.members.map(member => m.intel_grouping_line_existing({ title: member.title }, o)),
+			],
 			listChips: [listRef],
 		},
 		relatedItems: [...rows, ...group.members].map(itemRefFor),

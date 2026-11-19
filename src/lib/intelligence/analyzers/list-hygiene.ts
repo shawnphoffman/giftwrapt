@@ -53,8 +53,11 @@ import type { SchemaDatabase } from '@/db'
 import { customHolidays, items, lists, users } from '@/db/schema'
 import { birthMonthEnumValues, type ListType } from '@/db/schema/enums'
 import { customHolidayLastOccurrence } from '@/lib/custom-holidays'
+import { outputLanguageInstruction } from '@/lib/i18n/ai-language'
+import type { Locale } from '@/lib/i18n/locales'
 import { SPOILER_PROTECTED_TYPES } from '@/lib/list-type-moves'
 import type { AppSettings } from '@/lib/settings'
+import { m } from '@/paraglide/messages.js'
 
 import { composeForLog, generateObjectCached } from '../ai-call'
 import type { Analyzer } from '../analyzer'
@@ -112,6 +115,15 @@ export function renameForConvert(currentName: string, eventTitle: string, eventY
 		return `${eventTitle} ${eventYear}`
 	}
 	return currentName
+}
+
+// The event's name as the user reads it. Birthday and Christmas are ours to
+// translate; a custom holiday keeps the title its admin typed.
+function eventTitleFor(event: InWindowEvent, locale: Locale): string {
+	const o = { locale }
+	if (event.kind === 'birthday') return m.intel_common_event_birthday({}, o)
+	if (event.kind === 'christmas') return m.intel_common_event_christmas({}, o)
+	return event.eventTitle
 }
 
 // Maps an event kind to the canonical list type the convert-list /
@@ -246,6 +258,7 @@ export const listHygieneAnalyzer: Analyzer = {
 
 		const recs: Array<AnalyzerRecOutput> = []
 		const subject = subjectListRef(ctx.subject)
+		const locale = ctx.locale
 
 		// Per-run state for the opt-in AI rename path on branch 1. The
 		// cap defends against pathological seed states (one user with
@@ -258,7 +271,7 @@ export const listHygieneAnalyzer: Analyzer = {
 		// still fire on their own.
 		if (events.length === 0) {
 			const clusters = findDuplicateClusters({ subjectLists, itemCountByList, now: ctx.now })
-			for (const cluster of clusters) recs.push(buildMergeRec({ cluster, subject }))
+			for (const cluster of clusters) recs.push(buildMergeRec({ cluster, subject, locale }))
 			if (ctx.dependentId === null) {
 				const stale = await findStalePublicLists({
 					subjectLists,
@@ -269,7 +282,7 @@ export const listHygieneAnalyzer: Analyzer = {
 					userId: ctx.userId,
 					dbx: ctx.db,
 				})
-				for (const candidate of stale) recs.push(buildStaleListRec({ candidate, subject }))
+				for (const candidate of stale) recs.push(buildStaleListRec({ candidate, subject, locale, now: ctx.now }))
 			}
 			return { recs, steps, inputHash: combineHashes([inputHash]) }
 		}
@@ -342,7 +355,7 @@ export const listHygieneAnalyzer: Analyzer = {
 						state: renameState,
 						currentName: candidate.name,
 						newType: canonicalType,
-						eventTitle: event.eventTitle,
+						eventTitle: eventTitleFor(event, locale),
 						eventYear,
 					})
 
@@ -354,6 +367,7 @@ export const listHygieneAnalyzer: Analyzer = {
 							newName,
 							newCustomHolidayId: targetCustomHolidayId,
 							subject,
+							locale,
 						})
 					)
 					convertRecEmitted = true
@@ -367,7 +381,7 @@ export const listHygieneAnalyzer: Analyzer = {
 			// matching list.
 			if (!convertRecEmitted && publicMatching.length === 0 && privateMatching.length > 0) {
 				const target = privateMatching[0]
-				recs.push(buildPrivacyRec({ event, list: target, subject }))
+				recs.push(buildPrivacyRec({ event, list: target, subject, locale }))
 			}
 
 			// === Branch 3: create a new list ===
@@ -384,7 +398,7 @@ export const listHygieneAnalyzer: Analyzer = {
 			// recipient subject, so the nudge is targeted.
 			const isScaffoldEligible = event.kind !== 'custom-holiday' || event.recipient.kind !== 'none'
 			if (isScaffoldEligible && !convertRecEmitted && matchingLists.length === 0) {
-				recs.push(buildCreateRec({ event, canonicalType, dependentId: ctx.dependentId, subject }))
+				recs.push(buildCreateRec({ event, canonicalType, dependentId: ctx.dependentId, subject, locale }))
 			}
 
 			// === Branch 4: rotate primary (user-subject runs only) ===
@@ -400,7 +414,7 @@ export const listHygieneAnalyzer: Analyzer = {
 					// (e.g. a `birthday` list over a `wishlist` for birthday).
 					const canonical = matchingLists.find(l => l.type === canonicalType)
 					const target = canonical ?? matchingLists[0]
-					recs.push(buildSetPrimaryRec({ event, list: target, subject }))
+					recs.push(buildSetPrimaryRec({ event, list: target, subject, locale }))
 				}
 			}
 		}
@@ -411,7 +425,7 @@ export const listHygieneAnalyzer: Analyzer = {
 		// the newer one. Restricted to types whose claims can survive a
 		// merge — see MERGE_ELIGIBLE_TYPES.
 		const clusters = findDuplicateClusters({ subjectLists, itemCountByList, now: ctx.now })
-		for (const cluster of clusters) recs.push(buildMergeRec({ cluster, subject }))
+		for (const cluster of clusters) recs.push(buildMergeRec({ cluster, subject, locale }))
 
 		// === Stale-public-list pass (user-subject runs only) ===
 		// Time-delay only by construction: NEVER reads `giftedItems` or
@@ -428,7 +442,7 @@ export const listHygieneAnalyzer: Analyzer = {
 				userId: ctx.userId,
 				dbx: ctx.db,
 			})
-			for (const candidate of stale) recs.push(buildStaleListRec({ candidate, subject }))
+			for (const candidate of stale) recs.push(buildStaleListRec({ candidate, subject, locale, now: ctx.now }))
 		}
 
 		return {
@@ -517,12 +531,15 @@ export async function chooseConvertName(args: ChooseConvertNameArgs): Promise<st
 	}
 
 	state.aiCallsUsed += 1
-	const userPrompt = buildListHygieneRenameUserPrompt({
-		currentName,
-		newType: prettyListType(newType),
-		eventTitle,
-		eventYear,
-	})
+	// The prompt is written in English, so the list type goes in as its
+	// English name; the answer is asked for in the user's language.
+	const userPrompt =
+		buildListHygieneRenameUserPrompt({
+			currentName,
+			newType: prettyListType(newType, 'en'),
+			eventTitle,
+			eventYear,
+		}) + outputLanguageInstruction(ctx.locale)
 	const stepStart = Date.now()
 	let parsed: unknown = null
 	let responseRaw: string | null = null
@@ -616,22 +633,33 @@ function buildConvertRec(args: {
 	newName: string
 	newCustomHolidayId: string | null
 	subject: SubjectListSummary
+	locale: Locale
 }): AnalyzerRecOutput {
-	const { event, list, newType, newName, newCustomHolidayId, subject } = args
+	const { event, list, newType, newName, newCustomHolidayId, subject, locale } = args
+	const o = { locale }
 	const ref = listRefFor(list, subject)
 	const subjectIsYou = subject.kind === 'user'
-	const owner = subjectIsYou ? 'Your' : `${subject.name}'s`
-	const renameCopy = newName === list.name ? '' : ` and rename it to "${newName}"`
-	const body = `${owner} ${event.eventTitle} is in ${event.daysUntil} ${event.daysUntil === 1 ? 'day' : 'days'}, and "${list.name}", the list gifters are most likely to see, isn't set up for it. Convert it to a ${prettyListType(newType)} list${renameCopy} so gifts auto-reveal on the right day.`
+	const renames = newName !== list.name
+	const eventTitle = eventTitleFor(event, locale)
+	const shared = { count: event.daysUntil, eventTitle, listName: list.name, listType: prettyListType(newType, locale) }
+	const body = subjectIsYou
+		? renames
+			? m.intel_list_hygiene_convert_body_self_rename({ ...shared, newName }, o)
+			: m.intel_list_hygiene_convert_body_self(shared, o)
+		: renames
+			? m.intel_list_hygiene_convert_body_dependent_rename({ ...shared, name: subject.name, newName }, o)
+			: m.intel_list_hygiene_convert_body_dependent({ ...shared, name: subject.name }, o)
 	return {
 		kind: 'convert-public-list',
 		severity: 'important',
-		title: `Reshape "${list.name}" for ${event.eventTitle}`,
+		title: m.intel_list_hygiene_convert_title({ listName: list.name, eventTitle }, o),
 		body,
 		actions: [
 			{
-				label: `Convert to ${titleListType(newType)}`,
-				description: `Change the list's type${renameCopy ? ' and rename it' : ''}. Items and existing claims stay put.`,
+				label: m.intel_list_hygiene_convert_action_label({ listType: titleListType(newType, locale) }, o),
+				description: renames
+					? m.intel_list_hygiene_convert_action_description_rename({}, o)
+					: m.intel_list_hygiene_convert_action_description({}, o),
 				intent: 'do',
 				apply: {
 					kind: 'convert-list',
@@ -643,7 +671,7 @@ function buildConvertRec(args: {
 			},
 		],
 		affected: {
-			noun: 'list',
+			noun: m.intel_common_noun_list({}, o),
 			count: 1,
 			lines: [list.name],
 			listChips: [ref],
@@ -653,20 +681,24 @@ function buildConvertRec(args: {
 	}
 }
 
-function buildPrivacyRec(args: { event: InWindowEvent; list: ListRow; subject: SubjectListSummary }): AnalyzerRecOutput {
-	const { event, list, subject } = args
+function buildPrivacyRec(args: { event: InWindowEvent; list: ListRow; subject: SubjectListSummary; locale: Locale }): AnalyzerRecOutput {
+	const { event, list, subject, locale } = args
+	const o = { locale }
 	const ref = listRefFor(list, subject)
-	const subjectIsYou = subject.kind === 'user'
-	const owner = subjectIsYou ? 'Your' : `${subject.name}'s`
+	const eventTitle = eventTitleFor(event, locale)
+	const shared = { count: event.daysUntil, eventTitle, listName: list.name }
 	return {
 		kind: 'make-private-list-public',
 		severity: 'suggest',
-		title: `Make "${list.name}" public for ${event.eventTitle}`,
-		body: `${owner} ${event.eventTitle} is in ${event.daysUntil} ${event.daysUntil === 1 ? 'day' : 'days'}. "${list.name}" is set up for the event, but it's private, so gifters can't see it. Making it public lets people shop from it.`,
+		title: m.intel_list_hygiene_privacy_title({ listName: list.name, eventTitle }, o),
+		body:
+			subject.kind === 'user'
+				? m.intel_list_hygiene_privacy_body_self(shared, o)
+				: m.intel_list_hygiene_privacy_body_dependent({ ...shared, name: subject.name }, o),
 		actions: [
 			{
-				label: 'Make Public',
-				description: 'Flip the list to public so gifters can find it.',
+				label: m.intel_list_hygiene_privacy_action_label({}, o),
+				description: m.intel_list_hygiene_privacy_action_description({}, o),
 				intent: 'do',
 				apply: {
 					kind: 'change-list-privacy',
@@ -676,7 +708,7 @@ function buildPrivacyRec(args: { event: InWindowEvent; list: ListRow; subject: S
 			},
 		],
 		affected: {
-			noun: 'list',
+			noun: m.intel_common_noun_list({}, o),
 			count: 1,
 			lines: [list.name],
 			listChips: [ref],
@@ -691,21 +723,25 @@ function buildCreateRec(args: {
 	canonicalType: ListType
 	dependentId: string | null
 	subject: SubjectListSummary
+	locale: Locale
 }): AnalyzerRecOutput {
-	const { event, canonicalType, dependentId, subject } = args
-	const subjectIsYou = subject.kind === 'user'
-	const owner = subjectIsYou ? 'Your' : `${subject.name}'s`
+	const { event, canonicalType, dependentId, subject, locale } = args
+	const o = { locale }
+	const eventTitle = eventTitleFor(event, locale)
 	const eventYear = event.occurrence.getUTCFullYear()
-	const name = `${event.eventTitle} ${eventYear}`
+	const name = `${eventTitle} ${eventYear}`
 	return {
 		kind: 'create-event-list',
 		severity: 'suggest',
-		title: `Create a ${prettyListType(canonicalType)} list for ${event.eventTitle}`,
-		body: `${owner} ${event.eventTitle} is in ${event.daysUntil} ${event.daysUntil === 1 ? 'day' : 'days'}, and there's no list set up to auto-reveal gifts on that day. Want to create one?`,
+		title: m.intel_list_hygiene_create_title({ listType: prettyListType(canonicalType, locale), eventTitle }, o),
+		body:
+			subject.kind === 'user'
+				? m.intel_list_hygiene_create_body_self({ count: event.daysUntil, eventTitle }, o)
+				: m.intel_list_hygiene_create_body_dependent({ count: event.daysUntil, eventTitle, name: subject.name }, o),
 		actions: [
 			{
-				label: `Create "${name}"`,
-				description: 'Creates a private list pre-named for the event. You can flip it to public once you add some items.',
+				label: m.intel_list_hygiene_create_action_label({ name }, o),
+				description: m.intel_list_hygiene_create_action_description({}, o),
 				intent: 'do',
 				apply: {
 					kind: 'create-list',
@@ -723,18 +759,20 @@ function buildCreateRec(args: {
 	}
 }
 
-function buildSetPrimaryRec(args: { event: InWindowEvent; list: ListRow; subject: SubjectListSummary }): AnalyzerRecOutput {
-	const { event, list, subject } = args
+function buildSetPrimaryRec(args: { event: InWindowEvent; list: ListRow; subject: SubjectListSummary; locale: Locale }): AnalyzerRecOutput {
+	const { event, list, subject, locale } = args
+	const o = { locale }
 	const ref = listRefFor(list, subject)
+	const eventTitle = eventTitleFor(event, locale)
 	return {
 		kind: 'wrong-primary-for-event',
 		severity: 'suggest',
-		title: `Set "${list.name}" as your primary for ${event.eventTitle}`,
-		body: `Your ${event.eventTitle} is in ${event.daysUntil} ${event.daysUntil === 1 ? 'day' : 'days'} but "${list.name}" isn't your primary list. Making it primary means new items default into it.`,
+		title: m.intel_list_hygiene_primary_title({ listName: list.name, eventTitle }, o),
+		body: m.intel_list_hygiene_primary_body({ count: event.daysUntil, eventTitle, listName: list.name }, o),
 		actions: [
 			{
-				label: 'Set as Primary',
-				description: 'Makes this your primary list. Your current primary goes back to being a regular list.',
+				label: m.intel_list_hygiene_primary_action_label({}, o),
+				description: m.intel_list_hygiene_primary_action_description({}, o),
 				intent: 'do',
 				apply: {
 					kind: 'set-primary-list',
@@ -743,7 +781,7 @@ function buildSetPrimaryRec(args: { event: InWindowEvent; list: ListRow; subject
 			},
 		],
 		affected: {
-			noun: 'list',
+			noun: m.intel_common_noun_list({}, o),
 			count: 1,
 			lines: [list.name],
 			listChips: [ref],
@@ -753,28 +791,45 @@ function buildSetPrimaryRec(args: { event: InWindowEvent; list: ListRow; subject
 	}
 }
 
-function prettyListType(type: ListType): string {
+function prettyListType(type: ListType, locale: Locale): string {
+	const o = { locale }
 	switch (type) {
 		case 'wishlist':
-			return 'wishlist'
+			return m.intel_common_list_type_wishlist({}, o)
 		case 'christmas':
-			return 'Christmas'
+			return m.intel_common_list_type_christmas({}, o)
 		case 'birthday':
-			return 'birthday'
+			return m.intel_common_list_type_birthday({}, o)
 		case 'holiday':
-			return 'holiday'
+			return m.intel_common_list_type_holiday({}, o)
 		case 'giftideas':
-			return 'gift ideas'
+			return m.intel_common_list_type_giftideas({}, o)
 		case 'todos':
-			return 'todo'
+			return m.intel_common_list_type_todos({}, o)
 		case 'test':
-			return 'test'
+			return m.intel_common_list_type_test({}, o)
 	}
 }
 
 // Button labels use Title Case; prose keeps `prettyListType`'s sentence casing.
-function titleListType(type: ListType): string {
-	return prettyListType(type).replace(/\b\w/g, c => c.toUpperCase())
+function titleListType(type: ListType, locale: Locale): string {
+	const o = { locale }
+	switch (type) {
+		case 'wishlist':
+			return m.intel_common_list_type_title_wishlist({}, o)
+		case 'christmas':
+			return m.intel_common_list_type_title_christmas({}, o)
+		case 'birthday':
+			return m.intel_common_list_type_title_birthday({}, o)
+		case 'holiday':
+			return m.intel_common_list_type_title_holiday({}, o)
+		case 'giftideas':
+			return m.intel_common_list_type_title_giftideas({}, o)
+		case 'todos':
+			return m.intel_common_list_type_title_todos({}, o)
+		case 'test':
+			return m.intel_common_list_type_title_test({}, o)
+	}
 }
 
 // ─── Duplicate clustering ───────────────────────────────────────────────────
@@ -876,16 +931,18 @@ export function findDuplicateClusters(args: {
 	return clusters
 }
 
-function buildMergeRec(args: { cluster: DuplicateCluster; subject: SubjectListSummary }): AnalyzerRecOutput {
-	const { cluster, subject } = args
+function buildMergeRec(args: { cluster: DuplicateCluster; subject: SubjectListSummary; locale: Locale }): AnalyzerRecOutput {
+	const { cluster, subject, locale } = args
+	const o = { locale }
 	const { survivor, sources, type, customHolidayId } = cluster
 	const all = [survivor, ...sources]
 	const survivorRef = listRefFor(survivor, subject)
 	const listChips = all.map(l => listRefFor(l, subject))
-	const sourceCountWord = sources.length === 1 ? '1 older list' : `${sources.length} older lists`
-	const olderText = sources.length === 1 ? "the older one hasn't" : "the older ones haven't"
-	const title = `Merge ${sourceCountWord} into "${survivor.name}"`
-	const body = `You have ${all.length} active ${prettyListType(type)} lists. "${survivor.name}" is the newest, and ${olderText} been touched in over a year. Merging moves items into the newer list and archives the older one${sources.length === 1 ? '' : 's'}.`
+	const title = m.intel_list_hygiene_merge_title({ count: sources.length, survivorName: survivor.name }, o)
+	const body = m.intel_list_hygiene_merge_body(
+		{ count: sources.length, total: all.length, listType: prettyListType(type, locale), survivorName: survivor.name },
+		o
+	)
 	return {
 		kind: 'duplicate-event-lists',
 		severity: 'suggest',
@@ -893,9 +950,8 @@ function buildMergeRec(args: { cluster: DuplicateCluster; subject: SubjectListSu
 		body,
 		actions: [
 			{
-				label: 'Merge Into Newest',
-				description:
-					'Moves items, item groups, and list addons onto the newer list, and existing claims move with their items. The older lists are archived, not deleted, so you can bring them back.',
+				label: m.intel_list_hygiene_merge_action_label({}, o),
+				description: m.intel_list_hygiene_merge_action_description({}, o),
 				intent: 'do',
 				apply: {
 					kind: 'merge-lists',
@@ -905,7 +961,7 @@ function buildMergeRec(args: { cluster: DuplicateCluster; subject: SubjectListSu
 			},
 		],
 		affected: {
-			noun: 'list',
+			noun: all.length === 1 ? m.intel_common_noun_list({}, o) : m.intel_common_noun_lists({}, o),
 			count: all.length,
 			lines: all.map(l => l.name),
 			listChips,
@@ -923,7 +979,7 @@ function buildMergeRec(args: { cluster: DuplicateCluster; subject: SubjectListSu
 // wishlist" action so the proposed `newName` doesn't carry stale
 // event-themed copy (e.g. "Christmas 2023") into the converted list.
 // Exported for unit tests.
-export function reverseRenameToWishlist(currentName: string): string {
+export function reverseRenameToWishlist(currentName: string, locale: Locale = 'en'): string {
 	// Use a global-flag clone so every match is stripped, not just the
 	// first one. The shared constants at the top of this file are not
 	// global because the convert-rename path only needs `.test`.
@@ -931,7 +987,7 @@ export function reverseRenameToWishlist(currentName: string): string {
 	const yearGlobal = new RegExp(YEAR_TOKEN_RE.source, 'g')
 	const stripped = currentName.replace(eventGlobal, '').replace(yearGlobal, '').replace(/\s+/g, ' ').trim()
 	if (stripped.length >= 3) return stripped
-	return 'Wishlist'
+	return m.intel_list_hygiene_wishlist_fallback_name({}, { locale })
 }
 
 // Listed types whose `lists.type` corresponds to a calendar event. The
@@ -1154,46 +1210,66 @@ export async function findStalePublicLists(args: {
 	return out
 }
 
-function buildStaleListRec(args: { candidate: StaleListCandidate; subject: SubjectListSummary }): AnalyzerRecOutput {
-	const { candidate, subject } = args
-	const { list, reason, lastEventDate, eventTitle } = candidate
+function buildStaleListRec(args: {
+	candidate: StaleListCandidate
+	subject: SubjectListSummary
+	locale: Locale
+	now: Date
+}): AnalyzerRecOutput {
+	const { candidate, subject, locale } = args
+	const o = { locale }
+	const { list, reason, lastEventDate } = candidate
+	// Birthday and Christmas are ours to translate; a custom holiday keeps
+	// the title its admin typed.
+	const eventTitle =
+		list.type === 'birthday'
+			? m.intel_common_event_birthday({}, o)
+			: list.type === 'christmas'
+				? m.intel_common_event_christmas({}, o)
+				: (candidate.eventTitle ?? '')
 	const ref = listRefFor(list, subject)
-	const daysSince = lastEventDate ? Math.floor((Date.now() - lastEventDate.getTime()) / 86_400_000) : 0
+	const daysSince = lastEventDate ? Math.floor((args.now.getTime() - lastEventDate.getTime()) / 86_400_000) : 0
 
 	// A list that is already a wishlist has no event binding to strip, so
 	// the "Convert to wishlist" action is a no-op. Drop both the action
 	// and the matching body-copy clause for that case.
 	const isAlreadyWishlist = list.type === 'wishlist'
-	const convertTail = isAlreadyWishlist ? '' : " Archive it if you're done, or convert it to a plain wishlist if it's still useful."
-	const archiveOnlyTail = isAlreadyWishlist ? " Archive it if you're done." : ''
-
 	let body: string
 	if (reason === 'inactive') {
-		body = `"${list.name}" hasn't been touched in over a year.${isAlreadyWishlist ? archiveOnlyTail : convertTail}`
+		body = isAlreadyWishlist
+			? m.intel_list_hygiene_stale_body_inactive_wishlist({ listName: list.name }, o)
+			: m.intel_list_hygiene_stale_body_inactive({ listName: list.name }, o)
 	} else {
-		const inactiveTail = reason === 'both' ? " It also hasn't been touched in over a year." : ''
-		const leadIn = `Last ${eventTitle} was ${daysSince} ${daysSince === 1 ? 'day' : 'days'} ago and "${list.name}" is still active.`
-		body = `${leadIn}${isAlreadyWishlist ? archiveOnlyTail : convertTail}${inactiveTail}`
+		const params = { count: daysSince, eventTitle, listName: list.name }
+		if (reason === 'both') {
+			body = isAlreadyWishlist
+				? m.intel_list_hygiene_stale_body_event_inactive_wishlist(params, o)
+				: m.intel_list_hygiene_stale_body_event_inactive(params, o)
+		} else {
+			body = isAlreadyWishlist
+				? m.intel_list_hygiene_stale_body_event_wishlist(params, o)
+				: m.intel_list_hygiene_stale_body_event(params, o)
+		}
 	}
 
 	const actions: AnalyzerRecOutput['actions'] = [
 		{
-			label: 'Archive List',
-			description: 'Marks the list inactive. Its items and past gifts are kept, and you can unarchive it later.',
+			label: m.intel_list_hygiene_stale_archive_label({}, o),
+			description: m.intel_list_hygiene_stale_archive_description({}, o),
 			intent: 'do',
 			apply: { kind: 'archive-list', listId: String(list.id) },
 		},
 	]
 	if (!isAlreadyWishlist) {
 		actions.push({
-			label: 'Convert to Wishlist',
-			description: "Turns it into a plain wishlist that isn't tied to an event. Handy if the list is still useful year-round.",
+			label: m.intel_list_hygiene_stale_convert_label({}, o),
+			description: m.intel_list_hygiene_stale_convert_description({}, o),
 			intent: 'do',
 			apply: {
 				kind: 'convert-list',
 				listId: String(list.id),
 				newType: 'wishlist',
-				newName: reverseRenameToWishlist(list.name),
+				newName: reverseRenameToWishlist(list.name, locale),
 				newCustomHolidayId: null,
 			},
 		})
@@ -1202,11 +1278,11 @@ function buildStaleListRec(args: { candidate: StaleListCandidate; subject: Subje
 	return {
 		kind: 'stale-public-list',
 		severity: 'suggest',
-		title: `"${list.name}" looks stale`,
+		title: m.intel_list_hygiene_stale_title({ listName: list.name }, o),
 		body,
 		actions,
 		affected: {
-			noun: 'list',
+			noun: m.intel_common_noun_list({}, o),
 			count: 1,
 			lines: [list.name],
 			listChips: [ref],

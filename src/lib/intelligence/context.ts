@@ -2,6 +2,7 @@ import type { LanguageModel } from 'ai'
 
 import type { Database } from '@/db'
 import type { AiCallSource } from '@/lib/ai-call'
+import type { Locale } from '@/lib/i18n/locales'
 import type { AppSettings } from '@/lib/settings'
 
 // Subject the current pass is generating recs for. When `kind: 'user'` the
@@ -22,6 +23,11 @@ export type AnalyzerContext = {
 	// that need it should check and bail or fall back to heuristic-only.
 	model: LanguageModel | null
 	settings: AppSettings
+	// The language recommendations are written in: the user's own, else the
+	// deployment default. Text is stored as written, so every message an
+	// analyzer renders passes this explicitly (`m.key(params, { locale })`);
+	// a cron run has no request to take a language from.
+	locale: Locale
 	logger: { info: (...a: Array<unknown>) => void; warn: (...a: Array<unknown>) => void; error: (...a: Array<unknown>) => void }
 	now: Date
 	candidateCap: number

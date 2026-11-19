@@ -4,6 +4,8 @@ import { and, eq, gt, inArray, isNotNull, isNull, lt, ne, or } from 'drizzle-orm
 import type { Database } from '@/db'
 import { itemAiAnalysis, items, lists, type NewItemAiAnalysis } from '@/db/schema'
 import type { AiCallSource } from '@/lib/ai-call'
+import { outputLanguageName } from '@/lib/i18n/ai-language'
+import type { Locale } from '@/lib/i18n/locales'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 
 import { composeForLog, generateObjectCached } from './ai-call'
@@ -64,6 +66,9 @@ export async function runEnrichment(args: {
 	logger: { warn: (...a: Array<unknown>) => void }
 	now: Date
 	source?: AiCallSource
+	// The language the sizing rationale is written in: it is shown to the
+	// user as-is on the clothing suggestion. Absent means English.
+	locale?: Locale
 }): Promise<EnrichmentRunResult> {
 	const { db, userId, model, now } = args
 	const t0 = Date.now()
@@ -130,7 +135,7 @@ export async function runEnrichment(args: {
 			title: b.title,
 			notes: b.notes,
 		}))
-		const userPrompt = buildEnrichmentUserPrompt({ candidates })
+		const userPrompt = buildEnrichmentUserPrompt({ candidates }) + sizingLanguageInstruction(args.locale)
 
 		const stepStart = Date.now()
 		let parsed: unknown = null
@@ -238,4 +243,13 @@ function stringSlate(value: unknown): Array<string> | null {
 		.map(v => v.trim().slice(0, 60))
 		.slice(0, MAX_SUGGESTED_OPTIONS)
 	return cleaned.length > 0 ? cleaned : null
+}
+
+// Only the sizing sentence is read by a person. `canonicalName` and
+// `category` are matched across items and users, so they stay in English
+// whatever language the reader uses; a translated canonical name would stop
+// matching the same product seen by an English account.
+function sizingLanguageInstruction(locale: Locale | undefined): string {
+	if (!locale || locale === 'en') return ''
+	return `\n\nWrite sizingRationale in ${outputLanguageName(locale)}. Keep canonicalName, category and every other field exactly as specified above, in English.`
 }

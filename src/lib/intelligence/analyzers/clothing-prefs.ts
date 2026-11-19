@@ -1,7 +1,9 @@
 import { and, eq, isNull, ne } from 'drizzle-orm'
 
 import { itemAiAnalysis, items, lists } from '@/db/schema'
+import type { Locale } from '@/lib/i18n/locales'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { m } from '@/paraglide/messages.js'
 
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
@@ -79,7 +81,7 @@ export const clothingPrefsAnalyzer: Analyzer = {
 		}
 
 		const flagged = candidates.filter(c => c.isClothing === true && !(c.hasSize === true && c.hasColor === true))
-		const recs = buildBundles(flagged, ctx.subject)
+		const recs = buildBundles(flagged, ctx.subject, ctx.locale)
 		return { recs, steps: [loadStep], inputHash: finalInputHash }
 	},
 }
@@ -97,7 +99,8 @@ type CandidateRow = {
 	sizingRationale: string | null
 }
 
-function buildBundles(rows: ReadonlyArray<CandidateRow>, subject: AnalyzerSubject): Array<AnalyzerRecOutput> {
+function buildBundles(rows: ReadonlyArray<CandidateRow>, subject: AnalyzerSubject, locale: Locale): Array<AnalyzerRecOutput> {
+	const o = { locale }
 	const byList = new Map<number, Array<CandidateRow>>()
 	for (const row of rows) {
 		const arr = byList.get(row.listId) ?? []
@@ -112,7 +115,7 @@ function buildBundles(rows: ReadonlyArray<CandidateRow>, subject: AnalyzerSubjec
 		const subItems: Array<RecSubItem> = listEntries.map(row => ({
 			id: String(row.itemId),
 			title: row.title,
-			detail: row.sizingRationale ?? 'No size or color recorded yet.',
+			detail: row.sizingRationale ?? m.intel_clothing_prefs_detail_default({}, o),
 			thumbnailUrl: row.imageUrl,
 			nav: { listId: String(row.listId), itemId: String(row.itemId), openEdit: true },
 		}))
@@ -120,17 +123,14 @@ function buildBundles(rows: ReadonlyArray<CandidateRow>, subject: AnalyzerSubjec
 		recs.push({
 			kind: 'clothing-missing-prefs',
 			severity: 'suggest',
-			title: count === 1 ? `Pin down sizing on an item on ${first.listName}` : `Pin down sizing on items on ${first.listName}`,
-			body:
-				count === 1
-					? "This clothing item doesn't have a size or color pinned down. Gifters can guess wrong without one."
-					: "These clothing items don't have a size or color pinned down. Gifters can guess wrong without one. There's a note on each item below.",
+			title: m.intel_clothing_prefs_title({ count, listName: first.listName }, o),
+			body: m.intel_clothing_prefs_body({ count }, o),
 			actions: [],
-			dismissDescription: "Hide this suggestion for this list. We won't surface it again unless something changes about these items.",
+			dismissDescription: m.intel_common_dismiss_list_bundle({}, o),
 			affected: {
-				noun: count === 1 ? 'item' : 'items',
+				noun: count === 1 ? m.intel_common_noun_item({}, o) : m.intel_common_noun_items({}, o),
 				count,
-				lines: [`${first.listName} · ${count} clothing item${count === 1 ? '' : 's'} missing sizing or color`],
+				lines: [m.intel_clothing_prefs_line({ count, listName: first.listName }, o)],
 				listChips: [listRef],
 			},
 			relatedLists: [listRef],

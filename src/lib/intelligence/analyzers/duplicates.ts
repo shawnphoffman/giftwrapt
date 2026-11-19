@@ -2,9 +2,12 @@ import { and, eq, inArray, isNull, ne } from 'drizzle-orm'
 
 import type { Database } from '@/db'
 import { intelligenceVerdicts, itemAiAnalysis, items, lists } from '@/db/schema'
+import { outputLanguageInstruction } from '@/lib/i18n/ai-language'
+import type { Locale } from '@/lib/i18n/locales'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { jaccard, tokenSet } from '@/lib/text-similarity'
 import { normalizeProductUrl } from '@/lib/urls'
+import { m } from '@/paraglide/messages.js'
 
 import { composeForLog, generateObjectCached } from '../ai-call'
 import type { Analyzer } from '../analyzer'
@@ -216,17 +219,12 @@ export const duplicatesAnalyzer: Analyzer = {
 
 		const steps: Array<AnalyzerStep> = [loadStep]
 		const recs: Array<AnalyzerRecOutput> = []
+		const o = { locale: ctx.locale }
 
 		// Emit URL-confirmed recs up front. These never need the model.
 		for (const pair of urlConfirmedPairs) {
 			recs.push(
-				buildPairRec(
-					pair,
-					'suggest',
-					'Same item on two lists',
-					'Both items link to the same product page, so this is the same item appearing twice.',
-					ctx.subject
-				)
+				buildPairRec(pair, 'suggest', m.intel_duplicates_title({}, o), m.intel_duplicates_body_same_url({}, o), ctx.subject, ctx.locale)
 			)
 		}
 		if (urlConfirmedPairs.length > 0) {
@@ -237,13 +235,7 @@ export const duplicatesAnalyzer: Analyzer = {
 		// pass, no model call needed.
 		for (const pair of canonConfirmedPairs) {
 			recs.push(
-				buildPairRec(
-					pair,
-					'suggest',
-					'Same item on two lists',
-					'Both items describe the same product, so this looks like the same item appearing twice.',
-					ctx.subject
-				)
+				buildPairRec(pair, 'suggest', m.intel_duplicates_title({}, o), m.intel_duplicates_body_same_product({}, o), ctx.subject, ctx.locale)
 			)
 		}
 		if (canonConfirmedPairs.length > 0) {
@@ -257,9 +249,10 @@ export const duplicatesAnalyzer: Analyzer = {
 				buildPairRec(
 					pair,
 					'suggest',
-					'Same item on two lists',
-					'These titles are nearly identical, so this looks like the same product on two lists.',
-					ctx.subject
+					m.intel_duplicates_title({}, o),
+					m.intel_duplicates_body_similar_titles({}, o),
+					ctx.subject,
+					ctx.locale
 				)
 			)
 		}
@@ -274,8 +267,13 @@ export const duplicatesAnalyzer: Analyzer = {
 		// Verdict cache: a pair judgment is a pure function of the two
 		// titles, so it's memoized per user. Only never-seen pairs go to
 		// the model; a title edit changes the key and re-judges naturally.
+		// A verdict carries the model's rationale, which is prose in the
+		// language it was asked for, so the stored key is per language
+		// (English keeps the bare key). The input hash above is not: the
+		// runner already keeps languages apart there.
 		const cacheStart = Date.now()
-		const keyedPairs = candidatePairs.map(pair => ({ pair, key: pairVerdictKey(pair[0].title, pair[1].title) }))
+		const verdictLocaleTag = ctx.locale === 'en' ? '' : `@${ctx.locale}`
+		const keyedPairs = candidatePairs.map(pair => ({ pair, key: `${pairVerdictKey(pair[0].title, pair[1].title)}${verdictLocaleTag}` }))
 		const cachedVerdicts = await loadPairVerdicts(
 			ctx.db,
 			ctx.userId,
@@ -289,7 +287,7 @@ export const duplicatesAnalyzer: Analyzer = {
 				continue
 			}
 			if (verdict.matched && verdict.confident) {
-				recs.push(buildPairRec(entry.pair, 'suggest', 'Same item on two lists', verdict.rationale, ctx.subject))
+				recs.push(buildPairRec(entry.pair, 'suggest', m.intel_duplicates_title({}, o), verdict.rationale, ctx.subject, ctx.locale))
 			}
 		}
 		steps.push({
@@ -310,7 +308,7 @@ export const duplicatesAnalyzer: Analyzer = {
 			{ itemId: String(p[1].itemId), title: p[1].title, listId: String(p[1].listId), listName: p[1].listName, listType: p[1].listType },
 		])
 
-		const userPrompt = buildDuplicatesUserPrompt({ candidatePairs: promptPairs })
+		const userPrompt = buildDuplicatesUserPrompt({ candidatePairs: promptPairs }) + outputLanguageInstruction(ctx.locale)
 		const stepStart = Date.now()
 		let parsed: unknown = null
 		let responseRaw: string | null = null
@@ -360,12 +358,14 @@ export const duplicatesAnalyzer: Analyzer = {
 		const verdictsToStore: Array<{ key: string; verdict: PairVerdict }> = []
 		let freshRecs = 0
 		for (const aiPair of aiPairs) {
-			const entry = misses.find(m => String(m.pair[0].itemId) === aiPair.leftItemId && String(m.pair[1].itemId) === aiPair.rightItemId)
+			const entry = misses.find(
+				miss => String(miss.pair[0].itemId) === aiPair.leftItemId && String(miss.pair[1].itemId) === aiPair.rightItemId
+			)
 			if (!entry) continue
 			echoedKeys.add(entry.key)
 			verdictsToStore.push({ key: entry.key, verdict: { matched: true, confident: aiPair.confident, rationale: aiPair.rationale } })
 			if (aiPair.confident && freshRecs < DUPLICATES_MAX_PAIRS) {
-				recs.push(buildPairRec(entry.pair, 'suggest', `Same item on two lists`, aiPair.rationale, ctx.subject))
+				recs.push(buildPairRec(entry.pair, 'suggest', m.intel_duplicates_title({}, o), aiPair.rationale, ctx.subject, ctx.locale))
 				freshRecs++
 			}
 		}
@@ -475,8 +475,10 @@ function buildPairRec(
 	severity: 'info' | 'suggest' | 'important',
 	title: string,
 	rationale: string,
-	subject: AnalyzerSubject
+	subject: AnalyzerSubject,
+	locale: Locale
 ): AnalyzerRecOutput {
+	const o = { locale }
 	const [a, b] = pair
 	const listSubject: ListRef['subject'] =
 		subject.kind === 'dependent'
@@ -521,23 +523,30 @@ function buildPairRec(
 		body: rationale,
 		actions: [
 			{
-				label: `Open ${a.listName}`,
-				description: `Jump to ${a.listName} so you can review or delete this copy.`,
+				label: m.intel_duplicates_action_open_label({ listName: a.listName }, o),
+				description: m.intel_duplicates_action_open_description({ listName: a.listName }, o),
 				intent: 'do',
 				nav: { listId: String(a.listId), itemId: String(a.itemId) },
 			},
 			{
-				label: `Open ${b.listName}`,
-				description: `Jump to ${b.listName} so you can review or delete this copy.`,
+				label: m.intel_duplicates_action_open_label({ listName: b.listName }, o),
+				description: m.intel_duplicates_action_open_description({ listName: b.listName }, o),
 				intent: 'do',
 				nav: { listId: String(b.listId), itemId: String(b.itemId) },
 			},
-			{ label: 'Keep Both', description: "These are actually different items. We won't flag this pair again.", intent: 'noop' },
+			{
+				label: m.intel_duplicates_action_keep_both_label({}, o),
+				description: m.intel_duplicates_action_keep_both_description({}, o),
+				intent: 'noop',
+			},
 		],
 		affected: {
-			noun: 'items',
+			noun: m.intel_common_noun_items({}, o),
 			count: 2,
-			lines: [`${a.title} · on ${a.listName}`, `${b.title} · on ${b.listName}`],
+			lines: [
+				m.intel_common_line_item_on_list({ title: a.title, listName: a.listName }, o),
+				m.intel_common_line_item_on_list({ title: b.title, listName: b.listName }, o),
+			],
 			listChips: [listA, listB],
 		},
 		relatedItems: [itemA, itemB],

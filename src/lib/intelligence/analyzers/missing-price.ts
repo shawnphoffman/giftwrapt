@@ -1,7 +1,9 @@
 import { and, eq, isNotNull, isNull, ne } from 'drizzle-orm'
 
 import { items, lists } from '@/db/schema'
+import type { Locale } from '@/lib/i18n/locales'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { m } from '@/paraglide/messages.js'
 
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
@@ -62,7 +64,7 @@ export const missingPriceAnalyzer: Analyzer = {
 			return { recs: [], steps: [loadStep], inputHash: combineHashes([inputHash]) }
 		}
 
-		const recs = buildBundles(candidates, ctx.subject)
+		const recs = buildBundles(candidates, ctx.subject, ctx.locale)
 		return { recs, steps: [loadStep], inputHash: combineHashes([inputHash]) }
 	},
 }
@@ -80,7 +82,8 @@ type CandidateRow = {
 	listIsPrivate: boolean
 }
 
-function buildBundles(rows: ReadonlyArray<CandidateRow>, subject: AnalyzerSubject): Array<AnalyzerRecOutput> {
+function buildBundles(rows: ReadonlyArray<CandidateRow>, subject: AnalyzerSubject, locale: Locale): Array<AnalyzerRecOutput> {
+	const o = { locale }
 	const byList = new Map<number, Array<CandidateRow>>()
 	for (const row of rows) {
 		const arr = byList.get(row.listId) ?? []
@@ -102,17 +105,14 @@ function buildBundles(rows: ReadonlyArray<CandidateRow>, subject: AnalyzerSubjec
 		recs.push({
 			kind: 'missing-price',
 			severity: 'info',
-			title: count === 1 ? `Add a price to an item on ${first.listName}` : `Add prices to items on ${first.listName}`,
-			body:
-				count === 1
-					? 'This item has a link but no price. Filling one in helps gifters budget and surfaces it on price-filtered views.'
-					: 'These items have links but no price set. Filling them in helps gifters budget and surfaces them on price-filtered views. Open the list to fix several at once, or use Edit / Skip on each item below.',
+			title: m.intel_missing_price_title({ count, listName: first.listName }, o),
+			body: m.intel_missing_price_body({ count }, o),
 			actions: [],
-			dismissDescription: "Hide this suggestion for this list. We won't surface it again unless something changes about these items.",
+			dismissDescription: m.intel_common_dismiss_list_bundle({}, o),
 			affected: {
-				noun: count === 1 ? 'item' : 'items',
+				noun: count === 1 ? m.intel_common_noun_item({}, o) : m.intel_common_noun_items({}, o),
 				count,
-				lines: [`${first.listName} · ${count} item${count === 1 ? '' : 's'} missing a price`],
+				lines: [m.intel_missing_price_line({ count, listName: first.listName }, o)],
 				listChips: [listRef],
 			},
 			relatedLists: [listRef],
