@@ -373,7 +373,7 @@
 	"admin_settings_cron_endpoints_schedule_column": "Planification",
 	"admin_settings_cron_endpoints_last_run_column": "Dernière exécution",
 	"admin_settings_cron_endpoints_last_success_column": "Dernier succès",
-	"admin_settings_cron_endpoints_next_fire_column": "Prochain déclenchement",
+	"admin_settings_cron_endpoints_next_fire_column": "Prochaine",
 	"admin_settings_cron_endpoints_last_24h_column": "24 h",
 	"admin_settings_cron_endpoints_actions_column": "Actions",
 	"admin_settings_cron_endpoints_cadence_utc": "{cadence}, UTC",

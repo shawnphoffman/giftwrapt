@@ -114,7 +114,7 @@ export function CoreSettingsSection() {
 					value={settings.defaultListType}
 					onValueChange={value => handleSettingChange('defaultListType', value as AppSettings['defaultListType'])}
 				>
-					<SelectTrigger id="defaultListType" className="w-35">
+					<SelectTrigger id="defaultListType" className="w-auto min-w-35 shrink-0">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -158,7 +158,7 @@ export function CoreSettingsSection() {
 						value={matchLocale(settings.defaultLocale) ?? fallbackLocale()}
 						onValueChange={value => handleSettingChange('defaultLocale', value)}
 					>
-						<SelectTrigger id="defaultLocale" className="w-35">
+						<SelectTrigger id="defaultLocale" className="w-auto min-w-35 shrink-0">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -180,7 +180,7 @@ export function CoreSettingsSection() {
 					<p className="text-sm text-muted-foreground">{m.admin_settings_app_default_currency_description()}</p>
 				</div>
 				<Select value={settings.defaultCurrency} onValueChange={value => handleSettingChange('defaultCurrency', value)}>
-					<SelectTrigger id="defaultCurrency" className="w-35">
+					<SelectTrigger id="defaultCurrency" className="w-auto min-w-35 shrink-0">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
