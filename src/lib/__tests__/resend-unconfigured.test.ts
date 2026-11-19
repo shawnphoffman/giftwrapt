@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Simulate a server boot with email env vars fully unset. This is the
 // scenario that previously crashed the Resend SDK at module-load time.
@@ -26,13 +26,20 @@ vi.mock('@/db', () => {
 })
 
 // `vi.resetModules()` runs before each test, so every case below pays a
-// full cold import of `@/lib/resend` (React Email templates, pino, the
-// crypto helper). That is comfortably under the default 5s timeout on an
+// full cold import of `@/lib/resend` (React Email templates, the message
+// catalog, pino, the crypto helper). That is comfortably under the default 5s timeout on an
 // idle machine but not when the unit and storybook projects saturate the
 // CPU, which made this file the flakiest in the suite. The timeout is per
 // test and only consumed on a hang, so a generous suite-wide value costs
 // nothing on the happy path.
-describe('resend module with email fully unconfigured', { timeout: 20_000 }, () => {
+// The message catalog is well over a thousand small modules. The first
+// import of it in a run is slow while every other test file is starting up
+// too, so pay for it in a hook with room to spare instead of inside a test.
+beforeAll(async () => {
+	await import('@/paraglide/messages.js')
+}, 300_000)
+
+describe('resend module with email fully unconfigured', { timeout: 60_000 }, () => {
 	beforeEach(() => {
 		vi.resetModules()
 	})
@@ -48,13 +55,13 @@ describe('resend module with email fully unconfigured', { timeout: 20_000 }, () 
 
 	it('no-ops sendNewCommentEmail and returns null', async () => {
 		const { sendNewCommentEmail } = await import('@/lib/resend')
-		const result = await sendNewCommentEmail('owner', 'owner@example.com', 'commenter', 'hi', 'Item', 1, 1)
+		const result = await sendNewCommentEmail('owner', 'owner@example.com', 'commenter', 'hi', 'Item', 1, 1, { locale: null })
 		expect(result).toBeNull()
 	})
 
 	it('no-ops sendBirthdayEmail and returns null', async () => {
 		const { sendBirthdayEmail } = await import('@/lib/resend')
-		const result = await sendBirthdayEmail('Alice', 'alice@example.com')
+		const result = await sendBirthdayEmail('Alice', 'alice@example.com', null)
 		expect(result).toBeNull()
 	})
 
@@ -64,6 +71,7 @@ describe('resend module with email fully unconfigured', { timeout: 20_000 }, () 
 			subject: 'A look back at your gifts',
 			intro: "Here's who gave what.",
 			sections: [],
+			locale: 'en',
 		})
 		expect(result).toBeNull()
 	})
@@ -80,6 +88,7 @@ describe('resend module with email fully unconfigured', { timeout: 20_000 }, () 
 			recipient: 'alice@example.com',
 			resetUrl: 'https://example.test/reset-password?token=x',
 			expiresInMinutes: 60,
+			locale: null,
 		})
 		expect(result).toBeNull()
 	})

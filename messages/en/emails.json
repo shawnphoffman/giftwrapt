@@ -1,0 +1,151 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"emails_hello_name": "Hello {#strong}{name}{/strong},",
+	"emails_hello_anon": "Hello {#strong}there{/strong},",
+	"emails_countdown": [
+		{
+			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{holidayName} is in {leadDays} day",
+				"countPlural=*": "{holidayName} is in {leadDays} days"
+			}
+		}
+	],
+	"emails_holiday_mothers_day": "Mother's Day",
+	"emails_holiday_fathers_day": "Father's Day",
+	"emails_picks_heading": "Still open on {personName}’s list",
+	"emails_birthday_subject": "🎉 Happy Birthday, {name}!",
+	"emails_birthday_subject_anon": "🎉 Happy Birthday, there!",
+	"emails_birthday_preview": "Happy Birthday, {name}!",
+	"emails_birthday_preview_anon": "Happy Birthday, there!",
+	"emails_birthday_heading": "🎉 Happy Birthday, {name}! 🎉",
+	"emails_birthday_heading_anon": "🎉 Happy Birthday, there! 🎉",
+	"emails_birthday_body": "In case you forgot, today is your birthday! We hope you have a great day and all of your birthday wishes come true.",
+	"emails_holidays_preview": "Happy Holidays!",
+	"emails_holidays_heading": "🎄 Happy Holidays! 🎄",
+	"emails_holidays_body": "We hope you have a great holiday season! 🎅",
+	"emails_comment_subject": "New Comment on {appTitle}",
+	"emails_comment_someone": "Someone",
+	"emails_comment_body_owner": "{#strong}{commenter}{/strong} has left a comment on one of your items ({#link}{itemTitle}{/link}).",
+	"emails_comment_body_mention": "{#strong}{commenter}{/strong} mentioned you in a comment on an item ({#link}{itemTitle}{/link}).",
+	"emails_comment_quote": "”{comment}”",
+	"emails_comment_button": "View Item",
+	"emails_orphan_subject": "An item you claimed for {recipientName} was removed",
+	"emails_orphan_heading": "An item you claimed was removed",
+	"emails_orphan_body_named": "{#strong}{recipientName}{/strong} removed {#em}{itemTitle}{/em} from {#strong}{listName}{/strong}. You (or your partner) had already claimed it. They were never told you claimed it, so they don't know that you may have already purchased the gift.",
+	"emails_orphan_body_anon": "The recipient removed {#em}{itemTitle}{/em} from {#strong}{listName}{/strong}. You (or your partner) had already claimed it. They were never told you claimed it, so they don't know that you may have already purchased the gift.",
+	"emails_orphan_next": "You may want to return the item, hold onto it for another occasion, or give it anyway. Once you've decided, head into the app to acknowledge the alert and clear the item from your view.",
+	"emails_orphan_button": "View on the list",
+	"emails_cleanup_subject": "Cleaning up an unanswered claim tomorrow",
+	"emails_cleanup_heading": "Cleaning up an unanswered claim",
+	"emails_cleanup_body_named": "{#strong}{recipientName}{/strong} removed {#em}{itemTitle}{/em} from {#strong}{listName}{/strong} a while back, and you haven't acknowledged it yet. Tomorrow{event}, {appTitle} will automatically clear the claim from your view to keep things tidy.",
+	"emails_cleanup_body_anon": "The recipient removed {#em}{itemTitle}{/em} from {#strong}{listName}{/strong} a while back, and you haven't acknowledged it yet. Tomorrow{event}, {appTitle} will automatically clear the claim from your view to keep things tidy.",
+	"emails_cleanup_event_wishlist": "14 days after deletion",
+	"emails_cleanup_event_christmas": "Christmas",
+	"emails_cleanup_event_birthday": "their birthday",
+	"emails_cleanup_event_holiday": "the holiday",
+	"emails_cleanup_next": "If you'd like to acknowledge it manually first, or just want to confirm what you bought, use the button below.",
+	"emails_cleanup_button": "Open the list",
+	"emails_parents_body": "You’ve tagged {names} for {holidayName}. Take a peek at their {#link}lists{/link} if you’re still looking for something.",
+	"emails_anniversary_subject": [
+		{
+			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Your anniversary with {partnerName} is in {leadDays} day",
+				"countPlural=*": "Your anniversary with {partnerName} is in {leadDays} days"
+			}
+		}
+	],
+	"emails_anniversary_body": "{name}, your anniversary with {partnerName} is coming up. Take a look at their list at {#link}All Lists{/link}.",
+	"emails_valentines_subject": [
+		{
+			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Valentine's Day is in {leadDays} day",
+				"countPlural=*": "Valentine's Day is in {leadDays} days"
+			}
+		}
+	],
+	"emails_valentines_body": "{name}, Valentine's Day is coming up. Check what {partnerName} has on their list at {#link}All Lists{/link}.",
+	"emails_pre_birthday_subject": [
+		{
+			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Your birthday is in {leadDays} day",
+				"countPlural=*": "Your birthday is in {leadDays} days"
+			}
+		}
+	],
+	"emails_pre_birthday_heading": [
+		{
+			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Your birthday is in {leadDays} day, {name}",
+				"countPlural=*": "Your birthday is in {leadDays} days, {name}"
+			}
+		}
+	],
+	"emails_pre_birthday_body": "Now is a good time to make sure your birthday list doesn't suck. Add or remove items, set priorities, and update anything that's gone stale on your {#link}My Lists{/link} page.",
+	"emails_pre_christmas_subject": [
+		{
+			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Christmas is in {leadDays} day",
+				"countPlural=*": "Christmas is in {leadDays} days"
+			}
+		}
+	],
+	"emails_pre_christmas_heading": [
+		{
+			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Christmas is in {leadDays} day, {name}",
+				"countPlural=*": "Christmas is in {leadDays} days, {name}"
+			}
+		}
+	],
+	"emails_pre_christmas_body": "Time to spruce up your Christmas list. Add anything new, drop what you've outgrown, and make it easier for the people shopping for you. Head to {#link}My Lists{/link} to review.",
+	"emails_pre_holiday_body": "{name}, if you've got plans for {holidayName} this year, now is a good time to make a list. Head to {#link}My Lists{/link} to create one.",
+	"emails_reset_subject": "Reset your {appTitle} password",
+	"emails_reset_heading": "Reset your password",
+	"emails_reset_hi_name": "Hi {name},",
+	"emails_reset_hi_anon": "Hi there,",
+	"emails_reset_body": [
+		{
+			"declarations": ["input expiresInMinutes", "local countPlural = expiresInMinutes: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Someone (hopefully you) asked to reset the password on your {appTitle} account. Click the button below to choose a new password. The link is good for {expiresInMinutes} minute.",
+				"countPlural=*": "Someone (hopefully you) asked to reset the password on your {appTitle} account. Click the button below to choose a new password. The link is good for {expiresInMinutes} minutes."
+			}
+		}
+	],
+	"emails_reset_button": "Reset password",
+	"emails_reset_paste": "If the button doesn't work, paste this URL into your browser:",
+	"emails_reset_ignore": "If you didn't request a password reset you can safely ignore this email. Your password won't change.",
+	"emails_reveal_heading": "A look back...",
+	"emails_reveal_from": "From: {gifters}",
+	"emails_reveal_from_off_list": "From: {gifters} (off-list gift)",
+	"emails_reveal_footer": "These gifts have been archived and can be found on your {#link}Received Gifts{/link} page.",
+	"emails_reveal_subject_generic": "A look back at your gifts",
+	"emails_reveal_intro_generic": "Here's who gave what.",
+	"emails_reveal_intro_birthday_self": "We hope you had a wonderful birthday. Here's who gave you what.",
+	"emails_reveal_subject_dependent": "A look back at {name}'s gifts",
+	"emails_reveal_intro_birthday_dependent": "We hope {name} had a wonderful birthday. Here's who gave {name} what.",
+	"emails_reveal_subject_occasion_self": "A look back at your {occasion} gifts",
+	"emails_reveal_intro_occasion_self": "We hope your {occasion} was wonderful. Here's who gave you what.",
+	"emails_reveal_subject_occasion_dependent": "A look back at {name}'s {occasion} gifts",
+	"emails_reveal_intro_occasion_dependent": "We hope {name}'s {occasion} was wonderful. Here's who gave {name} what.",
+	"emails_reveal_occasion_christmas": "Christmas",
+	"emails_reveal_occasion_holiday": "holiday",
+	"emails_test_subject": "Test Email",
+	"emails_test_hello": "Hello {#strong}Test User{/strong}!",
+	"emails_test_button": "View Site"
+}

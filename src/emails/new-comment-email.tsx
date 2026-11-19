@@ -1,10 +1,17 @@
 import { Body, Button, Container, Head, Heading, Html, Img, Section, Tailwind, Text } from 'react-email'
 
+import { RichMessage } from '../components/common/rich-message'
+import type { Locale } from '../lib/i18n/locales'
+import { m } from '../paraglide/messages.js'
+import { previewLocale } from './preview-locale'
 const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 
 interface TestEmailProps {
-	username?: string
-	commenter?: string
+	// Null or empty when the account has no name.
+	username?: string | null
+	locale?: Locale
+	// Null when the commenter's account has neither a name nor an email.
+	commenter?: string | null
 	itemTitle?: string
 	listId?: number
 	itemId?: number
@@ -24,10 +31,13 @@ export function TestEmail({
 	itemTitle,
 	appTitle = 'GiftWrapt',
 	mentioned = false,
+	locale = 'en',
 }: TestEmailProps) {
+	const o = { locale }
+	const body = mentioned ? m.emails_comment_body_mention : m.emails_comment_body_owner
 	const itemUrl = `${baseUrl}/lists/${listId}#item-${itemId}`
 	return (
-		<Html>
+		<Html lang={locale}>
 			<Head />
 			{/* <Preview>{previewText}</Preview> */}
 			<Tailwind>
@@ -37,29 +47,37 @@ export function TestEmail({
 							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt={appTitle} className="mx-auto my-0" />
 						</Section>
 						<Heading className="mx-0 my-[30px] p-0 text-center font-bold text-[24px] text-black">
-							New Comment on {appTitle}
-							{/* Join <strong>{teamName}</strong> on <strong>Vercel</strong> */}
+							{m.emails_comment_subject({ appTitle }, o)}
 						</Heading>
 						<Text className="text-[14px] text-black leading-[24px]">
-							Hello <strong>{username}</strong>,
+							{username ? (
+								<RichMessage parts={m.emails_hello_name.parts({ name: username }, o)} tags={{ strong: c => <strong>{c}</strong> }} />
+							) : (
+								<RichMessage parts={m.emails_hello_anon.parts({}, o)} tags={{ strong: c => <strong>{c}</strong> }} />
+							)}
 						</Text>
 						<Text className="text-[14px] text-black leading-[24px]">
-							<strong>{commenter}</strong> {mentioned ? 'mentioned you in a comment on an item' : 'has left a comment on one of your items'}{' '}
-							(
-							<a className="italic" href={itemUrl}>
-								{itemTitle}
-							</a>
-							).
+							<RichMessage
+								parts={body.parts({ commenter: commenter ?? m.emails_comment_someone({}, o), itemTitle: itemTitle ?? '' }, o)}
+								tags={{
+									strong: c => <strong>{c}</strong>,
+									link: c => (
+										<a className="italic" href={itemUrl}>
+											{c}
+										</a>
+									),
+								}}
+							/>
 						</Text>
 						<Text className="w-full py-4 text-lg bg-[rgba(0,0,0,.05)] text-center text-black border border-[#eaeaea] border-solid rounded-md">
-							&rdquo;{comment}&rdquo;
+							{m.emails_comment_quote({ comment: comment ?? '' }, o)}
 						</Text>
 						<Section className="mt-6 text-center">
 							<Button
 								className="rounded bg-[rgb(206,28,28)] px-6 py-3 text-center font-semibold text-base text-white no-underline"
 								href={itemUrl}
 							>
-								View Item
+								{m.emails_comment_button({}, o)}
 							</Button>
 						</Section>
 					</Container>
@@ -70,6 +88,7 @@ export function TestEmail({
 }
 
 TestEmail.PreviewProps = {
+	locale: previewLocale,
 	username: 'Shawn',
 	commenter: 'Madison',
 	comment: 'This is a test comment',

@@ -48,19 +48,19 @@ export async function birthdayEmailsImpl({ db, now, timeZone }: Args): Promise<B
 	// === Day-of birthday emails ===
 	const birthdayUsers = await db.query.users.findMany({
 		where: and(eq(users.birthMonth, todayMonth), eq(users.birthDay, todayDay), eq(users.banned, false)),
-		columns: { id: true, name: true, email: true },
+		columns: { id: true, name: true, email: true, locale: true },
 	})
 
 	let birthdaySent = 0
 	for (const user of birthdayUsers) {
 		try {
-			await sendBirthdayEmail(user.name || 'there', user.email)
+			await sendBirthdayEmail(user.name, user.email, user.locale)
 			birthdaySent += 1
 		} catch {
 			// Caller (handler) is responsible for logging; swallow here so a
 			// single bad recipient doesn't kill the whole batch.
 		}
-		await fanOutToGuardians(db, user.id, g => sendBirthdayEmail(user.name || 'there', g.email))
+		await fanOutToGuardians(db, user.id, g => sendBirthdayEmail(user.name, g.email, g.locale))
 	}
 
 	return { birthdayEmails: birthdaySent }

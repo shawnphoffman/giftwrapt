@@ -2,6 +2,10 @@ import { Body, Container, Head, Heading, Html, Img, Link, Section, Tailwind, Tex
 
 import type { ReminderPickGroup } from '@/lib/cron/reminder-picks'
 
+import { RichMessage } from '../components/common/rich-message'
+import type { Locale } from '../lib/i18n/locales'
+import { m } from '../paraglide/messages.js'
+import { previewLocale } from './preview-locale'
 import { ReminderPicks } from './reminder-picks'
 
 const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
@@ -10,6 +14,7 @@ interface PartnerAnniversaryReminderEmailProps {
 	name: string
 	partnerName: string
 	leadDays: number
+	locale?: Locale
 	appTitle?: string
 	// Things still open on the lists of the people this reminder is about,
 	// as the reader sees them. Only ever set on the reader's own copy.
@@ -22,9 +27,11 @@ export default function PartnerAnniversaryReminderEmail({
 	leadDays,
 	appTitle = 'GiftWrapt',
 	picks,
+	locale = 'en',
 }: PartnerAnniversaryReminderEmailProps) {
+	const o = { locale }
 	return (
-		<Html>
+		<Html lang={locale}>
 			<Head />
 			<Tailwind>
 				<Body className="px-2 mx-auto my-auto font-sans bg-black">
@@ -32,12 +39,16 @@ export default function PartnerAnniversaryReminderEmail({
 						<Section className="mt-[32px]">
 							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt={appTitle} className="mx-auto my-0" />
 						</Section>
-						<Heading className="mx-0 my-[30px] p-0 text-center font-bold text-[24px] text-black">{`Your anniversary with ${partnerName} is in ${leadDays} days`}</Heading>
+						<Heading className="mx-0 my-[30px] p-0 text-center font-bold text-[24px] text-black">
+							{m.emails_anniversary_subject({ partnerName, leadDays }, o)}
+						</Heading>
 						<Text className="text-[14px] text-black leading-[24px] text-center">
-							{name}, your anniversary with {partnerName} is coming up. Take a look at their list at{' '}
-							<Link href={`${baseUrl}`}>All Lists</Link>.
+							<RichMessage
+								parts={m.emails_anniversary_body.parts({ name, partnerName }, o)}
+								tags={{ link: c => <Link href={baseUrl}>{c}</Link> }}
+							/>
 						</Text>
-						<ReminderPicks picks={picks} />
+						<ReminderPicks picks={picks} locale={locale} />
 					</Container>
 				</Body>
 			</Tailwind>
@@ -46,6 +57,7 @@ export default function PartnerAnniversaryReminderEmail({
 }
 
 PartnerAnniversaryReminderEmail.PreviewProps = {
+	locale: previewLocale,
 	name: 'Alex',
 	partnerName: 'Casey',
 	leadDays: 7,

@@ -9,6 +9,7 @@ import { getAllUsersQuery, getUserDetailsQuery } from '@/db/queries/users'
 import type { BirthMonth, Role } from '@/db/schema'
 import { giftedItems, guardianships, items, itemScrapes, listAddons, lists, users } from '@/db/schema'
 import { auth } from '@/lib/auth'
+import { currentLocale } from '@/lib/i18n/format'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { loggingMiddleware } from '@/lib/logger'
 import { applyPartnerAndAnniversary } from '@/lib/partner-update'
@@ -88,7 +89,8 @@ export const sendTestEmailAsAdmin = createServerFn({
 	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.inputValidator((data: { kind?: TestEmailKind; to?: string } | undefined) => data ?? {})
 	.handler(async ({ data }) => {
-		const result = await sendTestEmail(data.kind ?? 'test', data.to)
+		// Written in the admin's own language, so each one can be previewed.
+		const result = await sendTestEmail(data.kind ?? 'test', data.to, currentLocale())
 		return { status: 'success', data: result }
 	})
 

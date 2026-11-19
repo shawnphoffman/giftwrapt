@@ -1,16 +1,27 @@
 import { Body, Container, Head, Heading, Html, Img, Link, Section, Tailwind, Text } from 'react-email'
 
+import { RichMessage } from '../components/common/rich-message'
+import type { Locale } from '../lib/i18n/locales'
+import { m } from '../paraglide/messages.js'
+import { previewLocale } from './preview-locale'
 const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 
 interface PreChristmasReminderEmailProps {
 	name: string
 	leadDays: number
+	locale?: Locale
 	appTitle?: string
 }
 
-export default function PreChristmasReminderEmail({ name, leadDays, appTitle = 'GiftWrapt' }: PreChristmasReminderEmailProps) {
+export default function PreChristmasReminderEmail({
+	name,
+	leadDays,
+	locale = 'en',
+	appTitle = 'GiftWrapt',
+}: PreChristmasReminderEmailProps) {
+	const o = { locale }
 	return (
-		<Html>
+		<Html lang={locale}>
 			<Head />
 			<Tailwind>
 				<Body className="px-2 mx-auto my-auto font-sans bg-black">
@@ -18,10 +29,11 @@ export default function PreChristmasReminderEmail({ name, leadDays, appTitle = '
 						<Section className="mt-[32px]">
 							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt={appTitle} className="mx-auto my-0" />
 						</Section>
-						<Heading className="mx-0 my-[30px] p-0 text-center font-bold text-[24px] text-black">{`Christmas is in ${leadDays} days, ${name}`}</Heading>
+						<Heading className="mx-0 my-[30px] p-0 text-center font-bold text-[24px] text-black">
+							{m.emails_pre_christmas_heading({ leadDays, name }, o)}
+						</Heading>
 						<Text className="text-[14px] text-black leading-[24px] text-center">
-							Time to spruce up your Christmas list. Add anything new, drop what you've outgrown, and make it easier for the people shopping
-							for you. Head to <Link href={`${baseUrl}/me`}>My Lists</Link> to review.
+							<RichMessage parts={m.emails_pre_christmas_body.parts({}, o)} tags={{ link: c => <Link href={`${baseUrl}/me`}>{c}</Link> }} />
 						</Text>
 					</Container>
 				</Body>
@@ -31,6 +43,7 @@ export default function PreChristmasReminderEmail({ name, leadDays, appTitle = '
 }
 
 PreChristmasReminderEmail.PreviewProps = {
+	locale: previewLocale,
 	name: 'Alex',
 	leadDays: 30,
 } as PreChristmasReminderEmailProps

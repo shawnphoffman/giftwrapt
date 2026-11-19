@@ -34,7 +34,7 @@ const mention = (u: { id: string; name: string | null }) => formatMentionToken({
 function sends(): Array<[string, boolean]> {
 	return vi
 		.mocked(sendNewCommentEmail)
-		.mock.calls.map(c => [c[1], Boolean(c[7]?.mentioned)] as [string, boolean])
+		.mock.calls.map(c => [c[1], Boolean(c[7].mentioned)] as [string, boolean])
 		.sort((a, b) => a[0].localeCompare(b[0]))
 }
 

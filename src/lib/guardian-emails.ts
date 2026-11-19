@@ -17,11 +17,13 @@ export type GuardianRecipient = {
 	id: string
 	email: string
 	name: string | null
+	// `users.locale`: a guardian's copy is written in the guardian's language.
+	locale: string | null
 }
 
 export async function getGuardianRecipients(db: SchemaDatabase, childUserId: string): Promise<Array<GuardianRecipient>> {
 	return db
-		.select({ id: users.id, email: users.email, name: users.name })
+		.select({ id: users.id, email: users.email, name: users.name, locale: users.locale })
 		.from(guardianships)
 		.innerJoin(users, eq(users.id, guardianships.parentUserId))
 		.where(and(eq(guardianships.childUserId, childUserId), eq(users.banned, false)))

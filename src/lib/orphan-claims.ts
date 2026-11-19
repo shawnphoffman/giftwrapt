@@ -34,6 +34,8 @@ type AudienceUser = {
 	id: string
 	name: string | null
 	email: string
+	// `users.locale`, for the emails written to them.
+	locale: string | null
 }
 
 // The subset of a list row needed to decide who its recipient is.
@@ -62,17 +64,17 @@ export async function resolveOrphanClaimAudience(
 ): Promise<Array<AudienceUser>> {
 	const gifter = await dbx.query.users.findFirst({
 		where: eq(users.id, gifterId),
-		columns: { id: true, name: true, email: true, partnerId: true },
+		columns: { id: true, name: true, email: true, locale: true, partnerId: true },
 	})
 	if (!gifter) return []
-	const audience: Array<AudienceUser> = [{ id: gifter.id, name: gifter.name, email: gifter.email }]
+	const audience: Array<AudienceUser> = [{ id: gifter.id, name: gifter.name, email: gifter.email, locale: gifter.locale }]
 	if (gifter.partnerId) {
 		const partner = await dbx.query.users.findFirst({
 			where: eq(users.id, gifter.partnerId),
-			columns: { id: true, name: true, email: true },
+			columns: { id: true, name: true, email: true, locale: true },
 		})
 		if (partner && partner.id !== gifter.id) {
-			audience.push({ id: partner.id, name: partner.name, email: partner.email })
+			audience.push({ id: partner.id, name: partner.name, email: partner.email, locale: partner.locale })
 		}
 	}
 	return audience.filter(u => !isListRecipient(list, u.id))
@@ -166,12 +168,13 @@ export async function dispatchOrphanClaimEmails(args: {
 	for (const member of audience) {
 		try {
 			await sendOrphanClaimEmail(member.email, {
-				username: member.name || 'there',
+				username: member.name,
 				itemTitle,
 				itemImageUrl,
 				recipientName,
 				listId,
 				listName,
+				locale: member.locale,
 			})
 		} catch (err) {
 			orphanLog.warn(
@@ -186,12 +189,13 @@ export async function dispatchOrphanClaimEmails(args: {
 			member.id,
 			g =>
 				sendOrphanClaimEmail(g.email, {
-					username: member.name || 'there',
+					username: member.name,
 					itemTitle,
 					itemImageUrl,
 					recipientName,
 					listId,
 					listName,
+					locale: g.locale,
 				}),
 			{ skip: g => isListRecipient(list, g.id) }
 		)

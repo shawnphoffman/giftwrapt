@@ -1,5 +1,9 @@
 import { Body, Column, Container, Head, Heading, Hr, Html, Img, Link, Row, Section, Tailwind, Text } from 'react-email'
 
+import { RichMessage } from '../components/common/rich-message'
+import type { Locale } from '../lib/i18n/locales'
+import { m } from '../paraglide/messages.js'
+import { previewLocale } from './preview-locale'
 const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 
 export interface RevealSummaryItem {
@@ -27,6 +31,7 @@ interface RevealSummaryEmailProps {
 	intro: string
 	// One section per list revealed in this run.
 	sections: Array<RevealSummarySection>
+	locale?: Locale
 	appTitle?: string
 }
 
@@ -36,9 +41,10 @@ const placeholderImage = `${baseUrl}/images/email/gift.png`
 // revealed. One template for every occasion (birthday, Christmas, custom
 // holidays); it lists exactly the items and off-list gifts that reveal
 // uncovered.
-export default function RevealSummaryEmail({ intro, sections, appTitle = 'GiftWrapt' }: RevealSummaryEmailProps) {
+export default function RevealSummaryEmail({ intro, sections, locale = 'en', appTitle = 'GiftWrapt' }: RevealSummaryEmailProps) {
+	const o = { locale }
 	return (
-		<Html>
+		<Html lang={locale}>
 			<Head />
 			<Tailwind>
 				<Body className="px-2 mx-auto my-auto font-sans bg-black dark`">
@@ -46,7 +52,7 @@ export default function RevealSummaryEmail({ intro, sections, appTitle = 'GiftWr
 						<Section className="mt-[32px]">
 							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt={appTitle} className="mx-auto my-0" />
 						</Section>
-						<Heading className="mx-0 my-[20px] p-0 font-bold text-[24px] text-black text-center">A look back...</Heading>
+						<Heading className="mx-0 my-[20px] p-0 font-bold text-[24px] text-black text-center">{m.emails_reveal_heading({}, o)}</Heading>
 						<Text className="text-base text-center">{intro}</Text>
 						{sections.map((section, sectionIndex) => (
 							<Section key={sectionIndex}>
@@ -61,8 +67,9 @@ export default function RevealSummaryEmail({ intro, sections, appTitle = 'GiftWr
 											<Column className="gap-2">
 												<Text className="my-0 text-base font-bold leading-tight">{item.title}</Text>
 												<Text className="my-0 text-sm">
-													From: {item.gifters}
-													{item.offList ? ' (off-list gift)' : ''}
+													{item.offList
+														? m.emails_reveal_from_off_list({ gifters: item.gifters }, o)
+														: m.emails_reveal_from({ gifters: item.gifters }, o)}
 												</Text>
 											</Column>
 										</Row>
@@ -72,8 +79,10 @@ export default function RevealSummaryEmail({ intro, sections, appTitle = 'GiftWr
 							</Section>
 						))}
 						<Text className="text-sm text-center text-black">
-							These gifts have been archived and can be found on your <Link href={`${baseUrl}/purchases/received`}>Received Gifts</Link>{' '}
-							page.
+							<RichMessage
+								parts={m.emails_reveal_footer.parts({}, o)}
+								tags={{ link: c => <Link href={`${baseUrl}/purchases/received`}>{c}</Link> }}
+							/>
 						</Text>
 					</Container>
 				</Body>
@@ -83,6 +92,7 @@ export default function RevealSummaryEmail({ intro, sections, appTitle = 'GiftWr
 }
 
 RevealSummaryEmail.PreviewProps = {
+	locale: previewLocale,
 	intro: "We hope you had a wonderful birthday. Here's who gave you what.",
 	sections: [
 		{

@@ -149,6 +149,7 @@ async function sendParentLabelReminders(
 		.select({
 			userId: userRelationLabels.userId,
 			userEmail: users.email,
+			userLocale: users.locale,
 			targetUserId: userRelationLabels.targetUserId,
 			targetDependentId: userRelationLabels.targetDependentId,
 		})
@@ -169,7 +170,7 @@ async function sendParentLabelReminders(
 	const userNameById = new Map(targetUsers.map(u => [u.id, u.name ?? u.email]))
 	const depNameById = new Map(targetDeps.map(d => [d.id, d.name]))
 
-	type Recipient = { email: string; people: Array<{ name: string }>; targets: Array<ReminderPerson> }
+	type Recipient = { email: string; locale: string | null; people: Array<{ name: string }>; targets: Array<ReminderPerson> }
 	const byUserId = new Map<string, Recipient>()
 	for (const row of rows) {
 		const name = row.targetUserId
@@ -178,7 +179,7 @@ async function sendParentLabelReminders(
 				? depNameById.get(row.targetDependentId)
 				: undefined
 		if (!name) continue
-		const existing = byUserId.get(row.userId) ?? { email: row.userEmail, people: [], targets: [] }
+		const existing = byUserId.get(row.userId) ?? { email: row.userEmail, locale: row.userLocale, people: [], targets: [] }
 		existing.people.push({ name })
 		existing.targets.push(
 			row.targetUserId ? { kind: 'user', id: row.targetUserId, name } : { kind: 'dependent', id: row.targetDependentId ?? '', name }
@@ -193,12 +194,21 @@ async function sendParentLabelReminders(
 	for (const [userId, recipient] of byUserId.entries()) {
 		try {
 			const picks = withPicks ? await picksFor(db, userId, recipient.targets) : undefined
-			await sendParentsDayReminderEmail(recipient.email, { holidayName, leadDays, people: recipient.people, picks })
+			await sendParentsDayReminderEmail(recipient.email, {
+				holidayName,
+				relation: label,
+				leadDays,
+				people: recipient.people,
+				picks,
+				locale: recipient.locale,
+			})
 			sent += 1
 		} catch {
 			/* logged in resend */
 		}
-		await fanOutToGuardians(db, userId, g => sendParentsDayReminderEmail(g.email, { holidayName, leadDays, people: recipient.people }))
+		await fanOutToGuardians(db, userId, g =>
+			sendParentsDayReminderEmail(g.email, { holidayName, relation: label, leadDays, people: recipient.people, locale: g.locale })
+		)
 	}
 	return sent
 }
@@ -217,7 +227,7 @@ async function sendValentinesReminders(
 	if (!isValentines) return 0
 
 	const rows = await db
-		.select({ id: users.id, email: users.email, name: users.name, partnerId: users.partnerId })
+		.select({ id: users.id, email: users.email, name: users.name, locale: users.locale, partnerId: users.partnerId })
 		.from(users)
 		.where(sql`${users.partnerId} IS NOT NULL AND ${users.banned} = false`)
 
@@ -234,12 +244,14 @@ async function sendValentinesReminders(
 		if (!partnerName) continue
 		try {
 			const picks = withPicks && u.partnerId ? await picksFor(db, u.id, [{ kind: 'user', id: u.partnerId, name: partnerName }]) : undefined
-			await sendValentinesDayReminderEmail(u.email, { name: u.name ?? u.email, partnerName, leadDays, picks })
+			await sendValentinesDayReminderEmail(u.email, { name: u.name ?? u.email, partnerName, leadDays, picks, locale: u.locale })
 			sent += 1
 		} catch {
 			/* logged in resend */
 		}
-		await fanOutToGuardians(db, u.id, g => sendValentinesDayReminderEmail(g.email, { name: u.name ?? u.email, partnerName, leadDays }))
+		await fanOutToGuardians(db, u.id, g =>
+			sendValentinesDayReminderEmail(g.email, { name: u.name ?? u.email, partnerName, leadDays, locale: g.locale })
+		)
 	}
 	return sent
 }
@@ -253,7 +265,14 @@ async function sendAnniversaryReminders(db: SchemaDatabase, now: Date, leadDays:
 	// SQL date comparison on month/day. partnerAnniversary is stored as
 	// a date string 'YYYY-MM-DD'. Extract MM and DD via substring.
 	const rows = await db
-		.select({ id: users.id, email: users.email, name: users.name, partnerId: users.partnerId, anniversary: users.partnerAnniversary })
+		.select({
+			id: users.id,
+			email: users.email,
+			name: users.name,
+			locale: users.locale,
+			partnerId: users.partnerId,
+			anniversary: users.partnerAnniversary,
+		})
 		.from(users)
 		.where(
 			sql`${users.partnerAnniversary} IS NOT NULL
@@ -276,12 +295,14 @@ async function sendAnniversaryReminders(db: SchemaDatabase, now: Date, leadDays:
 		if (!partnerName) continue
 		try {
 			const picks = withPicks && u.partnerId ? await picksFor(db, u.id, [{ kind: 'user', id: u.partnerId, name: partnerName }]) : undefined
-			await sendPartnerAnniversaryReminderEmail(u.email, { name: u.name ?? u.email, partnerName, leadDays, picks })
+			await sendPartnerAnniversaryReminderEmail(u.email, { name: u.name ?? u.email, partnerName, leadDays, picks, locale: u.locale })
 			sent += 1
 		} catch {
 			/* logged in resend */
 		}
-		await fanOutToGuardians(db, u.id, g => sendPartnerAnniversaryReminderEmail(g.email, { name: u.name ?? u.email, partnerName, leadDays }))
+		await fanOutToGuardians(db, u.id, g =>
+			sendPartnerAnniversaryReminderEmail(g.email, { name: u.name ?? u.email, partnerName, leadDays, locale: g.locale })
+		)
 	}
 	return sent
 }

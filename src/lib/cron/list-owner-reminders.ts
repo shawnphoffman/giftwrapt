@@ -82,19 +82,19 @@ async function sendBirthdayReminders(db: SchemaDatabase, now: Date, leadDays: nu
 	const birthMonth: BirthMonth = birthMonthEnumValues[monthIndex]
 
 	const rows = await db
-		.select({ id: users.id, email: users.email, name: users.name })
+		.select({ id: users.id, email: users.email, name: users.name, locale: users.locale })
 		.from(users)
 		.where(sql`${users.birthMonth} = ${birthMonth} AND ${users.birthDay} = ${day} AND ${users.banned} = false`)
 
 	let sent = 0
 	for (const u of rows) {
 		try {
-			await sendPreBirthdayReminderEmail(u.email, { name: u.name ?? u.email, leadDays })
+			await sendPreBirthdayReminderEmail(u.email, { name: u.name ?? u.email, leadDays, locale: u.locale })
 			sent += 1
 		} catch {
 			// per-recipient failures logged inline in resend
 		}
-		await fanOutToGuardians(db, u.id, g => sendPreBirthdayReminderEmail(g.email, { name: u.name ?? u.email, leadDays }))
+		await fanOutToGuardians(db, u.id, g => sendPreBirthdayReminderEmail(g.email, { name: u.name ?? u.email, leadDays, locale: g.locale }))
 	}
 	return sent
 }
@@ -115,19 +115,19 @@ async function sendChristmasReminders(db: SchemaDatabase, now: Date, leadDays: n
 	if (existing[0] && existing[0].value === year) return 0
 
 	const recipients = await db
-		.select({ id: users.id, email: users.email, name: users.name })
+		.select({ id: users.id, email: users.email, name: users.name, locale: users.locale })
 		.from(users)
 		.where(sql`${users.banned} = false`)
 
 	let sent = 0
 	for (const u of recipients) {
 		try {
-			await sendPreChristmasReminderEmail(u.email, { name: u.name ?? u.email, leadDays })
+			await sendPreChristmasReminderEmail(u.email, { name: u.name ?? u.email, leadDays, locale: u.locale })
 			sent += 1
 		} catch {
 			/* logged in resend */
 		}
-		await fanOutToGuardians(db, u.id, g => sendPreChristmasReminderEmail(g.email, { name: u.name ?? u.email, leadDays }))
+		await fanOutToGuardians(db, u.id, g => sendPreChristmasReminderEmail(g.email, { name: u.name ?? u.email, leadDays, locale: g.locale }))
 	}
 
 	// Mark sent for this year.
@@ -164,7 +164,7 @@ async function sendCustomHolidayReminders(db: SchemaDatabase, now: Date, leadDay
 		if (existing.length > 0) continue
 
 		const allRecipients = await db
-			.select({ id: users.id, email: users.email, name: users.name })
+			.select({ id: users.id, email: users.email, name: users.name, locale: users.locale })
 			.from(users)
 			.where(sql`${users.banned} = false`)
 
@@ -182,6 +182,7 @@ async function sendCustomHolidayReminders(db: SchemaDatabase, now: Date, leadDay
 					name: u.name ?? u.email,
 					holidayName: h.title,
 					leadDays,
+					locale: u.locale,
 				})
 				totalSent += 1
 			} catch {
@@ -192,6 +193,7 @@ async function sendCustomHolidayReminders(db: SchemaDatabase, now: Date, leadDay
 					name: u.name ?? u.email,
 					holidayName: h.title,
 					leadDays,
+					locale: g.locale,
 				})
 			)
 		}

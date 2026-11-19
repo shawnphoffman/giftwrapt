@@ -1,0 +1,151 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"emails_hello_name": "Bonjour {#strong}{name}{/strong},",
+	"emails_hello_anon": "Bonjour,",
+	"emails_countdown": [
+		{
+			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{holidayName} : plus que {leadDays} jour",
+				"countPlural=*": "{holidayName} : plus que {leadDays} jours"
+			}
+		}
+	],
+	"emails_holiday_mothers_day": "Fête des Mères",
+	"emails_holiday_fathers_day": "Fête des Pères",
+	"emails_picks_heading": "Encore disponible sur la liste de {personName}",
+	"emails_birthday_subject": "🎉 Joyeux anniversaire, {name} !",
+	"emails_birthday_subject_anon": "🎉 Joyeux anniversaire !",
+	"emails_birthday_preview": "Joyeux anniversaire, {name} !",
+	"emails_birthday_preview_anon": "Joyeux anniversaire !",
+	"emails_birthday_heading": "🎉 Joyeux anniversaire, {name} ! 🎉",
+	"emails_birthday_heading_anon": "🎉 Joyeux anniversaire ! 🎉",
+	"emails_birthday_body": "Au cas où vous l’auriez oublié, c’est votre anniversaire aujourd’hui ! Nous vous souhaitons une très belle journée, et que tous vos vœux se réalisent.",
+	"emails_holidays_preview": "Joyeuses fêtes !",
+	"emails_holidays_heading": "🎄 Joyeuses fêtes ! 🎄",
+	"emails_holidays_body": "Nous vous souhaitons de très belles fêtes de fin d’année ! 🎅",
+	"emails_comment_subject": "Nouveau commentaire sur {appTitle}",
+	"emails_comment_someone": "Quelqu’un",
+	"emails_comment_body_owner": "{#strong}{commenter}{/strong} a laissé un commentaire sur l’un de vos articles ({#link}{itemTitle}{/link}).",
+	"emails_comment_body_mention": "{#strong}{commenter}{/strong} a cité votre nom dans un commentaire sur un article ({#link}{itemTitle}{/link}).",
+	"emails_comment_quote": "« {comment} »",
+	"emails_comment_button": "Voir l’article",
+	"emails_orphan_subject": "Un article que vous aviez réservé pour {recipientName} a été retiré",
+	"emails_orphan_heading": "Un article que vous aviez réservé a été retiré",
+	"emails_orphan_body_named": "{#strong}{recipientName}{/strong} a retiré {#em}{itemTitle}{/em} de {#strong}{listName}{/strong}. Vous (ou votre partenaire) l’aviez déjà réservé. Cette réservation ne lui a jamais été signalée : rien ne lui indique que le cadeau est peut-être déjà acheté.",
+	"emails_orphan_body_anon": "La personne à qui ce cadeau était destiné a retiré {#em}{itemTitle}{/em} de {#strong}{listName}{/strong}. Vous (ou votre partenaire) l’aviez déjà réservé. Cette réservation ne lui a jamais été signalée : rien ne lui indique que le cadeau est peut-être déjà acheté.",
+	"emails_orphan_next": "Vous pouvez retourner l’article, le garder pour une autre occasion ou l’offrir malgré tout. Une fois votre décision prise, ouvrez l’application pour confirmer l’alerte et retirer l’article de votre vue.",
+	"emails_orphan_button": "Voir dans la liste",
+	"emails_cleanup_subject": "Une réservation sans réponse sera nettoyée demain",
+	"emails_cleanup_heading": "Nettoyage d’une réservation sans réponse",
+	"emails_cleanup_body_named": "{#strong}{recipientName}{/strong} a retiré {#em}{itemTitle}{/em} de {#strong}{listName}{/strong} il y a quelque temps, et vous n’avez pas encore confirmé l’alerte. Demain{event}, {appTitle} retirera automatiquement cette réservation de votre vue pour garder les choses en ordre.",
+	"emails_cleanup_body_anon": "La personne à qui ce cadeau était destiné a retiré {#em}{itemTitle}{/em} de {#strong}{listName}{/strong} il y a quelque temps, et vous n’avez pas encore confirmé l’alerte. Demain{event}, {appTitle} retirera automatiquement cette réservation de votre vue pour garder les choses en ordre.",
+	"emails_cleanup_event_wishlist": "14 jours après la suppression",
+	"emails_cleanup_event_christmas": "Noël",
+	"emails_cleanup_event_birthday": "son anniversaire",
+	"emails_cleanup_event_holiday": "la fête",
+	"emails_cleanup_next": "Si vous préférez confirmer l’alerte vous-même avant, ou simplement vérifier ce que vous avez acheté, utilisez le bouton ci-dessous.",
+	"emails_cleanup_button": "Ouvrir la liste",
+	"emails_parents_body": "Vous avez indiqué {names} pour cette occasion ({holidayName}). Jetez un œil aux {#link}listes{/link} si vous cherchez encore une idée.",
+	"emails_anniversary_subject": [
+		{
+			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Plus que {leadDays} jour avant votre anniversaire de couple avec {partnerName}",
+				"countPlural=*": "Plus que {leadDays} jours avant votre anniversaire de couple avec {partnerName}"
+			}
+		}
+	],
+	"emails_anniversary_body": "{name}, votre anniversaire de couple avec {partnerName} approche. Retrouvez sa liste dans {#link}Toutes les listes{/link}.",
+	"emails_valentines_subject": [
+		{
+			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "La Saint-Valentin est dans {leadDays} jour",
+				"countPlural=*": "La Saint-Valentin est dans {leadDays} jours"
+			}
+		}
+	],
+	"emails_valentines_body": "{name}, la Saint-Valentin approche. Découvrez ce que {partnerName} a mis sur sa liste dans {#link}Toutes les listes{/link}.",
+	"emails_pre_birthday_subject": [
+		{
+			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Votre anniversaire est dans {leadDays} jour",
+				"countPlural=*": "Votre anniversaire est dans {leadDays} jours"
+			}
+		}
+	],
+	"emails_pre_birthday_heading": [
+		{
+			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{name}, votre anniversaire est dans {leadDays} jour",
+				"countPlural=*": "{name}, votre anniversaire est dans {leadDays} jours"
+			}
+		}
+	],
+	"emails_pre_birthday_body": "C’est le bon moment pour vérifier que votre liste d’anniversaire est à la hauteur. Ajoutez ou retirez des articles, définissez des priorités et mettez à jour ce qui n’est plus d’actualité sur votre page {#link}Mes listes{/link}.",
+	"emails_pre_christmas_subject": [
+		{
+			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Noël est dans {leadDays} jour",
+				"countPlural=*": "Noël est dans {leadDays} jours"
+			}
+		}
+	],
+	"emails_pre_christmas_heading": [
+		{
+			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{name}, Noël est dans {leadDays} jour",
+				"countPlural=*": "{name}, Noël est dans {leadDays} jours"
+			}
+		}
+	],
+	"emails_pre_christmas_body": "Il est temps de rafraîchir votre liste de Noël. Ajoutez vos nouvelles envies, retirez ce qui ne vous correspond plus et facilitez la tâche à celles et ceux qui cherchent un cadeau pour vous. Rendez-vous dans {#link}Mes listes{/link} pour la passer en revue.",
+	"emails_pre_holiday_body": "{name}, si vous avez des projets pour cette occasion ({holidayName}) cette année, c’est le bon moment pour préparer une liste. Rendez-vous dans {#link}Mes listes{/link} pour en créer une.",
+	"emails_reset_subject": "Réinitialisez votre mot de passe {appTitle}",
+	"emails_reset_heading": "Réinitialisez votre mot de passe",
+	"emails_reset_hi_name": "Bonjour {name},",
+	"emails_reset_hi_anon": "Bonjour,",
+	"emails_reset_body": [
+		{
+			"declarations": ["input expiresInMinutes", "local countPlural = expiresInMinutes: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Quelqu’un (vous, espérons-le) a demandé la réinitialisation du mot de passe de votre compte {appTitle}. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe. Le lien est valable {expiresInMinutes} minute.",
+				"countPlural=*": "Quelqu’un (vous, espérons-le) a demandé la réinitialisation du mot de passe de votre compte {appTitle}. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe. Le lien est valable {expiresInMinutes} minutes."
+			}
+		}
+	],
+	"emails_reset_button": "Réinitialiser le mot de passe",
+	"emails_reset_paste": "Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :",
+	"emails_reset_ignore": "Si vous n’êtes pas à l’origine de cette demande, vous pouvez ignorer cet e-mail. Votre mot de passe ne changera pas.",
+	"emails_reveal_heading": "Petit retour en arrière…",
+	"emails_reveal_from": "Offert par : {gifters}",
+	"emails_reveal_from_off_list": "Offert par : {gifters} (cadeau hors liste)",
+	"emails_reveal_footer": "Ces cadeaux ont été archivés et se trouvent sur votre page {#link}Cadeaux reçus{/link}.",
+	"emails_reveal_subject_generic": "Retour sur vos cadeaux",
+	"emails_reveal_intro_generic": "Voici qui a offert quoi.",
+	"emails_reveal_intro_birthday_self": "Nous espérons que vous avez passé un très bel anniversaire. Voici qui vous a offert quoi.",
+	"emails_reveal_subject_dependent": "Retour sur les cadeaux de {name}",
+	"emails_reveal_intro_birthday_dependent": "Nous espérons que {name} a passé un très bel anniversaire. Voici qui lui a offert quoi.",
+	"emails_reveal_subject_occasion_self": "{occasion} : retour sur vos cadeaux",
+	"emails_reveal_intro_occasion_self": "Nous espérons que la fête a été belle. Voici qui vous a offert quoi.",
+	"emails_reveal_subject_occasion_dependent": "{occasion} : retour sur les cadeaux de {name}",
+	"emails_reveal_intro_occasion_dependent": "Nous espérons que la fête a été belle pour {name}. Voici qui lui a offert quoi.",
+	"emails_reveal_occasion_christmas": "Noël",
+	"emails_reveal_occasion_holiday": "Fête",
+	"emails_test_subject": "E-mail de test",
+	"emails_test_hello": "Bonjour {#strong}Utilisateur de test{/strong} !",
+	"emails_test_button": "Voir le site"
+}

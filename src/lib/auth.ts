@@ -184,6 +184,7 @@ const options = {
 				recipient: user.email,
 				resetUrl: url,
 				expiresInMinutes: PASSWORD_RESET_TOKEN_TTL_MINUTES,
+				locale: (user as { locale?: string | null }).locale,
 			})
 			await fanOutToGuardians(db, user.id, g =>
 				sendPasswordResetEmail({
@@ -191,6 +192,7 @@ const options = {
 					recipient: g.email,
 					resetUrl: url,
 					expiresInMinutes: PASSWORD_RESET_TOKEN_TTL_MINUTES,
+					locale: g.locale,
 				})
 			)
 		},

@@ -54,7 +54,7 @@ describe('birthdayEmailsImpl - day-of', () => {
 		})
 	})
 
-	it('falls back to "there" when the user has no name set', async () => {
+	it('passes no name when the user has none set, leaving the wording to the template', async () => {
 		vi.mocked(sendBirthdayEmail).mockClear()
 		await withRollback(async tx => {
 			await makeUser(tx, { name: null, birthMonth: 'april', birthDay: 30 })
@@ -62,7 +62,7 @@ describe('birthdayEmailsImpl - day-of', () => {
 
 			expect(sendBirthdayEmail).toHaveBeenCalledTimes(1)
 			const [name] = vi.mocked(sendBirthdayEmail).mock.calls[0]
-			expect(name).toBe('there')
+			expect(name).toBeNull()
 		})
 	})
 

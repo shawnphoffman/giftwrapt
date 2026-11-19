@@ -1,12 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // The first test in this file is sensitive to cold-transform latency
 // when the full suite runs in parallel: `@/lib/resend` pulls in a fan
-// of React Email templates that vitest has to transform on first
-// import. The default 5s per-test timeout is sometimes too tight under
+// of React Email templates and the message catalog that vitest has to
+// transform on first import. The default 5s per-test timeout is sometimes too tight under
 // heavy concurrent compile load. Tests themselves are fast (~0.5s each
 // once cached), so we raise the timeout for headroom.
-vi.setConfig({ testTimeout: 15_000 })
+vi.setConfig({ testTimeout: 60_000 })
 
 vi.mock('@/env', () => ({
 	env: {
@@ -51,6 +51,13 @@ vi.mock('resend', () => ({
 		emails: { send: sendMock },
 	})),
 }))
+
+// The message catalog is well over a thousand small modules. The first
+// import of it in a run is slow while every other test file is starting up
+// too, so pay for it in a hook with room to spare instead of inside a test.
+beforeAll(async () => {
+	await import('@/paraglide/messages.js')
+}, 300_000)
 
 describe('sendTestEmail error propagation', () => {
 	beforeEach(() => {

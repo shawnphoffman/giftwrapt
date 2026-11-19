@@ -1,4 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
+
+vi.setConfig({ testTimeout: 60_000 })
+
+// The message catalog is well over a thousand small modules. The first
+// import of it in a run is slow while every other test file is starting up
+// too, so pay for it in a hook with room to spare instead of inside a test.
+beforeAll(async () => {
+	await import('@/paraglide/messages.js')
+}, 300_000)
 
 // Every email template that `@/lib/resend` lazy-imports inside a
 // `sendXEmail` function. Keeping this list in lockstep with `resend.tsx`

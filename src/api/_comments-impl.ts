@@ -7,7 +7,7 @@
 // strip the import of `_comments-impl.ts` becomes unused and Rollup
 // tree-shakes the whole file out of the client bundle.
 
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
@@ -165,7 +165,7 @@ export async function getMentionableUsersForItemImpl(args: {
 		})
 }
 
-type CommentEmail = { userId: string; email: string; username: string; mentioned: boolean }
+type CommentEmail = { userId: string; email: string; username: string | null; mentioned: boolean }
 
 // Builds and sends the comment notification emails. Recipients:
 //   - each newly @mentioned user, plus their guardians who can also see
@@ -191,7 +191,7 @@ async function sendCommentEmails(args: {
 	}
 
 	for (const m of mentioned) {
-		const username = m.name || 'there'
+		const username = m.name || null
 		add({ userId: m.id, email: m.email, username, mentioned: true })
 		const guardians = await getGuardianRecipients(dbx, m.id)
 		for (const g of guardians) {
@@ -206,7 +206,7 @@ async function sendCommentEmails(args: {
 			columns: { id: true, name: true, email: true },
 		})
 		if (owner) {
-			const username = owner.name || 'there'
+			const username = owner.name || null
 			add({ userId: owner.id, email: owner.email, username, mentioned: false })
 			for (const g of await getGuardianRecipients(dbx, list.ownerId)) {
 				add({ userId: g.id, email: g.email, username, mentioned: false })
@@ -220,12 +220,22 @@ async function sendCommentEmails(args: {
 		where: eq(users.id, commenterId),
 		columns: { name: true, email: true },
 	})
-	const commenterName = commenter?.name || commenter?.email || 'Someone'
+	const commenterName = commenter?.name || commenter?.email || null
 	const plain = mentionsToPlainText(commentText)
+
+	// Each email is written in its own recipient's language.
+	const localeRows = await dbx
+		.select({ id: users.id, locale: users.locale })
+		.from(users)
+		.where(inArray(users.id, Array.from(recipients.keys())))
+	const localeById = new Map(localeRows.map(row => [row.id, row.locale]))
 
 	for (const r of recipients.values()) {
 		try {
-			await sendNewCommentEmail(r.username, r.email, commenterName, plain, item.title, list.id, item.id, { mentioned: r.mentioned })
+			await sendNewCommentEmail(r.username, r.email, commenterName, plain, item.title, list.id, item.id, {
+				mentioned: r.mentioned,
+				locale: localeById.get(r.userId),
+			})
 		} catch (err) {
 			commentsLog.error({ err, listId: list.id, itemId: item.id, recipientId: r.userId }, 'failed to send comment notification email')
 		}

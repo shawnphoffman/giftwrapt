@@ -1,9 +1,16 @@
+import type { ReactNode } from 'react'
 import { Body, Button, Container, Head, Heading, Html, Img, Section, Tailwind, Text } from 'react-email'
 
+import { RichMessage } from '../components/common/rich-message'
+import type { Locale } from '../lib/i18n/locales'
+import { m } from '../paraglide/messages.js'
+import { previewLocale } from './preview-locale'
 const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 
 interface OrphanClaimEmailProps {
-	username?: string
+	// Null or empty when the account has no name.
+	username?: string | null
+	locale?: Locale
 	itemTitle?: string
 	itemImageUrl?: string | null
 	recipientName?: string
@@ -20,10 +27,14 @@ export function OrphanClaimEmail({
 	listId,
 	listName,
 	appTitle = 'GiftWrapt',
+	locale = 'en',
 }: OrphanClaimEmailProps) {
+	const o = { locale }
+	const tags = { strong: (c: ReactNode) => <strong>{c}</strong>, em: (c: ReactNode) => <em>{c}</em> }
+	const names = { itemTitle: itemTitle ?? '', listName: listName ?? '' }
 	const listUrl = listId ? `${baseUrl}/lists/${listId}` : `${baseUrl}/purchases`
 	return (
-		<Html>
+		<Html lang={locale}>
 			<Head />
 			<Tailwind>
 				<Body className="px-2 mx-auto my-auto font-sans bg-black dark`">
@@ -31,30 +42,33 @@ export function OrphanClaimEmail({
 						<Section className="mt-[32px]">
 							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt={appTitle} className="mx-auto my-0" />
 						</Section>
-						<Heading className="mx-0 my-[30px] p-0 text-center font-bold text-[24px] text-black">An item you claimed was removed</Heading>
+						<Heading className="mx-0 my-[30px] p-0 text-center font-bold text-[24px] text-black">{m.emails_orphan_heading({}, o)}</Heading>
 						<Text className="text-[14px] text-black leading-[24px]">
-							Hello <strong>{username}</strong>,
+							{username ? (
+								<RichMessage parts={m.emails_hello_name.parts({ name: username }, o)} tags={{ strong: c => <strong>{c}</strong> }} />
+							) : (
+								<RichMessage parts={m.emails_hello_anon.parts({}, o)} tags={{ strong: c => <strong>{c}</strong> }} />
+							)}
 						</Text>
 						<Text className="text-[14px] text-black leading-[24px]">
-							{recipientName ? <strong>{recipientName}</strong> : 'The recipient'} removed <em>{itemTitle}</em> from{' '}
-							<strong>{listName}</strong>. You (or your partner) had already claimed it. They were never told you claimed it, so they
-							don&apos;t know that you may have already purchased the gift.
+							{recipientName ? (
+								<RichMessage parts={m.emails_orphan_body_named.parts({ recipientName, ...names }, o)} tags={tags} />
+							) : (
+								<RichMessage parts={m.emails_orphan_body_anon.parts(names, o)} tags={tags} />
+							)}
 						</Text>
 						{itemImageUrl && (
 							<Section className="mt-4 text-center">
 								<Img src={itemImageUrl} width="120" height="120" alt={itemTitle} className="mx-auto my-0 rounded" />
 							</Section>
 						)}
-						<Text className="text-[14px] text-black leading-[24px]">
-							You may want to return the item, hold onto it for another occasion, or give it anyway. Once you&apos;ve decided, head into the
-							app to acknowledge the alert and clear the item from your view.
-						</Text>
+						<Text className="text-[14px] text-black leading-[24px]">{m.emails_orphan_next({}, o)}</Text>
 						<Section className="mt-6 text-center">
 							<Button
 								className="rounded bg-[rgb(206,28,28)] px-6 py-3 text-center font-semibold text-base text-white no-underline"
 								href={listUrl}
 							>
-								View on the list
+								{m.emails_orphan_button({}, o)}
 							</Button>
 						</Section>
 					</Container>
@@ -65,6 +79,7 @@ export function OrphanClaimEmail({
 }
 
 OrphanClaimEmail.PreviewProps = {
+	locale: previewLocale,
 	username: 'Shawn',
 	itemTitle: 'Vintage espresso machine',
 	itemImageUrl: 'https://placehold.co/120x120',

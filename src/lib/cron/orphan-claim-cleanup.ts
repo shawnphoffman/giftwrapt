@@ -24,7 +24,7 @@ import { visibleItemsWhere } from '@/lib/item-visibility'
 import { createLogger } from '@/lib/logger'
 import { orphanClaimsCleanedUpTotal } from '@/lib/observability/metrics'
 import { isListRecipient, resolveListRecipientName, resolveOrphanClaimAudience } from '@/lib/orphan-claims'
-import { isEmailConfigured, sendOrphanClaimCleanupReminderEmail } from '@/lib/resend'
+import { isEmailConfigured, type OrphanCleanupEvent, sendOrphanClaimCleanupReminderEmail } from '@/lib/resend'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 
 const orphanCronLog = createLogger('cron:orphan-claim-cleanup')
@@ -199,20 +199,18 @@ export async function orphanClaimCleanupImpl(args: {
 		// claim flow that creates orphans - but we treat them as
 		// "no cleanup" defensively.
 		let cleanupDate: Date | null = null
-		let eventLabel = ''
+		let event: OrphanCleanupEvent | null = null
 		if (list.type === 'wishlist') {
 			cleanupDate = calendarDayInZone(
 				new Date(orphan.pendingDeletionAt.getTime() + WISHLIST_CLEANUP_OFFSET_DAYS * 24 * 60 * 60 * 1000),
 				timeZone
 			)
-			eventLabel = '14 days after deletion'
+			event = 'wishlist'
 		} else {
 			const eventDate = await resolveListEventDate(dbx, list, today)
 			if (eventDate) {
 				cleanupDate = startOfUtcDay(eventDate)
-				if (list.type === 'christmas') eventLabel = 'Christmas'
-				else if (list.type === 'birthday') eventLabel = 'their birthday'
-				else if (list.type === 'holiday') eventLabel = 'the holiday'
+				if (list.type === 'christmas' || list.type === 'birthday' || list.type === 'holiday') event = list.type
 			}
 		}
 
@@ -266,12 +264,13 @@ export async function orphanClaimCleanupImpl(args: {
 			for (const member of audience) {
 				try {
 					await sendOrphanClaimCleanupReminderEmail(member.email, {
-						username: member.name || 'there',
+						username: member.name,
 						itemTitle: orphan.title,
 						recipientName,
-						eventLabel,
+						event,
 						listId: list.id,
 						listName: list.name,
+						locale: member.locale,
 					})
 					sentAny = true
 					remindersSent += 1
@@ -286,12 +285,13 @@ export async function orphanClaimCleanupImpl(args: {
 					member.id,
 					g =>
 						sendOrphanClaimCleanupReminderEmail(g.email, {
-							username: member.name || 'there',
+							username: member.name,
 							itemTitle: orphan.title,
 							recipientName,
-							eventLabel,
+							event,
 							listId: list.id,
 							listName: list.name,
+							locale: g.locale,
 						}),
 					{ skip: g => isListRecipient(list, g.id) }
 				)

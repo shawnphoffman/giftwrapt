@@ -19,9 +19,13 @@ import type { RevealSummarySection } from '@/emails/reveal-summary-email'
 import { resolveEmailImages } from '@/lib/email-images'
 import { formatGifterNames, namesForGifter, type PartneredUser } from '@/lib/gifters'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales'
+import { recipientLocale } from '@/lib/i18n/recipient-locale'
 import { createLogger } from '@/lib/logger'
 import { isEmailConfigured, sendRevealSummaryEmail } from '@/lib/resend'
 import type { RevealedList, RevealFamily } from '@/lib/reveal'
+import { getAppSettings } from '@/lib/settings-loader'
+import { m } from '@/paraglide/messages.js'
 
 const log = createLogger('reveal-emails')
 
@@ -37,27 +41,42 @@ function familyEnabled(family: RevealFamily, settings: RevealEmailSettings): boo
 	return settings.enableGenericHolidayEmails
 }
 
-// Subject + opening line for one recipient's email. When every list in the
-// email is for the same occasion and the same person the copy names them; a
-// mixed batch stays generic.
-function copyFor(revealed: ReadonlyArray<RevealedList>, dependentNames: ReadonlyMap<string, string>): { subject: string; intro: string } {
+// Subject + opening line for one recipient's email, in that reader's
+// language. When every list in the email is for the same occasion and the
+// same person the copy names them; a mixed batch stays generic.
+//
+// `occasion` is 'birthday', 'Christmas', 'holiday' or a custom holiday's
+// title. The first three are words of ours and come from the catalog; a
+// title someone typed is used as written.
+function copyFor(
+	revealed: ReadonlyArray<RevealedList>,
+	dependentNames: ReadonlyMap<string, string>,
+	locale: Locale
+): { subject: string; intro: string } {
+	const o = { locale }
 	const keys = new Set(revealed.map(r => `${r.family}|${r.occasion}|${r.subjectDependentId ?? ''}`))
-	if (keys.size !== 1) return { subject: 'A look back at your gifts', intro: "Here's who gave what." }
+	if (keys.size !== 1) return { subject: m.emails_reveal_subject_generic({}, o), intro: m.emails_reveal_intro_generic({}, o) }
 	const [only] = revealed
-	const dep = only.subjectDependentId ? (dependentNames.get(only.subjectDependentId) ?? null) : null
+	const name = only.subjectDependentId ? (dependentNames.get(only.subjectDependentId) ?? null) : null
 	if (only.family === 'birthday') {
-		return dep
-			? { subject: `A look back at ${dep}'s gifts`, intro: `We hope ${dep} had a wonderful birthday. Here's who gave ${dep} what.` }
-			: { subject: 'A look back at your gifts', intro: "We hope you had a wonderful birthday. Here's who gave you what." }
+		return name
+			? { subject: m.emails_reveal_subject_dependent({ name }, o), intro: m.emails_reveal_intro_birthday_dependent({ name }, o) }
+			: { subject: m.emails_reveal_subject_generic({}, o), intro: m.emails_reveal_intro_birthday_self({}, o) }
 	}
-	return dep
+	const occasion =
+		only.family === 'christmas'
+			? m.emails_reveal_occasion_christmas({}, o)
+			: only.occasion === 'holiday'
+				? m.emails_reveal_occasion_holiday({}, o)
+				: only.occasion
+	return name
 		? {
-				subject: `A look back at ${dep}'s ${only.occasion} gifts`,
-				intro: `We hope ${dep}'s ${only.occasion} was wonderful. Here's who gave ${dep} what.`,
+				subject: m.emails_reveal_subject_occasion_dependent({ name, occasion }, o),
+				intro: m.emails_reveal_intro_occasion_dependent({ name, occasion }, o),
 			}
 		: {
-				subject: `A look back at your ${only.occasion} gifts`,
-				intro: `We hope your ${only.occasion} was wonderful. Here's who gave you what.`,
+				subject: m.emails_reveal_subject_occasion_self({ occasion }, o),
+				intro: m.emails_reveal_intro_occasion_self({ occasion }, o),
 			}
 }
 
@@ -65,14 +84,19 @@ function copyFor(revealed: ReadonlyArray<RevealedList>, dependentNames: Readonly
  * Resolve revealed lists into email sections: every revealed item with its
  * gifters (partners and co-gifters credited via the gifter-name lookup),
  * then every revealed off-list gift. `image_url` is the stored URL as is;
- * `sendRevealEmails` makes it mail-safe afterwards.
+ * `sendRevealEmails` makes it mail-safe afterwards. Gifter names are joined
+ * in `locale`, the reader's language ("Kate et Jeff").
  *
  * The recipient is kept out of their own gift's attribution (a gift from the
  * recipient's partner reads "Kate", never "Kate & Jeff" in Jeff's own
  * summary). On a dependent-subject list the owner is a gifter, not the
  * recipient, so nobody is excluded.
  */
-export async function buildRevealSections(db: SchemaDatabase, revealed: ReadonlyArray<RevealedList>): Promise<Array<RevealSummarySection>> {
+export async function buildRevealSections(
+	db: SchemaDatabase,
+	revealed: ReadonlyArray<RevealedList>,
+	locale: Locale = DEFAULT_LOCALE
+): Promise<Array<RevealSummarySection>> {
 	const itemIds = revealed.flatMap(r => r.itemIds)
 	const addonIds = revealed.flatMap(r => r.addonIds)
 
@@ -149,14 +173,14 @@ export async function buildRevealSections(db: SchemaDatabase, revealed: Readonly
 		const sectionItems: RevealSummarySection['items'] = Array.from(byItem.values()).map(i => ({
 			title: i.title,
 			image_url: i.image_url,
-			gifters: formatGifterNames(i.names),
+			gifters: formatGifterNames(i.names, locale),
 		}))
 		for (const addon of addonRows) {
 			if (addon.listId !== list.listId) continue
 			sectionItems.push({
 				title: addon.description,
 				image_url: addon.imageUrl,
-				gifters: formatGifterNames(namesForGifter(addon.gifterId, lookup, recipientId)),
+				gifters: formatGifterNames(namesForGifter(addon.gifterId, lookup, recipientId), locale),
 				offList: true,
 			})
 		}
@@ -222,20 +246,34 @@ export async function sendRevealEmails(
 		}
 	}
 
+	const { defaultLocale } = await getAppSettings(db)
+
 	let sent = 0
 	for (const [recipientId, recipientLists] of byRecipient) {
 		try {
 			const recipient = await db.query.users.findFirst({
 				where: eq(users.id, recipientId),
-				columns: { id: true, email: true, banned: true },
+				columns: { id: true, email: true, banned: true, locale: true },
 			})
 			if (!recipient || recipient.banned) continue
-			const sections = await withEmailSafeImages(await buildRevealSections(db, recipientLists))
-			if (sections.length === 0) continue
-			const email = { ...copyFor(recipientLists, dependentNames), sections }
+			// The same gifts, written once per language: a guardian's copy is
+			// in the guardian's language, which may not be the recipient's.
+			const written = new Map<Locale, Parameters<typeof sendRevealSummaryEmail>[1] | null>()
+			const emailIn = async (locale: Locale) => {
+				if (!written.has(locale)) {
+					const sections = await withEmailSafeImages(await buildRevealSections(db, recipientLists, locale))
+					written.set(locale, sections.length > 0 ? { ...copyFor(recipientLists, dependentNames, locale), sections, locale } : null)
+				}
+				return written.get(locale) ?? null
+			}
+			const email = await emailIn(recipientLocale(recipient.locale, defaultLocale))
+			if (!email) continue
 			await sendRevealSummaryEmail(recipient.email, email)
 			sent += 1
-			await fanOutToGuardians(db, recipient.id, g => sendRevealSummaryEmail(g.email, email))
+			await fanOutToGuardians(db, recipient.id, async g => {
+				const copy = await emailIn(recipientLocale(g.locale, defaultLocale))
+				if (copy) await sendRevealSummaryEmail(g.email, copy)
+			})
 		} catch (err) {
 			log.warn({ err: err instanceof Error ? err.message : String(err), recipientId }, 'reveal email failed')
 		}

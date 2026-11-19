@@ -2,6 +2,9 @@ import { Column, Hr, Img, Link, Row, Section, Text } from 'react-email'
 
 import type { ReminderPickGroup } from '@/lib/cron/reminder-picks'
 
+import type { Locale } from '../lib/i18n/locales'
+import { m } from '../paraglide/messages.js'
+
 const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 const placeholderImage = `${baseUrl}/images/email/gift.png`
 
@@ -13,7 +16,8 @@ const placeholderImage = `${baseUrl}/images/email/gift.png`
  * It says only that these are still open. Who claimed anything else, and
  * how much of something is left, stay out of email.
  */
-export function ReminderPicks({ picks }: { picks?: ReadonlyArray<ReminderPickGroup> }) {
+export function ReminderPicks({ picks, locale = 'en' }: { picks?: ReadonlyArray<ReminderPickGroup>; locale?: Locale }) {
+	const o = { locale }
 	const groups = (picks ?? []).filter(g => g.items.length > 0)
 	if (groups.length === 0) return null
 	return (
@@ -21,7 +25,9 @@ export function ReminderPicks({ picks }: { picks?: ReadonlyArray<ReminderPickGro
 			<Hr className="mx-0 my-[20px] w-full border border-[#eaeaea] border-solid" />
 			{groups.map(group => (
 				<Section key={group.personName} className="mb-[12px]">
-					<Text className="m-0 mb-[8px] text-[14px] font-bold text-black leading-[24px]">Still open on {group.personName}’s list</Text>
+					<Text className="m-0 mb-[8px] text-[14px] font-bold text-black leading-[24px]">
+						{m.emails_picks_heading({ personName: group.personName }, o)}
+					</Text>
 					{group.items.map(item => (
 						<Row key={item.path} className="mb-[8px]">
 							<Column className="w-[56px] align-top">
