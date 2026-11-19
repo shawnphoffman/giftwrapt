@@ -73,6 +73,7 @@ export function TextSizeSettings() {
 						min={0}
 						max={TEXT_SIZE_STEPS.length - 1}
 						step={1}
+						ticks
 						value={[index]}
 						onValueChange={([i]) => choose(TEXT_SIZE_STEPS[i])}
 						aria-labelledby="text-size-label"
