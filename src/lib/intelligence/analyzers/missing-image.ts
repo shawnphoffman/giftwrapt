@@ -16,7 +16,7 @@ import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ListRef, RecSubIt
 // Bundled per list (see missing-price.ts header for the bundling model).
 export const missingImageAnalyzer: Analyzer = {
 	id: 'missing-image',
-	label: 'Unselected Images',
+	label: () => m.admin_intel_analyzer_missing_image_label(),
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()

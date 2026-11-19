@@ -7,7 +7,10 @@ import type { AnalyzerResult } from './types'
 // change to add one.
 export type Analyzer = {
 	id: string
-	label: string
+	// The name an admin reads on the intelligence screens. Catalog text, so
+	// it is a function: call it while handling a request, never when a
+	// module loads.
+	label: () => string
 	enabledByDefault: boolean
 	run: (ctx: AnalyzerContext) => Promise<AnalyzerResult>
 }

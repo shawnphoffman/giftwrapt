@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import type { CronRun } from '@/db/schema'
 import { cronRunStatusEnumValues } from '@/db/schema'
-import { CRON_ENDPOINTS, getCronEntry } from '@/lib/cron/registry'
+import { CRON_ENDPOINTS, cronJobLabel, cronJobLabelOrPath } from '@/lib/cron/registry'
 import { dateFnsLocale, formatDate, formatTimeAgo } from '@/lib/i18n/format'
 import { m } from '@/paraglide/messages.js'
 
@@ -146,15 +146,12 @@ export function CronRunsTable() {
 			{
 				accessorKey: 'endpoint',
 				header: () => m.admin_settings_cron_runs_endpoint_column(),
-				cell: ({ row }) => {
-					const entry = getCronEntry(row.original.endpoint)
-					return (
-						<div className="flex flex-col">
-							<span className="text-xs font-medium">{entry?.label ?? row.original.endpoint}</span>
-							<code className="text-3xs text-muted-foreground">{row.original.endpoint}</code>
-						</div>
-					)
-				},
+				cell: ({ row }) => (
+					<div className="flex flex-col">
+						<span className="text-xs font-medium">{cronJobLabelOrPath(row.original.endpoint)}</span>
+						<code className="text-3xs text-muted-foreground">{row.original.endpoint}</code>
+					</div>
+				),
 			},
 			{
 				accessorKey: 'status',
@@ -206,7 +203,7 @@ export function CronRunsTable() {
 						<SelectItem value="all">{m.admin_settings_cron_runs_all_endpoints()}</SelectItem>
 						{CRON_ENDPOINTS.map(path => (
 							<SelectItem key={path} value={path}>
-								{getCronEntry(path)?.label ?? path}
+								{cronJobLabel(path)}
 							</SelectItem>
 						))}
 					</SelectContent>

@@ -22,7 +22,7 @@ import { eventIsCovered, getInWindowEventsForSubject } from '../upcoming-events'
 // guard.
 export const primaryListAnalyzer: Analyzer = {
 	id: 'primary-list',
-	label: 'Primary List',
+	label: () => m.admin_intel_analyzer_primary_list_label(),
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()

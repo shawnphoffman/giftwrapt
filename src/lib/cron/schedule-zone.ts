@@ -7,25 +7,26 @@
 import { CronExpressionParser } from 'cron-parser'
 
 import { isValidTimeZone } from '@/lib/calendar-day'
+import { formatDate } from '@/lib/i18n/format'
 
-import { cronRegistry } from './registry'
+import { type CronEndpoint, cronRegistry } from './registry'
 
 // Local hours outside [QUIET_END, QUIET_START) count as "late at night".
 const QUIET_START = 18
 const QUIET_END = 5
 
 export type LateCronRun = {
-	path: string
-	label: string
+	path: CronEndpoint
 	schedule: string
-	// Next fire time in the deployment zone, e.g. "11:00 PM".
+	// Next fire time in the deployment zone, written for the reader's
+	// language, e.g. "11:00 PM".
 	localTime: string
 }
 
 export function lateDateSensitiveRuns(timeZone: string, now: Date = new Date()): Array<LateCronRun> {
 	if (!isValidTimeZone(timeZone)) return []
+	// For the comparison below, so it stays 'en-US'.
 	const hourFormat = new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', hourCycle: 'h23' })
-	const timeFormat = new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit' })
 
 	const out: Array<LateCronRun> = []
 	for (const entry of cronRegistry) {
@@ -39,7 +40,11 @@ export function lateDateSensitiveRuns(timeZone: string, now: Date = new Date()):
 		}
 		const hour = Number(hourFormat.format(next))
 		if (hour >= QUIET_START || hour < QUIET_END) {
-			out.push({ path: entry.path, label: entry.label, schedule: entry.schedule, localTime: timeFormat.format(next) })
+			out.push({
+				path: entry.path,
+				schedule: entry.schedule,
+				localTime: formatDate(next, { timeZone, hour: 'numeric', minute: '2-digit' }),
+			})
 		}
 	}
 	return out

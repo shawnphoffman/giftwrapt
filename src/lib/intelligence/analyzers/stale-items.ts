@@ -28,7 +28,7 @@ const STALE_DAYS_THRESHOLD = 180 // 6 months
 // claim data.
 export const staleItemsAnalyzer: Analyzer = {
 	id: 'stale-items',
-	label: 'Stale Items',
+	label: () => m.admin_intel_analyzer_stale_items_label(),
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()

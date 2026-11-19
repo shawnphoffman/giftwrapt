@@ -12,23 +12,44 @@ import { hasKnownRate, type ModelRate } from '@/lib/ai-cost'
 import { AI_FEATURE_REGISTRY } from '@/lib/ai-features'
 import { AI_EXTRA_SLOTS, type AiExtraSlot } from '@/lib/ai-slots'
 import type { AppSettings } from '@/lib/settings'
+import { m } from '@/paraglide/messages.js'
 
 import { AiSlotCard, type AiSlotCatalogueTarget, type AiSlotTestBody } from './ai-slot-card'
 import type { ModelPickerStatus } from './model-picker'
 
-const SLOT_COPY: Record<AiExtraSlot, { title: string; description: string }> = {
-	fast: {
-		title: 'Fast Model',
-		description: 'Optional. A smaller, cheaper model for mechanical work that runs often.',
-	},
-	vision: {
-		title: 'Vision Model',
-		description: 'Optional. A model that reads images, for features that send a photo.',
-	},
+// Each slot's card text and toasts. One whole message per slot, so no
+// sentence is built around the slot's name.
+function slotCopy(slot: AiExtraSlot): {
+	title: string
+	description: string
+	saved: string
+	cleared: string
+	testOk: (latency: number) => string
+} {
+	switch (slot) {
+		case 'fast':
+			return {
+				title: m.admin_ai_slot_fast_title(),
+				description: m.admin_ai_slot_fast_description(),
+				saved: m.admin_ai_slot_fast_saved(),
+				cleared: m.admin_ai_slot_fast_cleared(),
+				testOk: latency => m.admin_ai_slot_fast_test_ok({ latency }),
+			}
+		case 'vision':
+			return {
+				title: m.admin_ai_slot_vision_title(),
+				description: m.admin_ai_slot_vision_description(),
+				saved: m.admin_ai_slot_vision_saved(),
+				cleared: m.admin_ai_slot_vision_cleared(),
+				testOk: latency => m.admin_ai_slot_vision_test_ok({ latency }),
+			}
+	}
 }
 
 function featuresFor(slot: AiExtraSlot): Array<string> {
-	return AI_FEATURE_REGISTRY.filter(f => f.slots.includes(slot)).map(f => (f.slots.length > 1 ? `${f.label} (parts of it)` : f.label))
+	return AI_FEATURE_REGISTRY.filter(f => f.slots.includes(slot)).map(f =>
+		f.slots.length > 1 ? m.admin_ai_slot_feature_partial({ feature: f.label() }) : f.label()
+	)
 }
 
 // The optional model slots under the main provider card on /admin/ai.
@@ -92,12 +113,12 @@ function SlotCardContainer({
 		onSuccess: data => {
 			queryClient.setQueryData<AppSettings>(adminAppSettingsQueryKey, old => (old ? { ...old, aiModelRates: data.aiModelRates } : old))
 			notifyAppSettingsChanged(queryClient)
-			toast.success('Price saved')
+			toast.success(m.admin_ai_slot_price_saved())
 		},
-		onError: err => toast.error(err instanceof Error ? err.message : 'Failed to save the price'),
+		onError: err => toast.error(err instanceof Error ? err.message : m.admin_ai_slot_price_save_failed()),
 	})
 
-	const copy = SLOT_COPY[slot]
+	const copy = slotCopy(slot)
 
 	return (
 		<AiSlotCard
@@ -114,11 +135,11 @@ function SlotCardContainer({
 					toast.error(res.error)
 					return
 				}
-				toast.success(input.model === null && input.provider === null ? `${copy.title} cleared` : `${copy.title} saved`)
+				toast.success(input.model === null && input.provider === null ? copy.cleared : copy.saved)
 			}}
 			onTest={async (body: AiSlotTestBody) => {
 				const res = await testAiConnectionAsAdmin({ data: body } as Parameters<typeof testAiConnectionAsAdmin>[0])
-				if (res.ok) toast.success(`${copy.title} OK (${res.latencyMs} ms)`)
+				if (res.ok) toast.success(copy.testOk(res.latencyMs))
 				else toast.error(res.error)
 				return res
 			}}

@@ -17,7 +17,7 @@ import type { AiConfigResponse } from '@/hooks/use-ai-config'
 import { useAiConfig } from '@/hooks/use-ai-config'
 import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import { AI_FEATURE_REGISTRY, type AiFeatureInfo } from '@/lib/ai-features'
-import { AI_SLOT_LABELS } from '@/lib/ai-slots'
+import { aiSlotLabel } from '@/lib/ai-slots'
 import { isValidSearchUrlTemplate, SEARCH_QUERY_PLACEHOLDER } from '@/lib/gift-suggestions/search-url'
 import type { AppSettings } from '@/lib/settings'
 import { m } from '@/paraglide/messages.js'
@@ -73,16 +73,16 @@ function AiDataDisclosure({ feature }: { feature: AiFeatureInfo }) {
 					<div className="space-y-1">
 						<p className="font-medium">{m.admin_ai_features_sent()}</p>
 						<ul className="list-disc space-y-1 pl-4 text-muted-foreground">
-							{feature.sent.map(line => (
-								<li key={line}>{line}</li>
+							{feature.sent.map((line, index) => (
+								<li key={index}>{line()}</li>
 							))}
 						</ul>
 					</div>
 					<div className="space-y-1">
 						<p className="font-medium">{m.admin_ai_features_never_sent()}</p>
 						<ul className="list-disc space-y-1 pl-4 text-muted-foreground">
-							{feature.neverSent.map(line => (
-								<li key={line}>{line}</li>
+							{feature.neverSent.map((line, index) => (
+								<li key={index}>{line()}</li>
 							))}
 						</ul>
 					</div>
@@ -218,29 +218,29 @@ export function AiFeaturesCardView({
 									<div className="space-y-0.5">
 										<div className="flex flex-wrap items-center gap-2">
 											<Label htmlFor={key ?? undefined} className="text-base">
-												{feature.label}
+												{feature.label()}
 											</Label>
 											{feature.slots.map(slot => (
 												<Badge
 													key={slot}
 													variant="outline"
 													className="font-normal"
-													title={m.admin_ai_features_slot_title({ slot: AI_SLOT_LABELS[slot] })}
+													title={m.admin_ai_features_slot_title({ slot: aiSlotLabel(slot) })}
 												>
-													{AI_SLOT_LABELS[slot]}
+													{aiSlotLabel(slot)}
 												</Badge>
 											))}
 										</div>
 										<p className="text-sm text-muted-foreground">
-											{feature.description}
+											{feature.description()}
 											{feature.managedAt && (
 												<>
 													{' '}
 													<RichMessage
 														parts={
 															key
-																? m.admin_ai_features_more_options.parts({ label: feature.managedAt.label })
-																: m.admin_ai_features_toggled_under.parts({ label: feature.managedAt.label })
+																? m.admin_ai_features_more_options.parts({ label: feature.managedAt.label() })
+																: m.admin_ai_features_toggled_under.parts({ label: feature.managedAt.label() })
 														}
 														tags={{
 															link: c => (

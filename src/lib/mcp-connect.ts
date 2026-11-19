@@ -1,8 +1,13 @@
 // Client-safe helpers for the "connect an AI assistant" snippets shown on
 // /admin/mcp and /settings/connected-apps. Everything derives from the
 // deployment origin so pre-built images stay host-agnostic.
+//
+// The labels, titles and descriptions are catalog text in the language of
+// the page being rendered, so call the builders while rendering, never
+// when a module loads.
 
 import { MCP_ENDPOINT_PATH } from '@/lib/mcp-config'
+import { m } from '@/paraglide/messages.js'
 
 export type McpConnectInfo = {
 	origin: string
@@ -16,8 +21,11 @@ export function buildMcpConnectInfo(origin: string): McpConnectInfo {
 		origin: base,
 		endpointUrl: `${base}${MCP_ENDPOINT_PATH}`,
 		discovery: [
-			{ label: 'Authorization server', url: `${base}/.well-known/oauth-authorization-server` },
-			{ label: 'Protected resource', url: `${base}/.well-known/oauth-protected-resource${MCP_ENDPOINT_PATH}` },
+			{ label: m.admin_mcp_connect_discovery_authorization_server(), url: `${base}/.well-known/oauth-authorization-server` },
+			{
+				label: m.admin_mcp_connect_discovery_protected_resource(),
+				url: `${base}/.well-known/oauth-protected-resource${MCP_ENDPOINT_PATH}`,
+			},
 		],
 	}
 }
@@ -51,29 +59,30 @@ export function buildMcpSnippets(endpointUrl: string): Array<McpClientSnippet> {
 	return [
 		{
 			id: 'claude-ai',
-			title: 'Claude.ai (web, desktop, mobile)',
-			description: 'Use the Add to Claude button above, or go to Settings, Connectors, Add custom connector and paste the server URL.',
+			title: m.admin_mcp_connect_snippet_claude_ai_title(),
+			description: m.admin_mcp_connect_snippet_claude_ai_description(),
 			code: endpointUrl,
 			language: 'text',
 		},
 		{
 			id: 'claude-code',
+			// A product name, the same in every language.
 			title: 'Claude Code',
-			description: 'Then run /mcp inside Claude Code to sign in.',
+			description: m.admin_mcp_connect_snippet_claude_code_description(),
 			code: `claude mcp add --transport http giftwrapt ${endpointUrl}`,
 			language: 'bash',
 		},
 		{
 			id: 'json-url',
-			title: 'Cursor, VS Code, Windsurf, and other URL-based clients',
-			description: 'Add this to the client’s MCP configuration.',
+			title: m.admin_mcp_connect_snippet_json_url_title(),
+			description: m.admin_mcp_connect_snippet_json_url_description(),
 			code: JSON.stringify({ mcpServers: { giftwrapt: { url: endpointUrl } } }, null, 2),
 			language: 'json',
 		},
 		{
 			id: 'mcp-remote',
-			title: 'Clients that only speak stdio',
-			description: 'Bridge through mcp-remote, which handles the OAuth sign-in in your browser.',
+			title: m.admin_mcp_connect_snippet_mcp_remote_title(),
+			description: m.admin_mcp_connect_snippet_mcp_remote_description(),
 			code: JSON.stringify({ mcpServers: { giftwrapt: { command: 'npx', args: ['-y', 'mcp-remote', endpointUrl] } } }, null, 2),
 			language: 'json',
 		},

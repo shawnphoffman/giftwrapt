@@ -288,15 +288,24 @@ export async function listAdminEmails(dbx: SchemaDatabase = db): Promise<Array<s
 // content as a scheduled send over a trailing refresh-interval window, but
 // ignores the toggles and interval guard and does not stamp last-sent, so
 // the schedule is unaffected.
+//
+// The two things an admin can fix come back as a reason, not a thrown
+// error: an error thrown from a server function reaches the browser as its
+// message alone, so the screen could only show it in whatever language the
+// server wrote it in. The screen turns the reason into catalog text.
+export type OperatorDigestSendResult =
+	| { ok: true; recipients: Array<string> }
+	| { ok: false; reason: 'email-not-configured' | 'no-recipients' }
+
 export async function sendOperatorDigestNow(
 	settings: AppSettings,
 	dbx: SchemaDatabase = db,
 	now: Date = new Date()
-): Promise<Array<string>> {
-	if (!(await isEmailConfigured(dbx))) throw new Error('Email is not configured. Set a Resend API key and From Email first.')
+): Promise<OperatorDigestSendResult> {
+	if (!(await isEmailConfigured(dbx))) return { ok: false, reason: 'email-not-configured' }
 	const recipients = await resolveDigestRecipients(settings, dbx)
-	if (recipients.length === 0) throw new Error('No recipients: there are no admin users and no recipient override is set.')
+	if (recipients.length === 0) return { ok: false, reason: 'no-recipients' }
 	const data = await buildOperatorDigest(digestWindow(null, settings.intelligenceRefreshIntervalDays, now), dbx)
 	await sendOperatorDigestEmail(recipients, data, operatorDigestSubject(data, operatorDigestLocale(settings)))
-	return recipients
+	return { ok: true, recipients }
 }

@@ -53,7 +53,7 @@ const DUPLICATES_LLM_FLOOR = 0.5
 const DUPLICATES_AUTO_CONFIRM_FLOOR = 0.9
 export const duplicatesAnalyzer: Analyzer = {
 	id: 'duplicates',
-	label: 'Duplicates',
+	label: () => m.admin_intel_analyzer_duplicates_label(),
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()

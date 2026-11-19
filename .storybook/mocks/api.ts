@@ -379,8 +379,8 @@ export const adminInvalidateInputHash = ok
 export const adminPurgeRecsForUser = ok
 export const adminRunForMe = ok
 export const adminRunForUser = ok
-export const adminSendOperatorDigestNow = (): Promise<{ recipients: Array<string> }> =>
-	Promise.resolve({ recipients: ['admin@example.com'] })
+export const adminSendOperatorDigestNow = (): Promise<{ ok: true; recipients: Array<string> }> =>
+	Promise.resolve({ ok: true, recipients: ['admin@example.com'] })
 export const getAdminIntelligenceData = (): Promise<null> => Promise.resolve(null)
 export const getAdminUserRunSummaries = emptyArray
 

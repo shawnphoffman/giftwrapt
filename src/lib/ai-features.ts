@@ -8,140 +8,156 @@
 // label used on the usage ledger has no entry.
 //
 // Write `sent` and `neverSent` from what the code does, not from intent.
-// If a prompt changes, this changes with it.
+// If a prompt changes, this changes with it. The wording lives in the
+// message catalog (`admin_ai_feature_*` in messages/en/admin-settings.json).
 
 import type { AiFeature } from '@/lib/ai-call'
-import { AI_SLOT_LABELS, type AiSlot, slotsForFeature } from '@/lib/ai-slots'
+import { type AiSlot, aiSlotLabel, slotsForFeature } from '@/lib/ai-slots'
+import type { Locale } from '@/lib/i18n/locales'
 import type { AppSettings } from '@/lib/settings'
+import { m } from '@/paraglide/messages.js'
 
 type BooleanSettingKey = { [K in keyof AppSettings]: AppSettings[K] extends boolean ? K : never }[keyof AppSettings]
+
+// Text from the message catalog, rendered when it is called: with no
+// options, in the language of the page; with `{ locale: 'en' }`, in English
+// for output that must not follow the reader (the docs catalog). Never call
+// one when a module loads.
+type MessageOptions = { locale?: Locale }
+export type AiFeatureText = (options?: MessageOptions) => string
 
 export type AiFeatureInfo = {
 	// Matches the `feature` label on `ai_usage` rows (AiFeature in ai-call.ts).
 	id: string
-	label: string
-	description: string
+	label: AiFeatureText
+	description: AiFeatureText
 	// The app setting that turns the feature on. Null when it is switched
 	// somewhere else (see `managedAt`).
 	settingKey: BooleanSettingKey | null
 	// Where the feature is configured in more depth, or switched when
 	// `settingKey` is null.
-	managedAt?: { href: string; label: string }
-	sent: ReadonlyArray<string>
-	neverSent: ReadonlyArray<string>
+	managedAt?: { href: string; label: AiFeatureText }
+	sent: ReadonlyArray<AiFeatureText>
+	neverSent: ReadonlyArray<AiFeatureText>
 	// The model slots the feature runs on (plan 34). Filled in from
 	// src/lib/ai-slots.ts, which is where the mapping is decided.
 	slots: ReadonlyArray<AiSlot>
 }
 
-const NOTHING_ABOUT_PEOPLE = 'Anything about your users, their lists, or their gifts'
+const NOTHING_ABOUT_PEOPLE: AiFeatureText = o => m.admin_ai_feature_never_nothing_about_people({}, o)
 
 const REGISTRY_ENTRIES: ReadonlyArray<Omit<AiFeatureInfo, 'slots'>> = [
 	{
 		id: 'scrape-provider',
-		label: 'AI Scraper',
-		description: 'Reads a product page with the AI model when it is one of the configured scrape providers.',
+		label: o => m.admin_ai_feature_scrape_provider_label({}, o),
+		description: o => m.admin_ai_feature_scrape_provider_description({}, o),
 		settingKey: null,
-		managedAt: { href: '/admin/scraping', label: 'Scraping' },
+		managedAt: { href: '/admin/scraping', label: o => m.admin_ai_feature_managed_scraping({}, o) },
 		sent: [
-			'The product page URL being added',
-			'The text and markup of that page, with scripts and styles removed (up to 32 KB)',
-			'With Web Fetch turned on for the AI scraper: the AI provider’s own servers request that URL, so the store sees a visit from the provider',
+			o => m.admin_ai_feature_scrape_provider_sent_page_url({}, o),
+			o => m.admin_ai_feature_scrape_provider_sent_page_content({}, o),
+			o => m.admin_ai_feature_scrape_provider_sent_web_fetch({}, o),
 		],
 		neverSent: [NOTHING_ABOUT_PEOPLE],
 	},
 	{
 		id: 'clean-title',
-		label: 'Clean Imported Titles',
-		description: 'A small pass after a scrape that strips retailer noise from the title.',
+		label: o => m.admin_ai_feature_clean_title_label({}, o),
+		description: o => m.admin_ai_feature_clean_title_description({}, o),
 		settingKey: 'scrapeAiCleanTitlesEnabled',
-		sent: ['The scraped title', 'The product page URL', 'The store name, when known'],
+		sent: [
+			o => m.admin_ai_feature_clean_title_sent_title({}, o),
+			o => m.admin_ai_feature_clean_title_sent_page_url({}, o),
+			o => m.admin_ai_feature_clean_title_sent_store_name({}, o),
+		],
 		neverSent: [NOTHING_ABOUT_PEOPLE],
 	},
 	{
 		id: 'photo-extract',
-		label: 'Photo to Item',
-		description: 'Fills in a new item from a photo the user uploads, on the web or in the iOS app.',
+		label: o => m.admin_ai_feature_photo_extract_label({}, o),
+		description: o => m.admin_ai_feature_photo_extract_description({}, o),
 		settingKey: 'aiPhotoExtractEnabled',
-		sent: ['The uploaded photo', 'The barcode number, when the photo follows a scan in the iOS app that found nothing'],
+		sent: [o => m.admin_ai_feature_photo_extract_sent_photo({}, o), o => m.admin_ai_feature_photo_extract_sent_barcode({}, o)],
 		neverSent: [NOTHING_ABOUT_PEOPLE],
 	},
 	{
 		id: 'barcode-identify',
-		label: 'Clean Up Barcode Results',
-		description:
-			'After a barcode scan finds a product, turns the raw title from the barcode provider into a clean one and moves the size and color into the item notes. Runs once per barcode; the result is cached with the lookup.',
+		label: o => m.admin_ai_feature_barcode_identify_label({}, o),
+		description: o => m.admin_ai_feature_barcode_identify_description({}, o),
 		settingKey: 'aiBarcodeIdentifyEnabled',
-		managedAt: { href: '/admin/barcode', label: 'Barcode' },
-		sent: ['The product title and brand the barcode provider returned', 'The barcode number'],
+		managedAt: { href: '/admin/barcode', label: o => m.admin_ai_feature_managed_barcode({}, o) },
+		sent: [
+			o => m.admin_ai_feature_barcode_identify_sent_provider_result({}, o),
+			o => m.admin_ai_feature_barcode_identify_sent_barcode({}, o),
+		],
 		neverSent: [NOTHING_ABOUT_PEOPLE],
 	},
 	{
 		id: 'paste-to-items',
-		label: 'Paste Text to Items',
-		description:
-			'An import option that turns pasted text (a notes-app list, a forwarded message) into items. The user reviews the result before anything is added.',
+		label: o => m.admin_ai_feature_paste_to_items_label({}, o),
+		description: o => m.admin_ai_feature_paste_to_items_description({}, o),
 		settingKey: 'aiPasteToItemsEnabled',
-		sent: ['The text the user pasted (up to 8,000 characters)'],
+		sent: [o => m.admin_ai_feature_paste_to_items_sent_pasted_text({}, o)],
 		neverSent: [NOTHING_ABOUT_PEOPLE],
 	},
 	{
 		id: 'thank-you-draft',
-		label: 'Thank-You Note Drafts',
-		description:
-			'A “Draft a Thank-You” button on the Received page. It writes a short note the user can edit, copy, or open in their own email app. Nothing is sent to anyone by the app.',
+		label: o => m.admin_ai_feature_thank_you_draft_label({}, o),
+		description: o => m.admin_ai_feature_thank_you_draft_description({}, o),
 		settingKey: 'aiThankYouDraftsEnabled',
 		sent: [
-			'The first name of the user writing the note',
-			'The first names of the people who gave the gifts',
-			'The titles of the gifts, which have already been revealed to that user',
-			'The name of the pet or baby, when the gifts were for a dependent',
+			o => m.admin_ai_feature_thank_you_draft_sent_writer_name({}, o),
+			o => m.admin_ai_feature_thank_you_draft_sent_giver_names({}, o),
+			o => m.admin_ai_feature_thank_you_draft_sent_gift_titles({}, o),
+			o => m.admin_ai_feature_thank_you_draft_sent_dependent_name({}, o),
 		],
-		neverSent: ['What anything cost, and gift notes', 'Gifts that have not been revealed yet', 'Last names and email addresses'],
+		neverSent: [
+			o => m.admin_ai_feature_thank_you_draft_never_costs_notes({}, o),
+			o => m.admin_ai_feature_thank_you_draft_never_unrevealed({}, o),
+			o => m.admin_ai_feature_thank_you_draft_never_contact({}, o),
+		],
 	},
 	{
 		id: 'gift-suggestions',
-		label: 'Gift Suggestions',
-		description:
-			'Adds a Need Ideas? button to other people’s lists. It asks for a budget, then shows new gift ideas based on that person’s lists, each of which can be saved to the user’s private Gift Ideas or added to the list as an off-list gift. The AI runs only when a user asks, and never for a child account. The last set of ideas is kept for the user who asked, and nobody else, so reopening shows it without asking the AI again. Off removes the button.',
+		label: o => m.admin_ai_feature_gift_suggestions_label({}, o),
+		description: o => m.admin_ai_feature_gift_suggestions_description({}, o),
 		settingKey: 'aiGiftSuggestionsEnabled',
 		sent: [
-			'The first name of the person the gift is for',
-			'Titles, prices, priorities, and categories of the items on that person’s lists that the user asking can already see',
-			'For each of those items, whether it is already claimed (yes or no only)',
-			'The asking user’s own private gift ideas for that person, and the titles of gifts they already gave them',
-			'The occasion, taken from the type of list being viewed (a Christmas list, a birthday list, a holiday list)',
-			'The budget, when the user gives one',
-			'Titles of gifts that person received in the last two years on lists the user can see, with the month they were revealed',
-			'Titles of items that person removed after nobody gave them, or marked unavailable',
-			'Titles any gifter marked as something that person already has',
-			'Titles the asking user marked as not for them',
+			o => m.admin_ai_feature_gift_suggestions_sent_recipient_name({}, o),
+			o => m.admin_ai_feature_gift_suggestions_sent_visible_items({}, o),
+			o => m.admin_ai_feature_gift_suggestions_sent_claimed_flag({}, o),
+			o => m.admin_ai_feature_gift_suggestions_sent_own_ideas({}, o),
+			o => m.admin_ai_feature_gift_suggestions_sent_occasion({}, o),
+			o => m.admin_ai_feature_gift_suggestions_sent_budget({}, o),
+			o => m.admin_ai_feature_gift_suggestions_sent_received({}, o),
+			o => m.admin_ai_feature_gift_suggestions_sent_removed({}, o),
+			o => m.admin_ai_feature_gift_suggestions_sent_already_has({}, o),
+			o => m.admin_ai_feature_gift_suggestions_sent_not_for_them({}, o),
 		],
 		neverSent: [
-			'Who claimed anything, who gave any received gift, what anyone paid, and claim notes',
-			'Item notes, links, and images',
-			'Items the asking user cannot see, including anything hidden from a restricted viewer',
-			'Other people’s gift ideas, off-list gifts, and comments',
-			'Last names, email addresses, and birth dates',
+			o => m.admin_ai_feature_gift_suggestions_never_claims({}, o),
+			o => m.admin_ai_feature_gift_suggestions_never_item_details({}, o),
+			o => m.admin_ai_feature_gift_suggestions_never_hidden_items({}, o),
+			o => m.admin_ai_feature_gift_suggestions_never_others_ideas({}, o),
+			o => m.admin_ai_feature_gift_suggestions_never_contact({}, o),
 		],
 	},
 	{
 		id: 'intelligence',
-		label: 'Suggestions',
-		description:
-			'Scheduled suggestions for each user about their own lists: stale items, duplicates, grouping, and set-up nudges. Users see the Suggestions page and can refresh it.',
+		label: o => m.admin_ai_feature_intelligence_label({}, o),
+		description: o => m.admin_ai_feature_intelligence_description({}, o),
 		settingKey: 'intelligenceEnabled',
-		managedAt: { href: '/admin/intelligence', label: 'Intelligence' },
+		managedAt: { href: '/admin/intelligence', label: o => m.admin_ai_feature_managed_intelligence({}, o) },
 		sent: [
-			'Titles and notes of the items on the user’s own lists',
-			'The names and types of those lists, and when each item was last changed',
-			'Whether an item is marked unavailable, and the item groups already on the list',
+			o => m.admin_ai_feature_intelligence_sent_items({}, o),
+			o => m.admin_ai_feature_intelligence_sent_lists({}, o),
+			o => m.admin_ai_feature_intelligence_sent_state({}, o),
 		],
 		neverSent: [
-			'Claims: who is giving what, costs, and gift notes',
-			'Gift-ideas lists (private notes about other people)',
-			'Items already revealed or deleted',
-			'Profile details: names, email addresses, and birthdays (a name typed into a list name or an item is sent as written)',
+			o => m.admin_ai_feature_intelligence_never_claims({}, o),
+			o => m.admin_ai_feature_intelligence_never_gift_ideas({}, o),
+			o => m.admin_ai_feature_intelligence_never_gone_items({}, o),
+			o => m.admin_ai_feature_intelligence_never_profile({}, o),
 		],
 	},
 ]
@@ -152,8 +168,8 @@ export const AI_FEATURE_REGISTRY: ReadonlyArray<AiFeatureInfo> = REGISTRY_ENTRIE
 }))
 
 // Features on the ledger that are not user-facing toggles.
-export const AI_LEDGER_ONLY_FEATURES: Readonly<Partial<Record<string, string>>> = {
-	'admin-test': 'Connection Test',
+export const AI_LEDGER_ONLY_FEATURES: Readonly<Partial<Record<string, AiFeatureText>>> = {
+	'admin-test': o => m.admin_ai_feature_admin_test_label({}, o),
 }
 
 // Settings that match the AI-toggle naming but are not a feature of their
@@ -166,28 +182,29 @@ export const AI_NON_FEATURE_SETTINGS: Readonly<Record<string, string>> = {
 }
 
 export function aiFeatureLabel(id: string): string {
-	return AI_FEATURE_REGISTRY.find(f => f.id === id)?.label ?? AI_LEDGER_ONLY_FEATURES[id] ?? id
+	return AI_FEATURE_REGISTRY.find(f => f.id === id)?.label() ?? AI_LEDGER_ONLY_FEATURES[id]?.() ?? id
 }
 
 // How a call's `source` reads on the admin usage card.
-const AI_SOURCE_LABELS: Readonly<Partial<Record<string, string>>> = {
-	web: 'Web App',
-	mcp: 'AI Assistant (MCP)',
-	mobile: 'Mobile App',
-	import: 'Import Queue',
-	cron: 'Scheduled Job',
-	admin: 'Admin',
-	cli: 'Command Line',
+const AI_SOURCE_LABELS: Readonly<Partial<Record<string, AiFeatureText>>> = {
+	web: o => m.admin_ai_feature_source_web({}, o),
+	mcp: o => m.admin_ai_feature_source_mcp({}, o),
+	mobile: o => m.admin_ai_feature_source_mobile({}, o),
+	import: o => m.admin_ai_feature_source_import({}, o),
+	cron: o => m.admin_ai_feature_source_cron({}, o),
+	admin: o => m.admin_ai_feature_source_admin({}, o),
+	cli: o => m.admin_ai_feature_source_cli({}, o),
 }
 
 export function aiSourceLabel(source: string | null): string {
-	if (source === null) return 'Unknown'
-	return AI_SOURCE_LABELS[source] ?? source
+	if (source === null) return m.admin_ai_feature_source_unknown()
+	return AI_SOURCE_LABELS[source]?.() ?? source
 }
 
 // The shape written to catalogs/ai-features.json by `pnpm docs:catalogs`. The docs site renders its "What Each
 // Feature Sends" table from that file, so the public page cannot drift
-// from this registry.
+// from this registry. The docs are English, so every text here is rendered
+// in English whatever language the caller is in.
 export type AiFeatureCatalogEntry = {
 	id: string
 	label: string
@@ -200,15 +217,17 @@ export type AiFeatureCatalogEntry = {
 	slots: ReadonlyArray<string>
 }
 
+const DOCS_LOCALE: MessageOptions = { locale: 'en' }
+
 export function buildAiFeaturesCatalog(): Array<AiFeatureCatalogEntry> {
 	return AI_FEATURE_REGISTRY.map(f => ({
 		id: f.id,
-		label: f.label,
-		description: f.description,
+		label: f.label(DOCS_LOCALE),
+		description: f.description(DOCS_LOCALE),
 		settingKey: f.settingKey,
-		managedAt: f.managedAt?.label ?? null,
-		sent: f.sent,
-		neverSent: f.neverSent,
-		slots: f.slots.map(s => AI_SLOT_LABELS[s]),
+		managedAt: f.managedAt?.label(DOCS_LOCALE) ?? null,
+		sent: f.sent.map(line => line(DOCS_LOCALE)),
+		neverSent: f.neverSent.map(line => line(DOCS_LOCALE)),
+		slots: f.slots.map(s => aiSlotLabel(s, DOCS_LOCALE)),
 	}))
 }

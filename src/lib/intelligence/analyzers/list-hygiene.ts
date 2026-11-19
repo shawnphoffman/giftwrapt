@@ -169,7 +169,7 @@ function tenantAllowsCanonicalType(
 
 export const listHygieneAnalyzer: Analyzer = {
 	id: 'list-hygiene',
-	label: 'List Hygiene',
+	label: () => m.admin_intel_analyzer_list_hygiene_label(),
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()

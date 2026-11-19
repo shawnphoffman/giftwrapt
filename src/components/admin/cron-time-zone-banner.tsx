@@ -3,6 +3,7 @@ import { Clock } from 'lucide-react'
 import { RichMessage } from '@/components/common/rich-message'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useAdminAppSettings } from '@/hooks/use-app-settings'
+import { cronJobLabel } from '@/lib/cron/registry'
 import { type LateCronRun, lateDateSensitiveRuns } from '@/lib/cron/schedule-zone'
 import { m } from '@/paraglide/messages.js'
 
@@ -30,7 +31,11 @@ export function CronTimeZoneWarning({ timeZone, late }: { timeZone: string; late
 					{late.map(run => (
 						<li key={run.path}>
 							<RichMessage
-								parts={m.admin_settings_cron_tz_banner_run.parts({ label: run.label, schedule: run.schedule, localTime: run.localTime })}
+								parts={m.admin_settings_cron_tz_banner_run.parts({
+									label: cronJobLabel(run.path),
+									schedule: run.schedule,
+									localTime: run.localTime,
+								})}
 								tags={{ code: children => <code>{children}</code> }}
 							/>
 						</li>

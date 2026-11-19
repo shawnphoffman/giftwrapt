@@ -255,6 +255,16 @@ export function IntelligenceSchedulingCard({ data, patch }: { data: AdminIntelli
 	)
 }
 
+// Why "Send now" was refused, in the reader's language.
+function digestSendRefusalText(reason: 'email-not-configured' | 'no-recipients'): string {
+	switch (reason) {
+		case 'email-not-configured':
+			return m.admin_digest_send_email_not_configured()
+		case 'no-recipients':
+			return m.admin_digest_send_no_recipients()
+	}
+}
+
 export function IntelligenceNotificationsCard({ data, patch }: { data: AdminIntelligenceData; patch: Patch }) {
 	const s = data.settings
 	const { data: emailConfigured } = useIsEmailConfigured()
@@ -271,6 +281,10 @@ export function IntelligenceNotificationsCard({ data, patch }: { data: AdminInte
 		setSending(true)
 		try {
 			const res = await adminSendOperatorDigestNow()
+			if (!res.ok) {
+				toast.error(digestSendRefusalText(res.reason))
+				return
+			}
 			toast.success(m.admin_intel_digest_sent({ recipients: res.recipients.join(', ') }))
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : m.admin_intel_digest_send_failed())

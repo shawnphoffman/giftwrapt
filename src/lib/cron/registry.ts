@@ -11,50 +11,46 @@
 // for it), so treat these strings as the documented default, not a
 // hard cap.
 //
+// The job names and descriptions an admin reads are catalog text, looked
+// up by path in `cronJobLabel` / `cronJobDescription` below. `cadence` is
+// a stable English key (the scheduling panel also derives the expected
+// interval from it); `cronCadenceLabel` gives the text to show for it.
+//
 // `dateSensitive` jobs decide which date it is from the deployment time
 // zone when they run, and send user-facing email for that date. Their
 // defaults (14:00 / 15:00 UTC) land in the morning across the Americas
 // and in the afternoon in Europe; `/admin/scheduling` warns when the
 // default lands late at night in the configured zone.
 
+import { m } from '@/paraglide/messages.js'
+
 export type CronEndpoint = (typeof cronRegistry)[number]['path']
 
 export const cronRegistry = [
 	{
 		path: '/api/cron/auto-archive',
-		label: 'Auto-archive',
-		description:
-			'Reveals claimed gifts once their birthday, Christmas, or holiday reveal date has passed, then emails each list owner to tell them who gave what.',
 		schedule: '0 14 * * *',
 		cadence: 'Daily',
 		dateSensitive: true,
 	},
 	{
 		path: '/api/cron/birthday-emails',
-		label: 'Birthday emails',
-		description: 'Sends birthday greetings on the day and reminders ahead of upcoming events, and cleans up claims left on deleted items.',
 		schedule: '0 15 * * *',
 		cadence: 'Daily',
 		dateSensitive: true,
 	},
 	{
 		path: '/api/cron/cleanup-verification',
-		label: 'Verification cleanup',
-		description: 'Deletes expired sign-in verification tokens and clears out old job run history.',
 		schedule: '0 3 * * *',
 		cadence: 'Daily',
 	},
 	{
 		path: '/api/cron/intelligence-recommendations',
-		label: 'Intelligence recommendations',
-		description: 'Runs the analyzers for each user and saves the recommendations they produce, along with a record of each run.',
 		schedule: '0 4 * * *',
 		cadence: 'Daily',
 	},
 	{
 		path: '/api/cron/item-scrape-queue',
-		label: 'Item scrape queue',
-		description: 'Works through items that are waiting to have their product details fetched.',
 		schedule: '0 5 * * *',
 		cadence: 'Daily',
 	},
@@ -64,4 +60,53 @@ export const CRON_ENDPOINTS = cronRegistry.map(e => e.path) as unknown as readon
 
 export function getCronEntry(path: string) {
 	return cronRegistry.find(e => e.path === path)
+}
+
+export type CronCadence = (typeof cronRegistry)[number]['cadence']
+
+export function cronJobLabel(path: CronEndpoint): string {
+	switch (path) {
+		case '/api/cron/auto-archive':
+			return m.admin_cron_job_auto_archive_label()
+		case '/api/cron/birthday-emails':
+			return m.admin_cron_job_birthday_emails_label()
+		case '/api/cron/cleanup-verification':
+			return m.admin_cron_job_cleanup_verification_label()
+		case '/api/cron/intelligence-recommendations':
+			return m.admin_cron_job_intelligence_recommendations_label()
+		case '/api/cron/item-scrape-queue':
+			return m.admin_cron_job_item_scrape_queue_label()
+	}
+}
+
+export function cronJobDescription(path: CronEndpoint): string {
+	switch (path) {
+		case '/api/cron/auto-archive':
+			return m.admin_cron_job_auto_archive_description()
+		case '/api/cron/birthday-emails':
+			return m.admin_cron_job_birthday_emails_description()
+		case '/api/cron/cleanup-verification':
+			return m.admin_cron_job_cleanup_verification_description()
+		case '/api/cron/intelligence-recommendations':
+			return m.admin_cron_job_intelligence_recommendations_description()
+		case '/api/cron/item-scrape-queue':
+			return m.admin_cron_job_item_scrape_queue_description()
+	}
+}
+
+// A record, not a switch, because there is one cadence today; the type
+// still fails the build when a new cadence has no text.
+const CADENCE_TEXT: Record<CronCadence, () => string> = {
+	Daily: () => m.admin_cron_job_cadence_daily(),
+}
+
+export function cronCadenceLabel(cadence: CronCadence): string {
+	return CADENCE_TEXT[cadence]()
+}
+
+// For a path read back from run history, which can name a job that has
+// since been removed from the registry: its label, or the path itself.
+export function cronJobLabelOrPath(path: string): string {
+	const entry = getCronEntry(path)
+	return entry ? cronJobLabel(entry.path) : path
 }

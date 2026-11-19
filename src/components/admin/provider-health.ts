@@ -1,4 +1,6 @@
 import type { ScrapeFailureRow, ScrapeProviderStat } from '@/api/admin-scrapes'
+import { formatNumber } from '@/lib/i18n/format'
+import { m } from '@/paraglide/messages.js'
 
 // Flags scrape providers that are failing badly enough that an admin should
 // look at them. Built from the Scrape Health stats (attempt rows only; a
@@ -58,17 +60,27 @@ export function buildProviderHealth(
 	return out
 }
 
+// The badge text and the sentence behind it. `windowLabel` is the phrase for the
+// stats window ("in the last 30 days"), already in the reader's language.
+// Each outcome is one whole message: with or without a most common error,
+// for a provider that never succeeds and for one that mostly fails.
 export function describeProviderHealth(health: ProviderHealth, windowLabel: string): { label: string; detail: string } {
-	const why = health.topErrorCode ? `, mostly ${health.topErrorCode}` : ''
+	const total = formatNumber(health.total)
+	const errorCode = health.topErrorCode
 	if (health.status === 'dead') {
 		return {
-			label: 'Never succeeds',
-			detail: `0 of ${health.total.toLocaleString()} attempts succeeded ${windowLabel}${why}.`,
+			label: m.admin_provider_health_dead_label(),
+			detail: errorCode
+				? m.admin_provider_health_dead_detail_with_error({ total, window: windowLabel, errorCode })
+				: m.admin_provider_health_dead_detail({ total, window: windowLabel }),
 		}
 	}
 	const pct = Math.round(health.failRate * 100)
+	const ok = formatNumber(health.okCount)
 	return {
-		label: `Failing ${pct}%`,
-		detail: `${health.okCount.toLocaleString()} of ${health.total.toLocaleString()} attempts succeeded ${windowLabel}${why}.`,
+		label: m.admin_provider_health_failing_label({ pct }),
+		detail: errorCode
+			? m.admin_provider_health_failing_detail_with_error({ ok, total, window: windowLabel, errorCode })
+			: m.admin_provider_health_failing_detail({ ok, total, window: windowLabel }),
 	}
 }

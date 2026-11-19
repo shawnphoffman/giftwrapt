@@ -20,7 +20,7 @@ import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ListRef, RecSubIt
 // a later run.
 export const clothingPrefsAnalyzer: Analyzer = {
 	id: 'clothing-prefs',
-	label: 'Clothing Size & Color',
+	label: () => m.admin_intel_analyzer_clothing_prefs_label(),
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()

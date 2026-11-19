@@ -7,7 +7,7 @@ import { getCronEndpointsSummaryAsAdmin, runCronAsAdmin } from '@/api/admin-cron
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
-import type { CronEndpoint } from '@/lib/cron/registry'
+import { cronCadenceLabel, type CronEndpoint, cronJobDescription, cronJobLabel } from '@/lib/cron/registry'
 import { formatDate, formatTimeAgo } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
@@ -118,16 +118,16 @@ export function CronEndpointsPanel() {
 								<tr key={entry.path} className="border-b last:border-0 align-top">
 									<td className="py-3 pr-3">
 										<div className="flex flex-col">
-											<span className="font-medium">{entry.label}</span>
+											<span className="font-medium">{cronJobLabel(entry.path)}</span>
 											<code className="text-xs text-muted-foreground text-nowrap">{entry.path}</code>
-											<span className="text-xs text-muted-foreground">{entry.description}</span>
+											<span className="text-xs text-muted-foreground">{cronJobDescription(entry.path)}</span>
 										</div>
 									</td>
 									<td className="py-3 pr-3">
 										<div className="flex flex-col">
 											<code className="text-xs text-nowrap">{entry.schedule}</code>
 											<span className="text-xs text-muted-foreground">
-												{m.admin_settings_cron_endpoints_cadence_utc({ cadence: entry.cadence })}
+												{m.admin_settings_cron_endpoints_cadence_utc({ cadence: cronCadenceLabel(entry.cadence) })}
 											</span>
 										</div>
 									</td>
@@ -180,7 +180,7 @@ export function CronEndpointsPanel() {
 										</div>
 									</td>
 									<td className="py-3 pr-3 text-right">
-										<RunNowButton endpoint={entry.path} label={entry.label} />
+										<RunNowButton endpoint={entry.path} label={cronJobLabel(entry.path)} />
 									</td>
 								</tr>
 							)

@@ -12,6 +12,7 @@ import { generateForUser } from '@/lib/intelligence/runner'
 import { loggingMiddleware } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
 import { adminAuthMiddleware } from '@/middleware/auth'
+import { m } from '@/paraglide/messages.js'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ async function loadAnalyzerStats(perAnalyzerEnabled: Record<string, boolean>): P
 		const s = statsMap.get(a.id)
 		return {
 			id: a.id,
-			label: a.label,
+			label: a.label(),
 			enabled: Object.hasOwn(perAnalyzerEnabled, a.id) ? perAnalyzerEnabled[a.id] : a.enabledByDefault,
 			avgDurationMs: s?.avgLatency ? Math.round(s.avgLatency) : 0,
 			avgTokensIn: s?.n ? Math.round(s.totalIn / s.n) : 0,
@@ -69,7 +70,7 @@ async function loadAnalyzerStats(perAnalyzerEnabled: Record<string, boolean>): P
 	const facetConsumersOn = rows.some(r => (r.id === 'clothing-prefs' || r.id === 'duplicates') && r.enabled)
 	rows.push({
 		id: 'enrichment',
-		label: 'Item enrichment',
+		label: m.admin_analyzer_enrichment_label(),
 		enabled: facetConsumersOn && perAnalyzerEnabled['enrichment'] !== false,
 		avgDurationMs: enrichmentStep?.avgLatency ? Math.round(enrichmentStep.avgLatency) : 0,
 		avgTokensIn: enrichmentStep?.n ? Math.round(enrichmentStep.totalIn / enrichmentStep.n) : 0,
@@ -389,13 +390,13 @@ export const getAdminIntelligenceData = createServerFn({ method: 'GET' })
 const userIdSchema = z.object({ userId: z.string().min(1) })
 
 // Send the operator digest right away to the same recipients the schedule
-// uses. Returns who it went to so the UI can confirm.
+// uses. Returns who it went to so the UI can confirm, or the reason it
+// could not be sent.
 export const adminSendOperatorDigestNow = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.handler(async () => {
 		const settings = await getAppSettings(db)
-		const recipients = await sendOperatorDigestNow(settings)
-		return { recipients }
+		return await sendOperatorDigestNow(settings)
 	})
 
 export const adminRunForUser = createServerFn({ method: 'POST' })
@@ -655,7 +656,7 @@ export const getAdminRunDetail = createServerFn({ method: 'GET' })
 			steps: stepRows.map(s => ({
 				id: s.id,
 				analyzerId: s.analyzer,
-				analyzerLabel: getAnalyzer(s.analyzer)?.label ?? s.analyzer,
+				analyzerLabel: getAnalyzer(s.analyzer)?.label() ?? s.analyzer,
 				prompt: s.prompt,
 				responseRaw: s.responseRaw,
 				parsedJson: s.parsed == null ? null : JSON.stringify(s.parsed),
@@ -667,7 +668,7 @@ export const getAdminRunDetail = createServerFn({ method: 'GET' })
 			recs: recRows.map(r => ({
 				id: r.id,
 				analyzerId: r.analyzerId,
-				analyzerLabel: getAnalyzer(r.analyzerId)?.label ?? r.analyzerId,
+				analyzerLabel: getAnalyzer(r.analyzerId)?.label() ?? r.analyzerId,
 				kind: r.kind,
 				status: r.status,
 				severity: r.severity,

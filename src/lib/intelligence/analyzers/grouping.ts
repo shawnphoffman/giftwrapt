@@ -71,7 +71,7 @@ type ResolvedSuggestion =
 // modifies state - it just emits suggestions the user can apply.
 export const groupingAnalyzer: Analyzer = {
 	id: 'grouping',
-	label: 'Grouping',
+	label: () => m.admin_intel_analyzer_grouping_label(),
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()

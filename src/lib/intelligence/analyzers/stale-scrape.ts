@@ -20,7 +20,7 @@ const STALE_SCRAPE_THRESHOLD_DAYS = 120
 
 export const staleScrapeAnalyzer: Analyzer = {
 	id: 'stale-scrape',
-	label: 'Stale or Unscraped URLs',
+	label: () => m.admin_intel_analyzer_stale_scrape_label(),
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()

@@ -18,7 +18,7 @@ import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ListRef, RecSubIt
 // rec shape that this replaces - old rows cycle out at the next regen.
 export const missingPriceAnalyzer: Analyzer = {
 	id: 'missing-price',
-	label: 'Missing Prices',
+	label: () => m.admin_intel_analyzer_missing_price_label(),
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()

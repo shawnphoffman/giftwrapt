@@ -10,6 +10,9 @@
 // change that adds it to `AI_FEATURES`; the `Record` type fails the build
 // until it does.
 
+import type { Locale } from '@/lib/i18n/locales'
+import { m } from '@/paraglide/messages.js'
+
 import type { AiFeature } from './ai-call'
 
 export const AI_SLOTS = ['default', 'fast', 'vision'] as const
@@ -19,10 +22,18 @@ export type AiSlot = (typeof AI_SLOTS)[number]
 export const AI_EXTRA_SLOTS = ['fast', 'vision'] as const
 export type AiExtraSlot = (typeof AI_EXTRA_SLOTS)[number]
 
-export const AI_SLOT_LABELS: Record<AiSlot, string> = {
-	default: 'Default',
-	fast: 'Fast',
-	vision: 'Vision',
+// A slot's name as an admin reads it. Screens call it with no options and
+// get the language of the page; anything that must stay English (the docs
+// catalog) passes `{ locale: 'en' }`.
+export function aiSlotLabel(slot: AiSlot, options?: { locale?: Locale }): string {
+	switch (slot) {
+		case 'default':
+			return m.admin_ai_slot_name_default({}, options)
+		case 'fast':
+			return m.admin_ai_slot_name_fast({}, options)
+		case 'vision':
+			return m.admin_ai_slot_name_vision({}, options)
+	}
 }
 
 export const AI_FEATURE_SLOTS: Record<AiFeature, AiSlot> = {
