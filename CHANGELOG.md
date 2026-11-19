@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.14.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.13.0...v1.14.0) (2026-11-19)
+
+
+### Features
+
+* **ai:** add optional fast and vision model slots ([d43d133](https://github.com/shawnphoffman/giftwrapt/commit/d43d133482c250a313b3e92054c20e82e78eb171))
+* **email:** write each email in its recipient's language ([f77b85c](https://github.com/shawnphoffman/giftwrapt/commit/f77b85c867f837aed4abbe6acffc3a7efe423301))
+* **i18n:** let each deployment choose its languages with APP_LOCALES ([01d81e2](https://github.com/shawnphoffman/giftwrapt/commit/01d81e26892c076f6392760af73deccc59d207ba))
+* **i18n:** send API errors and holiday names in the reader's language ([979a652](https://github.com/shawnphoffman/giftwrapt/commit/979a65267e750858468c3539e869c662a9f83176))
+* **intelligence:** write suggestions in the user's language ([25b87db](https://github.com/shawnphoffman/giftwrapt/commit/25b87db249006f25c97705b35385f82374ab6ac5))
+* **prices:** format money by language and add a default currency ([06f20c1](https://github.com/shawnphoffman/giftwrapt/commit/06f20c1bc258dd86056c6ced558d6e13abc727ee))
+* **scraping:** add an opt-in web fetch step to the AI scraper ([919f5de](https://github.com/shawnphoffman/giftwrapt/commit/919f5deb3d0e6993989c56d6274e3236a239c34e))
+* **scraping:** let the AI scraper read HTML an earlier tier fetched ([5dda967](https://github.com/shawnphoffman/giftwrapt/commit/5dda9673a39aecd4cd22b3dc7b697c7f0d7923b4))
+
+
+### Bug Fixes
+
+* **admin:** show and reveal the admin's own lists on the reveals page ([ecf0f82](https://github.com/shawnphoffman/giftwrapt/commit/ecf0f8240a4d54941dbffdbcb48f5e7aa865e7a7))
+* **ai:** run the AI scraper on the default model ([f776e39](https://github.com/shawnphoffman/giftwrapt/commit/f776e396a49e423b2762ba70f964194668fa5dea))
+* **auth:** send the full code from the two-factor challenge ([fae2f43](https://github.com/shawnphoffman/giftwrapt/commit/fae2f43c336a3af826fb638bee600b0f2818e462))
+* **build:** cap the Vercel build heap at 6 GB ([d814ad3](https://github.com/shawnphoffman/giftwrapt/commit/d814ad3712a55379845f0d4725d5de51ff6b39bc))
+* **build:** keep Stagehand and Playwright out of the server bundle ([66cc717](https://github.com/shawnphoffman/giftwrapt/commit/66cc7178ca6e2e04a1e386811f50ed9c08a880bd))
+* **embedded:** reload the iOS web tab on a new build ([7ffb919](https://github.com/shawnphoffman/giftwrapt/commit/7ffb9198272fb18678c4d3d061048887017cdd58))
+* **embedded:** tell the iOS app what kind of error the web tab hit ([4593027](https://github.com/shawnphoffman/giftwrapt/commit/4593027129c44167faa6c3c64172fc8fa9a46ad6))
+* **i18n:** review the French translation against the style guide ([cbd32a4](https://github.com/shawnphoffman/giftwrapt/commit/cbd32a4e23f4925853d0b388d5012ff4ab7d0277))
+* **i18n:** shorten French labels that did not fit their controls ([245c33c](https://github.com/shawnphoffman/giftwrapt/commit/245c33c2038795bda3c37cf2d9c1f7e26327917e))
+* **i18n:** show catalog text for errors instead of raw messages ([77ba737](https://github.com/shawnphoffman/giftwrapt/commit/77ba737feb1f99dc5695d5d1d6045be2a2efe099))
+* **nav:** wrap long side-navigation labels instead of letting them spill ([d67ec59](https://github.com/shawnphoffman/giftwrapt/commit/d67ec593f5b31b9900d6b7a3d387e5f673a3b899))
+* **routes:** stop the 404 page logging a hydration error ([9086b2d](https://github.com/shawnphoffman/giftwrapt/commit/9086b2d394abecbcf1f9c7c14abd3a4b2a321fb3))
+* **scrapers:** keep why a scrape attempt failed, with secrets removed ([01a69ec](https://github.com/shawnphoffman/giftwrapt/commit/01a69ec3da0687a2132f525af93918440f055959))
+* **scraping:** record why an AI web fetch failed ([bd31aae](https://github.com/shawnphoffman/giftwrapt/commit/bd31aae8859ee7fbda99c0880963b958008aa91d))
+* **settings:** show tick marks at each text size stop ([ce68c63](https://github.com/shawnphoffman/giftwrapt/commit/ce68c6332611afd0a1f7197eb02dc3aa32fc3fda))
+* **shell:** keep the sidebar toggle on screen when scrolled ([6d7ad28](https://github.com/shawnphoffman/giftwrapt/commit/6d7ad286a61224dace3284e0e503b4553f806006)), closes [#100](https://github.com/shawnphoffman/giftwrapt/issues/100)
+
 ## [1.13.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.12.1...v1.13.0) (2026-11-16)
 
 
