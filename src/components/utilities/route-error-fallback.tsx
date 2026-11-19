@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { ChunkReloadFallback, useChunkReloadRecovery } from '@/components/utilities/chunk-reload-fallback'
 import { isEmbeddedClient, postToNativeBridge } from '@/lib/embedded'
-import { formatErrorForUser } from '@/lib/format-error'
+import { type ErrorKind, formatErrorForUser } from '@/lib/format-error'
 import { m } from '@/paraglide/messages.js'
 
 interface RouteErrorFallbackProps {
@@ -22,7 +22,7 @@ export function RouteErrorFallback({ error, reset, title, className }: RouteErro
 	// recovers through the handoff; the fallback below is still rendered
 	// underneath for the moment the bridge takes to answer. A chunk reload
 	// is recovering on its own, so it is not reported.
-	useReportToNativeBridge(recovering ? null : formatted.body)
+	useReportToNativeBridge(recovering ? null : formatted.body, formatted.kind)
 	if (recovering) {
 		return <ChunkReloadFallback className={className ?? 'flex flex-col items-center justify-center min-h-100 gap-4 p-4 w-full'} />
 	}
@@ -58,11 +58,13 @@ export function RouteErrorFallback({ error, reset, title, className }: RouteErro
 
 /**
  * Tell the iOS app (plan 28) that an error boundary rendered, once per
- * message. No-op in a browser and during SSR.
+ * message. No-op in a browser and during SSR. `kind` travels as the
+ * message's `code` so the app can choose its offline card without reading
+ * translated text.
  */
-export function useReportToNativeBridge(message: string | null): void {
+export function useReportToNativeBridge(message: string | null, kind: ErrorKind): void {
 	useEffect(() => {
 		if (message === null || !isEmbeddedClient()) return
-		postToNativeBridge({ type: 'error', message })
-	}, [message])
+		postToNativeBridge({ type: 'error', message, code: kind })
+	}, [message, kind])
 }

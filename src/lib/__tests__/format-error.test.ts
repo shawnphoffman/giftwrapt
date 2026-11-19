@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatErrorForUser } from '../format-error'
+import { formatErrorForUser, isNetworkFailure } from '../format-error'
 
 describe('formatErrorForUser', () => {
 	it('parses TanStack Start HTTPError JSON in error.message', () => {
@@ -48,5 +48,36 @@ describe('formatErrorForUser', () => {
 	it('does not surface bare "HTTPError" string', () => {
 		const out = formatErrorForUser(new Error('HTTPError'))
 		expect(out.body).not.toBe('HTTPError')
+	})
+})
+
+describe('error kind', () => {
+	it('marks a failed fetch as a network failure, whatever the browser calls it', () => {
+		expect(formatErrorForUser(new TypeError('Failed to fetch')).kind).toBe('network')
+		expect(formatErrorForUser(new TypeError('Load failed')).kind).toBe('network')
+		expect(formatErrorForUser(new TypeError('NetworkError when attempting to fetch resource.')).kind).toBe('network')
+	})
+
+	it('shows catalog text for a failed fetch, not the browser wording', () => {
+		const formatted = formatErrorForUser(new TypeError('Load failed'))
+		expect(formatted.body).not.toBe('Load failed')
+		expect(formatted.body.length).toBeGreaterThan(0)
+	})
+
+	it('marks a timeout from the server as a network failure', () => {
+		expect(formatErrorForUser({ status: 504 }).kind).toBe('network')
+		expect(formatErrorForUser({ status: 408 }).kind).toBe('network')
+	})
+
+	it('marks everything else as other', () => {
+		expect(formatErrorForUser(new Error('boom')).kind).toBe('other')
+		expect(formatErrorForUser(new TypeError('x is not a function')).kind).toBe('other')
+		expect(formatErrorForUser({ status: 500 }).kind).toBe('other')
+		expect(formatErrorForUser(null).kind).toBe('other')
+	})
+
+	it('isNetworkFailure agrees with the kind', () => {
+		expect(isNetworkFailure(new TypeError('Failed to fetch'))).toBe(true)
+		expect(isNetworkFailure(new Error('Failed to fetch'))).toBe(false)
 	})
 })

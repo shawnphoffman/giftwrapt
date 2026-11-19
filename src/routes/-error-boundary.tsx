@@ -13,7 +13,7 @@ export default function ErrorBoundaryFallback({ error, reset }: ErrorBoundaryFal
 	const recovering = useChunkReloadRecovery(error)
 	const formatted = formatErrorForUser(error)
 	// The iOS web tab replaces this page with a native card (plan 28).
-	useReportToNativeBridge(recovering ? null : formatted.body)
+	useReportToNativeBridge(recovering ? null : formatted.body, formatted.kind)
 	if (recovering) return <ChunkReloadFallback />
 
 	return (

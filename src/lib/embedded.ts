@@ -34,13 +34,16 @@ export function isEmbeddedUserAgent(userAgent: string | null | undefined): boole
  * - `openExternal`: open the URL in the device's default browser.
  * - `error`: an error boundary rendered. The app replaces the web's
  *   fallback with its own card and recovers by reloading through the
- *   handoff, so the web view never sits on a broken page.
+ *   handoff, so the web view never sits on a broken page. `code` says what
+ *   kind of failure it was; `message` is display text in the reader's
+ *   language and must never be parsed. App versions from before `code`
+ *   existed ignore it.
  */
 export type NativeBridgeMessage =
 	| { type: 'reauth'; to: string }
 	| { type: 'save' }
 	| { type: 'openExternal'; url: string }
-	| { type: 'error'; message: string }
+	| { type: 'error'; message: string; code: 'network' | 'other' }
 
 /**
  * Client-side check for the embedded shell, for code that runs outside

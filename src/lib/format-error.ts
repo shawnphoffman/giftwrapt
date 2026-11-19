@@ -1,9 +1,15 @@
 import { m } from '@/paraglide/messages.js'
 
+// What went wrong, in a form code can act on. The text beside it is in the
+// reader's language, so nothing may decide anything by reading it: the iOS
+// app picks its offline card from `kind`, not from the words.
+export type ErrorKind = 'network' | 'other'
+
 export interface FormattedError {
 	title: string
 	body: string
 	status?: number
+	kind: ErrorKind
 }
 
 interface HttpErrorShape {
@@ -23,7 +29,7 @@ function tryParseJson(value: string): unknown {
 	}
 }
 
-function statusToCopy(status: number): FormattedError {
+function statusToCopy(status: number): Omit<FormattedError, 'kind'> {
 	if (status === 401) {
 		return { title: m.error_http_401_title(), body: m.error_http_401_body(), status }
 	}
@@ -73,7 +79,23 @@ function extractHttpShape(error: unknown): HttpErrorShape | null {
 	return direct.status || direct.message || direct.statusMessage || direct.statusText ? direct : null
 }
 
+// The request never got an answer: fetch() rejected (a TypeError whose
+// wording differs by browser), the browser says it is offline, or the server
+// gave up waiting.
+export function isNetworkFailure(error: unknown): boolean {
+	if (error instanceof TypeError && /fetch|network|load failed/i.test(error.message)) return true
+	const status = extractHttpShape(error)?.status
+	if (status === 408 || status === 504) return true
+	// Node has a `navigator` with no `onLine`, hence the explicit false.
+	return typeof navigator !== 'undefined' && (navigator as { onLine?: boolean }).onLine === false
+}
+
 export function formatErrorForUser(error: unknown): FormattedError {
+	const formatted = describeError(error)
+	return { ...formatted, kind: isNetworkFailure(error) ? 'network' : 'other' }
+}
+
+function describeError(error: unknown): Omit<FormattedError, 'kind'> {
 	if (error == null) {
 		return { title: m.error_something_went_wrong(), body: m.error_unexpected_sentence() }
 	}
@@ -86,6 +108,11 @@ export function formatErrorForUser(error: unknown): FormattedError {
 			return { ...base, body: serverMsg }
 		}
 		return base
+	}
+
+	// A failed fetch's own message is the browser's English ("Load failed").
+	if (error instanceof TypeError && /fetch|network|load failed/i.test(error.message)) {
+		return { title: m.error_something_went_wrong(), body: m.error_network() }
 	}
 
 	if (error instanceof Error) {
