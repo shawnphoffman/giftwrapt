@@ -7,8 +7,8 @@
 			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
 			"selectors": ["countPlural"],
 			"match": {
-				"countPlural=one": "{holidayName} : plus que {leadDays} jour",
-				"countPlural=*": "{holidayName} : plus que {leadDays} jours"
+				"countPlural=one": "{holidayName}, c’est demain",
+				"countPlural=*": "{holidayName} dans {leadDays} jours"
 			}
 		}
 	],
@@ -26,33 +26,33 @@
 	"emails_comment_subject": "Nouveau commentaire sur {appTitle}",
 	"emails_comment_someone": "Quelqu’un",
 	"emails_comment_body_owner": "{#strong}{commenter}{/strong} a laissé un commentaire sur l’un de vos articles ({#link}{itemTitle}{/link}).",
-	"emails_comment_body_mention": "{#strong}{commenter}{/strong} a cité votre nom dans un commentaire sur un article ({#link}{itemTitle}{/link}).",
+	"emails_comment_body_mention": "{#strong}{commenter}{/strong} a fait mention de vous dans un commentaire sur un article ({#link}{itemTitle}{/link}).",
 	"emails_comment_quote": "« {comment} »",
 	"emails_comment_button": "Voir l’article",
 	"emails_orphan_subject": "Un article que vous aviez réservé pour {recipientName} a été retiré",
 	"emails_orphan_heading": "Un article que vous aviez réservé a été retiré",
 	"emails_orphan_body_named": "{#strong}{recipientName}{/strong} a retiré {#em}{itemTitle}{/em} de {#strong}{listName}{/strong}. Vous (ou votre partenaire) l’aviez déjà réservé. Cette réservation ne lui a jamais été signalée : rien ne lui indique que le cadeau est peut-être déjà acheté.",
 	"emails_orphan_body_anon": "La personne à qui ce cadeau était destiné a retiré {#em}{itemTitle}{/em} de {#strong}{listName}{/strong}. Vous (ou votre partenaire) l’aviez déjà réservé. Cette réservation ne lui a jamais été signalée : rien ne lui indique que le cadeau est peut-être déjà acheté.",
-	"emails_orphan_next": "Vous pouvez retourner l’article, le garder pour une autre occasion ou l’offrir malgré tout. Une fois votre décision prise, ouvrez l’application pour prendre acte de l’alerte et retirer l’article de votre vue.",
+	"emails_orphan_next": "Vous pouvez retourner l’article, le garder pour une autre occasion ou l’offrir malgré tout. Une fois votre décision prise, ouvrez l’application pour répondre à l’alerte et retirer l’article de votre vue.",
 	"emails_orphan_button": "Voir dans la liste",
-	"emails_cleanup_subject": "Une réservation en suspens sera retirée demain",
+	"emails_cleanup_subject": "Une réservation sans réponse sera retirée demain",
 	"emails_cleanup_heading": "Retrait d’une réservation en suspens",
-	"emails_cleanup_body_named": "{#strong}{recipientName}{/strong} a retiré {#em}{itemTitle}{/em} de {#strong}{listName}{/strong} il y a quelque temps, et vous n’en avez pas encore pris acte. Demain{event}, {appTitle} retirera automatiquement cette réservation de votre vue pour que tout reste en ordre.",
-	"emails_cleanup_body_anon": "La personne à qui ce cadeau était destiné a retiré {#em}{itemTitle}{/em} de {#strong}{listName}{/strong} il y a quelque temps, et vous n’en avez pas encore pris acte. Demain{event}, {appTitle} retirera automatiquement cette réservation de votre vue pour que tout reste en ordre.",
+	"emails_cleanup_body_named": "{#strong}{recipientName}{/strong} a retiré {#em}{itemTitle}{/em} de {#strong}{listName}{/strong} il y a quelque temps, et vous n’avez pas encore répondu à l’alerte. Demain{event}, {appTitle} retirera automatiquement cette réservation de votre vue pour que tout reste en ordre.",
+	"emails_cleanup_body_anon": "La personne à qui ce cadeau était destiné a retiré {#em}{itemTitle}{/em} de {#strong}{listName}{/strong} il y a quelque temps, et vous n’avez pas encore répondu à l’alerte. Demain{event}, {appTitle} retirera automatiquement cette réservation de votre vue pour que tout reste en ordre.",
 	"emails_cleanup_event_wishlist": "14 jours après la suppression",
 	"emails_cleanup_event_christmas": "Noël",
 	"emails_cleanup_event_birthday": "son anniversaire",
 	"emails_cleanup_event_holiday": "la fête",
-	"emails_cleanup_next": "Si vous préférez en prendre acte vous-même d’ici là, ou simplement vérifier ce que vous avez acheté, utilisez le bouton ci-dessous.",
+	"emails_cleanup_next": "Si vous préférez répondre vous-même à l’alerte d’ici là, ou simplement vérifier ce que vous avez acheté, utilisez le bouton ci-dessous.",
 	"emails_cleanup_button": "Ouvrir la liste",
-	"emails_parents_body": "Vous avez indiqué {names} pour cette occasion ({holidayName}). Jetez un œil aux {#link}listes{/link} si vous cherchez encore une idée.",
+	"emails_parents_body": "Vous avez associé {names} à l’occasion « {holidayName} ». Jetez un œil aux {#link}listes{/link} si vous cherchez encore une idée.",
 	"emails_anniversary_subject": [
 		{
 			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
 			"selectors": ["countPlural"],
 			"match": {
-				"countPlural=one": "Plus que {leadDays} jour avant votre anniversaire de couple avec {partnerName}",
-				"countPlural=*": "Plus que {leadDays} jours avant votre anniversaire de couple avec {partnerName}"
+				"countPlural=one": "Votre anniversaire de couple avec {partnerName}, c’est demain",
+				"countPlural=*": "Votre anniversaire de couple avec {partnerName} dans {leadDays} jours"
 			}
 		}
 	],
@@ -62,8 +62,8 @@
 			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
 			"selectors": ["countPlural"],
 			"match": {
-				"countPlural=one": "La Saint-Valentin est dans {leadDays} jour",
-				"countPlural=*": "La Saint-Valentin est dans {leadDays} jours"
+				"countPlural=one": "La Saint-Valentin, c’est demain",
+				"countPlural=*": "La Saint-Valentin dans {leadDays} jours"
 			}
 		}
 	],
@@ -73,8 +73,8 @@
 			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
 			"selectors": ["countPlural"],
 			"match": {
-				"countPlural=one": "Votre anniversaire est dans {leadDays} jour",
-				"countPlural=*": "Votre anniversaire est dans {leadDays} jours"
+				"countPlural=one": "Votre anniversaire, c’est demain",
+				"countPlural=*": "Votre anniversaire dans {leadDays} jours"
 			}
 		}
 	],
@@ -94,8 +94,8 @@
 			"declarations": ["input leadDays", "local countPlural = leadDays: plural"],
 			"selectors": ["countPlural"],
 			"match": {
-				"countPlural=one": "Noël est dans {leadDays} jour",
-				"countPlural=*": "Noël est dans {leadDays} jours"
+				"countPlural=one": "Noël, c’est demain",
+				"countPlural=*": "Noël dans {leadDays} jours"
 			}
 		}
 	],
@@ -141,7 +141,7 @@
 	"emails_reveal_intro_occasion_self": "Nous espérons que la fête a été belle. Voici qui vous a offert quoi.",
 	"emails_reveal_subject_occasion_dependent": "{occasion} : retour sur les cadeaux de {name}",
 	"emails_reveal_intro_occasion_dependent": "Nous espérons que la fête a été belle pour {name}. Voici qui lui a offert quoi.",
-	"emails_reveal_occasion_holiday": "Fêtes",
+	"emails_reveal_occasion_holiday": "Fêtes de fin d’année",
 	"emails_test_subject": "E-mail de test",
 	"emails_test_hello": "Bonjour {#strong}Utilisateur de test{/strong} !",
 	"emails_test_button": "Voir le site"

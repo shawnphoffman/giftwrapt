@@ -91,8 +91,8 @@
 		}
 	],
 	"items_badge_over_lower": "{count} en trop",
-	"items_badge_overclaimed_count": "{count} en surplus",
-	"items_badge_overclaimed_lower": "en surplus",
+	"items_badge_overclaimed_count": "{count} en trop",
+	"items_badge_overclaimed_lower": "en trop",
 	"items_badge_split_claimed": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],
@@ -179,19 +179,19 @@
 	"items_sort_by_date_label": "Trier par date",
 	"items_sort_newest_first": "Plus récents d’abord",
 	"items_sort_oldest_first": "Plus anciens d’abord",
-	"items_vendor_all_button": "Tous les vendeurs",
-	"items_vendor_all_option": "Tous les vendeurs",
+	"items_vendor_all_button": "Toutes les boutiques",
+	"items_vendor_all_option": "Toutes les boutiques",
 	"items_vendor_count": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],
 			"selectors": ["countPlural"],
 			"match": {
-				"countPlural=one": "{count} vendeur",
-				"countPlural=*": "{count} vendeurs"
+				"countPlural=one": "{count} boutique",
+				"countPlural=*": "{count} boutiques"
 			}
 		}
 	],
-	"items_vendor_menu_label": "Vendeur",
+	"items_vendor_menu_label": "Boutique",
 	"items_form_error_title_required": "Le titre est obligatoire",
 	"items_form_error_quantity_min": "Doit être d’au moins 1",
 	"items_edit_error_not_authorized": "Vous n’avez plus l’autorisation de modifier cet article.",
@@ -243,7 +243,7 @@
 			}
 		}
 	],
-	"items_move_toast_claims_cleared": "réservations effacées",
+	"items_move_toast_claims_cleared": "réservations annulées",
 	"items_move_toast_comments_deleted": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],
@@ -264,8 +264,8 @@
 			"declarations": ["input count", "local countPlural = count: plural"],
 			"selectors": ["countPlural"],
 			"match": {
-				"countPlural=one": "Choisissez la liste vers laquelle déplacer ce groupe ({count} article). Les réservations peuvent être effacées si les types de liste diffèrent.",
-				"countPlural=*": "Choisissez la liste vers laquelle déplacer ce groupe ({count} articles). Les réservations peuvent être effacées si les types de liste diffèrent."
+				"countPlural=one": "Choisissez la liste vers laquelle déplacer ce groupe ({count} article). Les réservations peuvent être annulées si les types de liste diffèrent.",
+				"countPlural=*": "Choisissez la liste vers laquelle déplacer ce groupe ({count} articles). Les réservations peuvent être annulées si les types de liste diffèrent."
 			}
 		}
 	],
@@ -289,14 +289,14 @@
 	"items_move_error_item_not_found": "Article ou liste introuvable.",
 	"items_move_item_toast_moved": "« {title} » déplacé",
 	"items_move_error_item_failed": "Impossible de déplacer l’article",
-	"items_move_item_dialog_description": "Choisissez la liste vers laquelle déplacer cet article. Les réservations peuvent être effacées si les types de liste diffèrent.",
+	"items_move_item_dialog_description": "Choisissez la liste vers laquelle déplacer cet article. Les réservations peuvent être annulées si les types de liste diffèrent.",
 	"items_move_item_purge_label": "Supprimer les commentaires de cet article",
 	"items_move_purge_hint": "Recommandé. Les commentaires se rapportent généralement à la liste d’origine.",
 	"items_move_item_error_title": "Impossible de déplacer l’article",
 	"items_bulk_move_error_name_required": "Le nom de la nouvelle liste est obligatoire.",
 	"items_bulk_move_error_gift_ideas": "Une liste d’idées cadeaux doit avoir un destinataire. Créez-la depuis « Nouvelle liste » dans Mes listes.",
 	"items_bulk_move_error_child_gift_ideas": "Les enfants ne peuvent pas créer de listes d’idées cadeaux.",
-	"items_bulk_move_error_not_guardian": "Vous n’êtes pas tuteur de cette personne à charge.",
+	"items_bulk_move_error_not_guardian": "Vous ne gérez pas ce profil.",
 	"items_bulk_move_error_holiday": "Les listes de fêtes nécessitent un pays et une fête choisis dans le catalogue.",
 	"items_bulk_move_error_type_disabled": "Ce type de liste est désactivé par l’administrateur.",
 	"items_bulk_move_error_failed_generic": "Impossible de déplacer les articles.",
@@ -315,8 +315,8 @@
 			"declarations": ["input count", "local countPlural = count: plural"],
 			"selectors": ["countPlural"],
 			"match": {
-				"countPlural=one": "{count} réservation effacée",
-				"countPlural=*": "{count} réservations effacées"
+				"countPlural=one": "{count} réservation annulée",
+				"countPlural=*": "{count} réservations annulées"
 			}
 		}
 	],
@@ -331,7 +331,7 @@
 			}
 		}
 	],
-	"items_bulk_move_dialog_description": "Choisissez une liste de destination. Les réservations peuvent être effacées si les types de liste diffèrent.",
+	"items_bulk_move_dialog_description": "Choisissez une liste de destination. Les réservations peuvent être annulées si les types de liste diffèrent.",
 	"items_bulk_move_create_new": "Créer une nouvelle liste…",
 	"items_bulk_move_new_name_label": "Nom de la nouvelle liste",
 	"items_bulk_move_new_name_placeholder": "p. ex. Liste de souhaits 2027",
@@ -352,7 +352,7 @@
 	"items_group_name_placeholder": "Sans nom",
 	"items_group_priority_hint": "Tous les articles de ce groupe héritent de cette priorité.",
 	"items_group_type_or": "Un au choix",
-	"items_group_type_or_help": "Le destinataire souhaite un seul article de ce groupe, pas tous. Dès que quelqu’un en réserve un, les autres n’ont plus besoin d’être offerts.",
+	"items_group_type_or_help": "Le destinataire souhaite un seul article de ce groupe, pas tous. Dès que quelqu’un en réserve un, les autres ne sont plus à offrir.",
 	"items_group_type_order": "Dans l’ordre",
 	"items_group_type_order_help": "Les articles de ce groupe doivent être réservés dans l’ordre indiqué, en commençant par le haut. Utile lorsqu’un article dépend d’un autre (p. ex. une console avant ses manettes).",
 	"items_group_connector_or": "OU",
@@ -386,7 +386,7 @@
 	"items_claim_notes_placeholder": "p. ex. déjà commandé, arrive vendredi",
 	"items_claim_edit_error_title": "Impossible de modifier la réservation",
 	"items_claim_error_title": "Impossible d’enregistrer la réservation",
-	"items_claim_unclaim_button": "Annuler la réservation",
+	"items_claim_unclaim_button": "Ne plus réserver",
 	"items_claim_button": "Réserver",
 	"items_claim_unclaim_confirm_title": "Annuler votre réservation de « {title} » ?",
 	"items_claim_unclaim_confirm_description": "Votre réservation sera supprimée et l’article sera de nouveau disponible pour les autres. Vous pourrez toujours le réserver à nouveau si vous changez d’avis.",
@@ -394,13 +394,13 @@
 	"items_claim_unclaim_busy": "Annulation…",
 	"items_claim_edit_button_title": "Modifier votre réservation",
 	"items_claim_edit_button": "Modifier la réservation",
-	"items_cogifters_toast_updated": "Co-donateurs mis à jour",
-	"items_cogifters_error_not_allowed": "Vous ne pouvez pas ajouter le destinataire ou votre partenaire comme co-donateur.",
-	"items_cogifters_error_rejected": "Impossible de mettre à jour les co-donateurs.",
-	"items_cogifters_error_failed": "Impossible de mettre à jour les co-donateurs",
-	"items_cogifters_label": "Co-donateurs (facultatif)",
+	"items_cogifters_toast_updated": "Cadeau commun mis à jour",
+	"items_cogifters_error_not_allowed": "Vous ne pouvez pas offrir ce cadeau avec le destinataire ou avec votre partenaire.",
+	"items_cogifters_error_rejected": "Impossible de mettre à jour le cadeau commun.",
+	"items_cogifters_error_failed": "Impossible de mettre à jour le cadeau commun",
+	"items_cogifters_label": "Offert avec (facultatif)",
 	"items_cogifters_hint": "Ajoutez les personnes qui offrent ce cadeau avec vous.",
-	"items_cogifters_placeholder": "Ajouter un co-donateur",
+	"items_cogifters_placeholder": "Ajouter une personne",
 	"items_scrape_failed_title": "Importation impossible. Veuillez renseigner les détails.",
 	"items_scrape_done_cached": "Importé depuis le cache en {elapsed}",
 	"items_scrape_done": "Importé en {elapsed}",
@@ -418,7 +418,7 @@
 	"items_scrape_importing_from": "Importation depuis {hostname}…",
 	"items_scrape_importing": "Importation…",
 	"items_scrape_cancel_remaining": "Annuler le reste",
-	"items_scrape_tier": "Niveau {tier}",
+	"items_scrape_tier": "Palier {tier}",
 	"items_scrape_score_title": "Score {score}, {duration}",
 	"items_scrape_status_pending": "en attente",
 	"items_scrape_status_in_progress": "en cours",
@@ -467,8 +467,8 @@
 	"items_delete_confirm_description": "Cet article sera définitivement supprimé, ainsi que les réservations et commentaires associés.",
 	"items_reorder_error_save": "Impossible d’enregistrer l’ordre",
 	"items_reorder_instructions": "Faites glisser les lignes d’un bloc à l’autre pour changer la priorité, ou à l’intérieur d’un bloc pour changer l’ordre. Les modifications sont enregistrées automatiquement.",
-	"items_reorder_mode_single": "Simple",
-	"items_reorder_mode_multi": "Multiple",
+	"items_reorder_mode_single": "Sélection simple",
+	"items_reorder_mode_multi": "Sélection multiple",
 	"items_reorder_selected_count": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],
@@ -522,15 +522,15 @@
 	"items_import_error_not_authorized": "Vous n’avez pas l’autorisation d’ajouter à cette liste.",
 	"items_import_error_todo_list": "Les listes de tâches n’acceptent pas d’articles cadeaux.",
 	"items_import_error_disabled": "L’importation est actuellement désactivée. Demandez à votre administrateur de l’activer.",
-	"items_import_amazon_error_fetch": "Impossible de récupérer la liste de souhaits",
-	"items_import_amazon_title": "Importer depuis une liste de souhaits Amazon",
-	"items_import_amazon_description": "Collez le lien de votre liste de souhaits. Si Amazon bloque la récupération, nous vous demanderons de coller le code HTML de la page à la place.",
-	"items_import_amazon_url_label": "Lien de la liste de souhaits Amazon",
+	"items_import_amazon_error_fetch": "Impossible de récupérer la liste d’envies",
+	"items_import_amazon_title": "Importer depuis une liste d’envies Amazon",
+	"items_import_amazon_description": "Collez le lien de votre liste d’envies. Si Amazon bloque la récupération, nous vous demanderons de coller le code HTML de la page à la place.",
+	"items_import_amazon_url_label": "Lien de la liste d’envies Amazon",
 	"items_import_amazon_fetching": "Récupération…",
 	"items_import_amazon_fetch_button": "Récupérer la liste",
 	"items_import_amazon_fallback_title": "Impossible de récupérer la page automatiquement",
-	"items_import_amazon_fallback_description": "Ouvrez votre liste de souhaits dans le navigateur, faites un clic droit sur la page et choisissez « Afficher le code source de la page », sélectionnez tout, copiez, puis collez ci-dessous. (Ou ouvrez les outils de développement et copiez l’outerHTML de l’élément body.)",
-	"items_import_amazon_html_label": "HTML de la liste de souhaits",
+	"items_import_amazon_fallback_description": "Ouvrez votre liste d’envies dans le navigateur, faites un clic droit sur la page et choisissez « Afficher le code source de la page », sélectionnez tout, copiez, puis collez ci-dessous. (Ou ouvrez les outils de développement et copiez l’outerHTML de l’élément body.)",
+	"items_import_amazon_html_label": "HTML de la liste d’envies",
 	"items_import_amazon_parse_button": "Analyser le HTML",
 	"items_import_urls_title": "Coller des liens",
 	"items_import_urls_description": "Un lien par ligne. Les titres, prix et images sont complétés par une extraction en arrière-plan après l’importation.",
@@ -558,7 +558,7 @@
 	"items_import_menu_label": "Importer des articles",
 	"items_import_menu_photo": "Importer une photo",
 	"items_import_menu_apple_notes": "Apple Notes",
-	"items_import_menu_amazon": "Liste de souhaits Amazon",
+	"items_import_menu_amazon": "Liste d’envies Amazon",
 	"items_import_preview_empty_title": "Rien à importer",
 	"items_import_preview_empty_description": "Retirez des lignes en cliquant sur l’icône de corbeille, ou revenez en arrière pour recommencer.",
 	"items_import_preview_deselect_all": "Désélectionner toutes les lignes",

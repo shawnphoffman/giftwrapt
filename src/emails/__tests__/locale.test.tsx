@@ -102,19 +102,19 @@ describe('templates in each locale', () => {
 				/>
 			),
 			en: "Mother's Day is in 7 days You’ve tagged Mom and Sandra for Mother's Day. Take a peek at their lists if you’re still looking for something.",
-			fr: 'Fête des Mères : plus que 7 jours Vous avez indiqué Mom et Sandra pour cette occasion (Fête des Mères).',
+			fr: 'Fête des Mères dans 7 jours Vous avez associé Mom et Sandra à l’occasion « Fête des Mères ».',
 		},
 		{
 			name: 'partner anniversary',
 			make: locale => <PartnerAnniversaryReminderEmail name="Sam" partnerName="Kate" leadDays={7} locale={locale} />,
 			en: 'Your anniversary with Kate is in 7 days Sam, your anniversary with Kate is coming up. Take a look at their list at All Lists .',
-			fr: 'Plus que 7 jours avant votre anniversaire de couple avec Kate',
+			fr: 'Votre anniversaire de couple avec Kate dans 7 jours',
 		},
 		{
 			name: 'valentines',
 			make: locale => <ValentinesDayReminderEmail name="Sam" partnerName="Kate" leadDays={14} locale={locale} />,
 			en: "Valentine's Day is in 14 days Sam, Valentine's Day is coming up. Check what Kate has on their list at All Lists .",
-			fr: 'La Saint-Valentin est dans 14 jours',
+			fr: 'La Saint-Valentin dans 14 jours',
 		},
 		{
 			name: 'pre-birthday',
@@ -132,7 +132,7 @@ describe('templates in each locale', () => {
 			name: 'pre-custom-holiday',
 			make: locale => <PreCustomHolidayReminderEmail name="Sam" holidayName="Easter" leadDays={30} locale={locale} />,
 			en: "Easter is in 30 days Sam, if you've got plans for Easter this year, now is a good time to make a list. Head to My Lists to create one.",
-			fr: 'Easter : plus que 30 jours',
+			fr: 'Easter dans 30 jours',
 		},
 		{
 			name: 'password reset',

@@ -1,7 +1,7 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"admin_intel_page_subtitle": "Configurez les analyseurs, déboguez les exécutions et examinez les coûts.",
-	"admin_intel_disabled_title": "Intelligence est désactivée",
+	"admin_intel_disabled_title": "La fonction Intelligence est désactivée",
 	"admin_intel_disabled_body": "Toute génération de recommandations est en pause. Les utilisateurs ne voient pas la page Intelligence et les actualisations manuelles sont bloquées.",
 	"admin_intel_disabled_link": "Activer dans les paramètres de l’IA",
 	"admin_intel_blocked_by_provider": "Les paramètres, les analyseurs et l’historique des exécutions sont masqués tant qu’aucun fournisseur d’IA n’est configuré. Une fois le fournisseur en place, cette page se remplira.",
@@ -18,7 +18,7 @@
 	"admin_intel_status_running": "en cours",
 	"admin_intel_status_success": "réussie",
 	"admin_intel_status_error": "erreur",
-	"admin_intel_status_skipped": "omise",
+	"admin_intel_status_skipped": "non exécutée",
 	"admin_intel_trigger_cron": "cron",
 	"admin_intel_trigger_manual": "manuel",
 	"admin_intel_role_admin": "administrateur",
@@ -43,7 +43,7 @@
 	"admin_intel_metric_active_recs_sub": "sur {count} analyseurs",
 	"admin_intel_metric_runs_24h": "Exécutions (24 h)",
 	"admin_intel_metric_runs_value": "{count} ok",
-	"admin_intel_metric_runs_sub": "{skipped} omises · {errors} en erreur",
+	"admin_intel_metric_runs_sub": "{skipped} non exécutées · {errors} en erreur",
 	"admin_intel_metric_tokens_day": "Tokens / jour",
 	"admin_intel_metric_tokens_sub": "{tokensIn} en entrée · {tokensOut} en sortie",
 	"admin_intel_metric_cost_day": "Coût / jour",
@@ -63,7 +63,7 @@
 		}
 	],
 	"admin_intel_queue_title": "File d’attente",
-	"admin_intel_queue_summary": "7 j : {success} ok · {skipped} omises · {errors} err.",
+	"admin_intel_queue_summary": "7 j : {success} ok · {skipped} non exécutées · {errors} err.",
 	"admin_intel_queue_overdue": "En retard :",
 	"admin_intel_queue_lock_held": "Verrou détenu :",
 	"admin_intel_analyzer_primary_list_label": "Liste principale",
@@ -133,8 +133,8 @@
 	"admin_intel_candidate_cap_hint": "Nombre maximal d’articles (ou de paires d’articles) envoyés au modèle en une seule exécution.",
 	"admin_intel_dry_run_label_long": "Simulation (ne pas enregistrer les recommandations)",
 	"admin_intel_dry_run_label": "Simulation",
-	"admin_intel_workers_title_short": "Workers du cron",
-	"admin_intel_workers_title": "Workers du cron",
+	"admin_intel_workers_title_short": "Tâches planifiées",
+	"admin_intel_workers_title": "Tâches planifiées",
 	"admin_intel_workers_summary": "concurrence {concurrency}× · {users} utilisateurs / appel",
 	"admin_intel_workers_help": "Avancé. Ces paramètres déterminent combien d’utilisateurs chaque exécution du cron traite, et combien en parallèle. Ne les augmentez que si le quota de votre fournisseur d’IA le permet. Les erreurs de limite de débit apparaissent comme des erreurs d’étape dans les exécutions concernées.",
 	"admin_intel_concurrency_label": "Concurrence du cron",
@@ -198,7 +198,7 @@
 	"admin_intel_runs_description": "Dernières exécutions de recommandations, tous utilisateurs confondus. Cliquez sur une ligne pour examiner le détail d’une exécution.",
 	"admin_intel_filter_all": "toutes",
 	"admin_intel_filter_success": "réussies",
-	"admin_intel_filter_skipped": "omises",
+	"admin_intel_filter_skipped": "non exécutées",
 	"admin_intel_filter_error": "en erreur",
 	"admin_intel_runs_empty": "Aucune exécution ne correspond à ce filtre.",
 	"admin_intel_col_trigger": "Déclencheur",
@@ -224,7 +224,7 @@
 	"admin_intel_debug_skip_reason": "Motif : {#code}{reason}{/code}",
 	"admin_intel_debug_input_hash": "Empreinte des entrées :",
 	"admin_intel_debug_steps_heading": "Étapes des analyseurs",
-	"admin_intel_debug_no_steps": "Aucune étape enregistrée pour cette exécution. Elle a peut-être été omise avant qu’un analyseur ne s’exécute (voir le motif ci-dessus).",
+	"admin_intel_debug_no_steps": "Aucune étape enregistrée pour cette exécution. Elle n’a peut-être pas été lancée (voir le motif ci-dessus).",
 	"admin_intel_debug_recs_heading": "Recommandations obtenues",
 	"admin_intel_debug_no_recs": "Aucune recommandation n’a été enregistrée pour cette exécution. Consultez les étapes ci-dessus pour voir ce que chaque analyseur a renvoyé. Un analyseur peut s’exécuter correctement sans produire de recommandation (par exemple quand rien n’est ancien et qu’il n’y a pas de doublon).",
 	"admin_intel_debug_heuristic_note": "Étape purement heuristique, sans appel au modèle. La latence ci-dessus est celle de la logique propre à l’analyseur.",
@@ -265,7 +265,7 @@
 	"admin_intel_chart_runs_title": "Exécutions (14 jours)",
 	"admin_intel_chart_runs_total": "{count} au total",
 	"admin_intel_chart_series_success": "Réussies",
-	"admin_intel_chart_series_skipped": "Omises",
+	"admin_intel_chart_series_skipped": "Non exécutées",
 	"admin_intel_chart_series_error": "En erreur",
 	"admin_intel_chart_tokens_title": "Tokens et coût (14 jours)",
 	"admin_intel_chart_cost_total": "{cost} au total",
@@ -368,12 +368,12 @@
 			"declarations": ["input total", "local countPlural = total: plural"],
 			"selectors": ["countPlural"],
 			"match": {
-				"countPlural=one": "{total} exécution · {success} ok · {errors} en erreur · {skipped} omises",
-				"countPlural=*": "{total} exécutions · {success} ok · {errors} en erreur · {skipped} omises"
+				"countPlural=one": "{total} exécution · {success} ok · {errors} en erreur · {skipped} non exécutées",
+				"countPlural=*": "{total} exécutions · {success} ok · {errors} en erreur · {skipped} non exécutées"
 			}
 		}
 	],
-	"admin_digest_skips": "Exécutions omises : {list}",
+	"admin_digest_skips": "Non exécutées : {list}",
 	"admin_digest_health_usage": "Durée moyenne {duration} ms · tokens : {tokensIn} en entrée / {tokensOut} en sortie · {cost}",
 	"admin_digest_coverage_title": "Couverture (sur la période)",
 	"admin_digest_coverage_users": [
@@ -407,10 +407,10 @@
 			"declarations": ["input errors", "input skips", "local aPlural = errors: plural", "local bPlural = skips: plural"],
 			"selectors": ["aPlural", "bPlural"],
 			"match": {
-				"aPlural=one, bPlural=one": "{who} : {errors} erreur, {skips} exécution omise",
-				"aPlural=one, bPlural=*": "{who} : {errors} erreur, {skips} exécutions omises",
-				"aPlural=*, bPlural=one": "{who} : {errors} erreurs, {skips} exécution omise",
-				"aPlural=*, bPlural=*": "{who} : {errors} erreurs, {skips} exécutions omises"
+				"aPlural=one, bPlural=one": "{who} : {errors} erreur, {skips} exécution non effectuée",
+				"aPlural=one, bPlural=*": "{who} : {errors} erreur, {skips} exécutions non effectuées",
+				"aPlural=*, bPlural=one": "{who} : {errors} erreurs, {skips} exécution non effectuée",
+				"aPlural=*, bPlural=*": "{who} : {errors} erreurs, {skips} exécutions non effectuées"
 			}
 		}
 	],

@@ -53,7 +53,7 @@ describe('emails are written in the recipient’s language', () => {
 	it('a recipient who chose French gets a French subject and body', async () => {
 		const { sendPreChristmasReminderEmail } = await import('@/lib/resend')
 		await sendPreChristmasReminderEmail('sam@example.com', { name: 'Sam', leadDays: 30, locale: 'fr' })
-		expect(lastSend().subject).toBe('Noël est dans 30 jours')
+		expect(lastSend().subject).toBe('Noël dans 30 jours')
 		expect(lastSend().react.props.locale).toBe('fr')
 	})
 
@@ -68,7 +68,7 @@ describe('emails are written in the recipient’s language', () => {
 		const { sendParentsDayReminderEmail } = await import('@/lib/resend')
 		const args = { holidayName: 'Mothering Sunday', relation: 'mother' as const, leadDays: 7, people: [{ name: 'Mum' }] }
 		await sendParentsDayReminderEmail('sam@example.com', { ...args, locale: 'fr' })
-		expect(lastSend().subject.replace(/\u00a0/g, ' ')).toBe('Fête des Mères : plus que 7 jours')
+		expect(lastSend().subject.replace(/\u00a0/g, ' ')).toBe('Fête des Mères dans 7 jours')
 		// English keeps the holiday catalog's own name for the country.
 		await sendParentsDayReminderEmail('sam@example.com', { ...args, locale: 'en' })
 		expect(lastSend().subject).toBe('Mothering Sunday is in 7 days')
