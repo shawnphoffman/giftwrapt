@@ -28,6 +28,8 @@
 		"test:integration": "vitest run --project integration",
 		"test:pg": "vitest run --project pg",
 		"test:all": "vitest run",
+		"typecheck": "tsc --noEmit -p .",
+		"verify": "pnpm db:check && pnpm i18n:check && pnpm typecheck && pnpm test && pnpm test:integration && pnpm build-storybook && pnpm build",
 		"i18n:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --message-module-size 50 --strategy custom-gw baseLocale",
 		"i18n:check": "tsx scripts/check-translations.ts",
 		"lint": "eslint",
