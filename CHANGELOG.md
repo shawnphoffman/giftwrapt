@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.14.1](https://github.com/shawnphoffman/giftwrapt/compare/v1.14.0...v1.14.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* **i18n:** apply a native French speaker's review of the translation ([0f10c7b](https://github.com/shawnphoffman/giftwrapt/commit/0f10c7b5e5dcb8b3b5ed639258b8cb9cdd53c4bb))
+* **i18n:** compile Paraglide messages into modules of 50 ([433ee25](https://github.com/shawnphoffman/giftwrapt/commit/433ee25e4c1eaef04475638511eed804e13314a8))
+
 ## [1.14.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.13.0...v1.14.0) (2026-11-19)
 
 
