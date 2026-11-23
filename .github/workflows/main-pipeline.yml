@@ -15,7 +15,18 @@ permissions:
   contents: read
 
 jobs:
+  # Every job below that gates the release skips release-please's own merge
+  # ("chore(main): release x.y.z"). That commit only bumps the version and
+  # changelog, and the code it releases already passed this pipeline on the
+  # push before it, so re-running ~12 minutes of tests only delays the
+  # release. A merge commit ("Merge pull request ...") doesn't match and runs
+  # everything, which is the safe direction. workflow_dispatch has no head
+  # commit, so it always runs.
+  #
+  # Checks, unit and Storybook tests. Integration and the Storybook build are
+  # separate jobs so the three slow parts run side by side.
   test:
+    if: "!startsWith(github.event.head_commit.message, 'chore(main): release ')"
     # Pinned rather than ubuntu-latest: Playwright only installs Chromium on
     # images it knows, and ubuntu-latest moving to 26.04 under Playwright 1.59
     # failed this job, which skips release-please on main. Move the pin
@@ -49,6 +60,11 @@ jobs:
       - name: Check schema source matches committed migrations
         run: pnpm db:check-drift
 
+      # Every translated catalog must match the English one: same keys, same
+      # placeholders, a catch-all in every plural, the typography rules.
+      - name: Check translations
+        run: pnpm i18n:check
+
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
@@ -62,8 +78,46 @@ jobs:
       - name: Run Storybook tests
         run: pnpm exec vitest run --project storybook
 
+  integration:
+    if: "!startsWith(github.event.head_commit.message, 'chore(main): release ')"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Run integration tests
         run: pnpm test:integration
+
+  storybook-build:
+    if: "!startsWith(github.event.head_commit.message, 'chore(main): release ')"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       # The only check that catches a missing `.storybook/mocks/api.ts`
       # export: `pnpm test`'s Storybook project uses Vite's lenient dev
@@ -74,6 +128,7 @@ jobs:
         run: pnpm build-storybook
 
   build:
+    if: "!startsWith(github.event.head_commit.message, 'chore(main): release ')"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -110,6 +165,7 @@ jobs:
   # at all. Not in release-please's `needs`, so a finding reports without
   # blocking the release. Promote to required once the ruleset is triaged.
   security:
+    if: "!startsWith(github.event.head_commit.message, 'chore(main): release ')"
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
@@ -139,8 +195,12 @@ jobs:
       - name: Run semgrep
         run: pnpm security
 
+  # Runs when every gate passed or was skipped (the release merge above).
+  # `!cancelled()` is what lets it run after skipped needs; without it a
+  # skipped need skips this job too.
   release-please:
-    needs: [test, build]
+    needs: [test, integration, storybook-build, build]
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -158,7 +218,7 @@ jobs:
 
   docker-publish:
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true' || inputs.publish_tag != ''
+    if: ${{ !cancelled() && needs.release-please.result == 'success' && (needs.release-please.outputs.release_created == 'true' || inputs.publish_tag != '') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -210,7 +270,7 @@ jobs:
   # waits for the next unrelated docs commit. Ping the deploy hook instead.
   docs-rebuild:
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    if: ${{ !cancelled() && needs.release-please.result == 'success' && needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
     permissions: {}
     steps:
