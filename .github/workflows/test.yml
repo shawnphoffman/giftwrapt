@@ -53,8 +53,18 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Run tests
-        run: pnpm test
+      # Split from `pnpm test` so the node unit workers and the Storybook
+      # browser don't compete for the runner at once: on runner image
+      # 20261116 the Chromium page dropped mid-run ("Browser connection was
+      # closed") at a different file each time. DEBUG=pw:browser prints
+      # Chromium's own stderr if it dies again, which vitest otherwise hides.
+      - name: Run unit tests
+        run: pnpm exec vitest run --project unit
+
+      - name: Run Storybook tests
+        run: pnpm exec vitest run --project storybook
+        env:
+          DEBUG: pw:browser
 
       - name: Run integration tests
         run: pnpm test:integration
