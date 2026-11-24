@@ -3,10 +3,10 @@ import { isEmbeddedUserAgent } from '@/lib/embedded'
 import {
 	fallbackLocale,
 	type Locale,
+	localeFromRequest,
 	LOCALES_ENV,
 	matchLocale,
 	readLocaleCookie,
-	resolveLocale,
 	unknownLocaleCodes,
 } from '@/lib/i18n/locales'
 import { createLogger } from '@/lib/logger'
@@ -21,8 +21,9 @@ if (unknownCodes.length > 0) {
 	createLogger('i18n').warn({ unknown: unknownCodes, variable: LOCALES_ENV }, 'unknown language codes ignored')
 }
 
-// The deployment default is read on every request, so it is cached briefly
-// per server instance. An admin's change shows up within a minute.
+// The deployment default is cached briefly per server instance. Saving it
+// clears the cache on the instance that handled the save; any other instance
+// picks the change up within a minute.
 const DEFAULT_LOCALE_TTL_MS = 60_000
 let cachedDefault: { value: Locale; at: number } | null = null
 
@@ -49,10 +50,12 @@ export function resetDefaultLocaleCache(): void {
 // default; inside the iOS web tab the browser's languages come first. See
 // `resolveLocale` for the rule and why.
 export async function resolveRequestLocale(request: Request): Promise<Locale> {
-	return resolveLocale({
+	const settled = localeFromRequest({
 		cookie: readLocaleCookie(request.headers.get('cookie')),
 		acceptLanguage: request.headers.get('accept-language'),
-		defaultLocale: await getDefaultLocale(),
 		embedded: isEmbeddedUserAgent(request.headers.get('user-agent')),
 	})
+	// The default is a database read in front of every request, so it is only
+	// loaded when nothing else decides.
+	return settled ?? (await getDefaultLocale())
 }

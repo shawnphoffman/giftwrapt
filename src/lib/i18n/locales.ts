@@ -132,18 +132,24 @@ export type LocaleSources = {
 	embedded?: boolean
 }
 
+// The locale the request itself settles, or null when only the deployment
+// default can. Loading that default costs a database read, so the server asks
+// this first. With one language offered there is nothing to settle.
+export function localeFromRequest(
+	{ cookie, acceptLanguage, embedded = false }: Omit<LocaleSources, 'defaultLocale'>,
+	list: ReadonlyArray<Locale> = offeredLocales()
+): Locale | null {
+	if (list.length === 1) return list[0]
+	const stored = matchLocale(cookie, list)
+	const negotiated = negotiateLocale(acceptLanguage, list)
+	return embedded ? (negotiated ?? stored) : (stored ?? negotiated)
+}
+
 // Which locale a request renders in. Outside the iOS web tab: the stored
 // choice, then the browser's languages, then the deployment default. Inside
 // it the browser's languages (the app's language on the device) come first.
-export function resolveLocale(
-	{ cookie, acceptLanguage, defaultLocale, embedded = false }: LocaleSources,
-	list: ReadonlyArray<Locale> = offeredLocales()
-): Locale {
-	const stored = matchLocale(cookie, list)
-	const negotiated = negotiateLocale(acceptLanguage, list)
-	const fallback = matchLocale(defaultLocale, list) ?? fallbackLocale(list)
-	if (embedded) return negotiated ?? stored ?? fallback
-	return stored ?? negotiated ?? fallback
+export function resolveLocale(sources: LocaleSources, list: ReadonlyArray<Locale> = offeredLocales()): Locale {
+	return localeFromRequest(sources, list) ?? matchLocale(sources.defaultLocale, list) ?? fallbackLocale(list)
 }
 
 export function readLocaleCookie(cookieHeader: string | null | undefined): string | null {

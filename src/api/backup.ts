@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { db } from '@/db'
 import type { BackupFile } from '@/lib/backup/schema'
 import { BackupImportInputSchema, WIPE_CONFIRM_PHRASE } from '@/lib/backup/schema'
+import { resetDefaultLocaleCache } from '@/lib/i18n/request-locale'
 import { createLogger } from '@/lib/logger'
 import { getStorage } from '@/lib/storage/adapter'
 import { adminAuthMiddleware } from '@/middleware/auth'
@@ -108,6 +109,7 @@ export const importAppDataAsAdmin = createServerFn({ method: 'POST' })
 
 		try {
 			const counts = await db.transaction(tx => restoreBackupTablesImpl({ tx, mode, tables }))
+			resetDefaultLocaleCache()
 
 			if (mode === 'wipe') {
 				backupLog.warn({ adminId: currentAdminId, snapshotKey, counts }, 'WIPE-AND-RESTORE complete')

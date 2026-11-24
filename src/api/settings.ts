@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 
 import { db } from '@/db'
 import { appSettings } from '@/db/schema'
+import { resetDefaultLocaleCache } from '@/lib/i18n/request-locale'
 import { loggingMiddleware } from '@/lib/logger'
 import { type AppSettings, appSettingsSchema, toPublicAppSettings } from '@/lib/settings'
 import { encryptBarcodeSecrets, encryptScrapeProviderSecrets, getAppSettings } from '@/lib/settings-loader'
@@ -90,6 +91,8 @@ export const updateAppSettings = createServerFn({
 					set: { value: storedValue },
 				})
 		}
+
+		resetDefaultLocaleCache()
 
 		// Return the updated settings
 		return await getAppSettings(db)
