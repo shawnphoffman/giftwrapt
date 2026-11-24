@@ -3,8 +3,9 @@
 
 import type { AdminExchangeDetail, AdminExchangeMember } from '@/api/_gift-exchanges-impl'
 import type { DrawProblem } from '@/lib/gift-exchange/draw'
+import { exchangeBudgetLabel, giftDateLabel } from '@/lib/gift-exchange/format'
 import type { LockedReason } from '@/lib/gift-exchange/rules'
-import { formatCalendarDate, formatCurrency, formatList } from '@/lib/i18n/format'
+import { formatList } from '@/lib/i18n/format'
 import { m } from '@/paraglide/messages.js'
 
 export function memberName(member: Pick<AdminExchangeMember, 'name' | 'email'> | undefined): string {
@@ -21,10 +22,6 @@ export function memberShortName(member: Pick<AdminExchangeMember, 'name' | 'emai
 	return memberName(member).split(' ')[0]
 }
 
-export function giftDateLabel(giftDate: string): string {
-	return formatCalendarDate(giftDate, { dateStyle: 'medium' })
-}
-
 /** "Dec 25, 2026, $50 budget, 8 people". */
 export function exchangeMetaLine(
 	exchange: { giftDate: string; budget: number | null; budgetCurrency: string | null },
@@ -32,7 +29,7 @@ export function exchangeMetaLine(
 ): string {
 	const date = giftDateLabel(exchange.giftDate)
 	if (exchange.budget === null) return m.admin_exchanges_meta({ date, count })
-	const budget = formatCurrency(exchange.budget, exchange.budgetCurrency ?? undefined, { wholeWhenRound: true })
+	const budget = exchangeBudgetLabel(exchange.budget, exchange.budgetCurrency)
 	return m.admin_exchanges_meta_with_budget({ date, budget, count })
 }
 

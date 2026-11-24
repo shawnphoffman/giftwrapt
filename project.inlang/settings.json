@@ -20,7 +20,8 @@
 			"./messages/{locale}/admin-settings.json",
 			"./messages/{locale}/admin-ai.json",
 			"./messages/{locale}/admin-users.json",
-			"./messages/{locale}/admin-exchanges.json"
+			"./messages/{locale}/admin-exchanges.json",
+			"./messages/{locale}/exchanges.json"
 		]
 	}
 }

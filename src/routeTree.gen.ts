@@ -19,6 +19,7 @@ import { Route as DotwellKnownOpenidConfigurationRouteImport } from './routes/[.
 import { Route as DotwellKnownOauthAuthorizationServerRouteImport } from './routes/[.]well-known/oauth-authorization-server'
 import { Route as coreSuggestionsRouteImport } from './routes/(core)/suggestions'
 import { Route as coreImportRouteImport } from './routes/(core)/import'
+import { Route as coreGiftExchangeRouteImport } from './routes/(core)/gift-exchange'
 import { Route as coreChangelogRouteImport } from './routes/(core)/changelog'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as authSignOutRouteImport } from './routes/(auth)/sign-out'
@@ -140,6 +141,11 @@ const coreSuggestionsRoute = coreSuggestionsRouteImport.update({
 const coreImportRoute = coreImportRouteImport.update({
   id: '/import',
   path: '/import',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreGiftExchangeRoute = coreGiftExchangeRouteImport.update({
+  id: '/gift-exchange',
+  path: '/gift-exchange',
   getParentRoute: () => coreRouteRoute,
 } as any)
 const coreChangelogRoute = coreChangelogRouteImport.update({
@@ -522,6 +528,7 @@ export interface FileRoutesByFullPath {
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
   '/changelog': typeof coreChangelogRoute
+  '/gift-exchange': typeof coreGiftExchangeRoute
   '/import': typeof coreImportRoute
   '/suggestions': typeof coreSuggestionsRoute
   '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
@@ -601,6 +608,7 @@ export interface FileRoutesByTo {
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
   '/changelog': typeof coreChangelogRoute
+  '/gift-exchange': typeof coreGiftExchangeRoute
   '/import': typeof coreImportRoute
   '/suggestions': typeof coreSuggestionsRoute
   '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
@@ -684,6 +692,7 @@ export interface FileRoutesById {
   '/(auth)/sign-out': typeof authSignOutRoute
   '/(auth)/sign-up': typeof authSignUpRoute
   '/(core)/changelog': typeof coreChangelogRoute
+  '/(core)/gift-exchange': typeof coreGiftExchangeRoute
   '/(core)/import': typeof coreImportRoute
   '/(core)/suggestions': typeof coreSuggestionsRoute
   '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
@@ -768,6 +777,7 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/sign-up'
     | '/changelog'
+    | '/gift-exchange'
     | '/import'
     | '/suggestions'
     | '/.well-known/oauth-authorization-server'
@@ -847,6 +857,7 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/sign-up'
     | '/changelog'
+    | '/gift-exchange'
     | '/import'
     | '/suggestions'
     | '/.well-known/oauth-authorization-server'
@@ -929,6 +940,7 @@ export interface FileRouteTypes {
     | '/(auth)/sign-out'
     | '/(auth)/sign-up'
     | '/(core)/changelog'
+    | '/(core)/gift-exchange'
     | '/(core)/import'
     | '/(core)/suggestions'
     | '/.well-known/oauth-authorization-server'
@@ -1107,6 +1119,13 @@ declare module '@tanstack/react-router' {
       path: '/import'
       fullPath: '/import'
       preLoaderRoute: typeof coreImportRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/gift-exchange': {
+      id: '/(core)/gift-exchange'
+      path: '/gift-exchange'
+      fullPath: '/gift-exchange'
+      preLoaderRoute: typeof coreGiftExchangeRouteImport
       parentRoute: typeof coreRouteRoute
     }
     '/(core)/changelog': {
@@ -1720,6 +1739,7 @@ interface coreRouteRouteChildren {
   coreSettingsRouteRoute: typeof coreSettingsRouteRouteWithChildren
   coreTempRouteRoute: typeof coreTempRouteRouteWithChildren
   coreChangelogRoute: typeof coreChangelogRoute
+  coreGiftExchangeRoute: typeof coreGiftExchangeRoute
   coreImportRoute: typeof coreImportRoute
   coreSuggestionsRoute: typeof coreSuggestionsRoute
   coreIndexRoute: typeof coreIndexRoute
@@ -1740,6 +1760,7 @@ const coreRouteRouteChildren: coreRouteRouteChildren = {
   coreSettingsRouteRoute: coreSettingsRouteRouteWithChildren,
   coreTempRouteRoute: coreTempRouteRouteWithChildren,
   coreChangelogRoute: coreChangelogRoute,
+  coreGiftExchangeRoute: coreGiftExchangeRoute,
   coreImportRoute: coreImportRoute,
   coreSuggestionsRoute: coreSuggestionsRoute,
   coreIndexRoute: coreIndexRoute,

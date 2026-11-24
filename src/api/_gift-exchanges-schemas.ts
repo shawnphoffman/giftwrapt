@@ -1,4 +1,5 @@
-// Input schemas for the admin gift exchange server functions (plan 39).
+// Input schemas for the gift exchange server functions (plan 39): the admin
+// ones and the Gift Exchange page's.
 // Client-safe: no database or server-only imports, because the server
 // functions' input validators run in the browser bundle too. The impls live
 // in `_gift-exchanges-impl.ts`.
@@ -32,6 +33,11 @@ export const RemoveMemberInputSchema = z.object({
 	exchangeId: z.uuid(),
 	memberId: z.uuid(),
 	confirmRedraw: z.boolean().optional(),
+})
+/** A guardian's Show on the Gift Exchange page: one child in one exchange. */
+export const RevealChildAssignmentInputSchema = z.object({
+	exchangeId: z.uuid(),
+	childUserId: z.string().min(1),
 })
 export const SaveMemberRulesInputSchema = z.object({
 	exchangeId: z.uuid(),

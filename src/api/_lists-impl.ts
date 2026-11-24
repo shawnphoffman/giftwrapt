@@ -1071,8 +1071,8 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 	}
 }
 
-export async function getPublicListsImpl(viewerUserId: string): Promise<Array<PublicUser>> {
-	const deniedRelationships = await db.query.userRelationships.findMany({
+export async function getPublicListsImpl(viewerUserId: string, dbx: SchemaDatabase = db): Promise<Array<PublicUser>> {
+	const deniedRelationships = await dbx.query.userRelationships.findMany({
 		where: (rel, { and: a, eq: e }) => a(e(rel.viewerUserId, viewerUserId), e(rel.accessLevel, 'none')),
 		columns: { ownerUserId: true },
 	})
@@ -1080,19 +1080,19 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 
 	// Per-owner restricted set so we can apply per-item filtering when
 	// rolling up itemsRemaining/itemsTotal for the public-list view.
-	const restrictedRelationships = await db.query.userRelationships.findMany({
+	const restrictedRelationships = await dbx.query.userRelationships.findMany({
 		where: (rel, { and: a, eq: e }) => a(e(rel.viewerUserId, viewerUserId), e(rel.accessLevel, 'restricted')),
 		columns: { ownerUserId: true },
 	})
 	const restrictedOwnerIds = new Set(restrictedRelationships.map(rel => rel.ownerUserId))
 
-	const me = await db.query.users.findFirst({
+	const me = await dbx.query.users.findFirst({
 		where: eq(users.id, viewerUserId),
 		columns: { partnerId: true },
 	})
 	const gifterIds: Array<string> = me?.partnerId ? [viewerUserId, me.partnerId] : [viewerUserId]
 
-	const lastGiftedRows = await db
+	const lastGiftedRows = await dbx
 		.select({
 			recipientId: lists.ownerId,
 			lastGiftedAt: max(giftedItems.createdAt),
@@ -1106,7 +1106,7 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 
 	const viewerPartnerId = me?.partnerId ?? null
 
-	const allUsers = await db.query.users.findMany({
+	const allUsers = await dbx.query.users.findMany({
 		where: (us, { and: a, ne: n, notInArray: nia }) =>
 			deniedOwnerIds.length > 0 ? a(n(us.id, viewerUserId), nia(us.id, deniedOwnerIds)) : n(us.id, viewerUserId),
 		columns: {
@@ -1160,8 +1160,11 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 
 	const publicTodoListIds = allUsers.flatMap(u => u.lists.filter(l => l.type === 'todos').map(l => l.id))
 	const [publicTodoCountByListId, publicHolidayDateByListId] = await Promise.all([
-		loadTodoCountsByListId(db, publicTodoListIds),
-		resolveHolidayDatesForLists(allUsers.flatMap(u => u.lists.map(l => ({ listId: l.id, customHolidayId: l.customHolidayId ?? null })))),
+		loadTodoCountsByListId(dbx, publicTodoListIds),
+		resolveHolidayDatesForLists(
+			allUsers.flatMap(u => u.lists.map(l => ({ listId: l.id, customHolidayId: l.customHolidayId ?? null }))),
+			dbx
+		),
 	])
 
 	return allUsers.map(user => {
@@ -1210,12 +1213,15 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 // (small N in practice; the helper is idempotent so callers can pass
 // the whole list including non-holiday rows). Returns ISO 8601
 // (UTC start-of-day) strings keyed by list id.
-async function resolveHolidayDatesForLists(rows: Array<{ listId: number; customHolidayId: string | null }>): Promise<Map<number, string>> {
+async function resolveHolidayDatesForLists(
+	rows: Array<{ listId: number; customHolidayId: string | null }>,
+	dbx: SchemaDatabase = db
+): Promise<Map<number, string>> {
 	const map = new Map<number, string>()
 	const holidayRows = rows.filter((r): r is { listId: number; customHolidayId: string } => r.customHolidayId !== null)
 	if (holidayRows.length === 0) return map
 	const uniqueIds = Array.from(new Set(holidayRows.map(r => r.customHolidayId)))
-	const customHolidayRows = await db.query.customHolidays.findMany({
+	const customHolidayRows = await dbx.query.customHolidays.findMany({
 		where: inArray(customHolidays.id, uniqueIds),
 	})
 	const dateByHolidayId = new Map<string, string>()

@@ -231,6 +231,15 @@ export const archiveGiftExchangeAsAdmin = ok
 export const sendGiftExchangeReadyEmailsAsAdmin = (): Promise<{ kind: 'ok'; sent: number; failed: number }> =>
 	Promise.resolve({ kind: 'ok', sent: 0, failed: 0 })
 
+// @/api/my-gift-exchanges
+export const getMyGiftExchanges = (): Promise<{ exchanges: Array<unknown>; children: Array<unknown> }> =>
+	Promise.resolve({ exchanges: [], children: [] })
+export const getMyGiftExchangeCount = (): Promise<{ count: number }> => Promise.resolve({ count: 0 })
+export const revealMyGiftExchangeAssignment = (): Promise<{ kind: 'error'; reason: 'not-member' }> =>
+	Promise.resolve({ kind: 'error', reason: 'not-member' })
+export const revealChildGiftExchangeAssignment = (): Promise<{ kind: 'error'; reason: 'not-guardian' }> =>
+	Promise.resolve({ kind: 'error', reason: 'not-guardian' })
+
 // @/api/purchases
 export const getPurchaseSummary = (): Promise<{ items: Array<unknown>; partner: null }> => Promise.resolve({ items: [], partner: null })
 

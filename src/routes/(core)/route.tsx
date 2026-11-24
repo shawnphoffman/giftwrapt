@@ -33,6 +33,7 @@ import { useAppSetting } from '@/hooks/use-app-settings'
 import { useEmbedded } from '@/hooks/use-embedded'
 import { auth } from '@/lib/auth'
 import { postToNativeBridge } from '@/lib/embedded'
+import { myGiftExchangeCountQueryOptions } from '@/lib/queries/gift-exchanges'
 import { useVersionCheck } from '@/lib/use-version-check'
 import { cn } from '@/lib/utils'
 import { authMiddleware } from '@/middleware/auth'
@@ -94,6 +95,15 @@ const mainBase: Array<NavItem> = [
 		activeMatch: p => p.startsWith('/lists/') && (p.endsWith('/edit') || p.endsWith('/bulk') || p.endsWith('/organize')),
 	},
 ]
+
+// The last item of the Lists section, shown only while the Gift Exchange page
+// has something on it (an exchange the user is in, or a child's).
+const giftExchangeNav: NavItem = {
+	name: () => m.nav_gift_exchange(),
+	url: '/gift-exchange',
+	icon: Gift,
+	hoverColor: 'group-hover/link:text-red-500 group-data-[status=active]/link:text-red-500',
+}
 
 const purchases: Array<NavItem> = [
 	{
@@ -175,7 +185,13 @@ function AuthenticatedRoutes() {
 		queryFn: () => getMyActiveRecommendationCount(),
 		staleTime: 30_000,
 	})
-	const main = useMemo(() => (recCount && recCount.count > 0 ? [suggestionsNav, ...mainBase] : mainBase), [recCount])
+	// Same for Gift Exchange: a COUNT of the drawn, unarchived exchanges the
+	// user (or a child of theirs) is in. A reveal invalidates it.
+	const { data: exchangeCount } = useQuery(myGiftExchangeCountQueryOptions())
+	const main = useMemo(() => {
+		const withSuggestions = recCount && recCount.count > 0 ? [suggestionsNav, ...mainBase] : mainBase
+		return exchangeCount && exchangeCount.count > 0 ? [...withSuggestions, giftExchangeNav] : withSuggestions
+	}, [recCount, exchangeCount])
 	// Embedded shell (iOS web tab, plan 28): Add Item goes native and the
 	// page gets bottom safe-area padding so the home indicator never covers
 	// content. The head already sets `viewport-fit=cover`.

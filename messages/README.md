@@ -24,7 +24,7 @@ key in an `en` file must exist in the same `fr` file. Areas are listed in
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | `common`                                                                             | Words reused across areas: `action_*` buttons, `state_*`, labels for priorities, list types, days, name lists |
 | `shell`                                                                              | Page titles (`page_*`), sidebar and breadcrumbs (`nav_*`), error and not-found pages                          |
-| `settings`, `auth`, `items`, `lists`, `purchases`, `intelligence`                    | That area's screens                                                                                           |
+| `settings`, `auth`, `items`, `lists`, `purchases`, `intelligence`, `exchanges`       | That area's screens                                                                                           |
 | `misc`                                                                               | Anything that fits none of the above                                                                          |
 | `emails`                                                                             | Email subjects and bodies. Rendered with an explicit locale, see `src/emails`                                 |
 | `server`                                                                             | Text the server sends to other clients: mobile API errors, built-in holiday names, upload refusals            |
