@@ -17,6 +17,9 @@ import {
 	dependents,
 	giftContributions,
 	giftedItems,
+	giftExchangeBlocks,
+	giftExchangeMembers,
+	giftExchanges,
 	giftSuggestionFeedback,
 	guardianships,
 	itemComments,
@@ -72,6 +75,9 @@ export async function captureFullSnapshot(dbx: SchemaDatabase = db): Promise<Bac
 		listAddonsRows,
 		listEditorsRows,
 		purchaseAttachmentsRows,
+		giftExchangesRows,
+		giftExchangeMembersRows,
+		giftExchangeBlocksRows,
 	] = await Promise.all([
 		dbx.select().from(users),
 		dbx.select().from(appSettings),
@@ -96,6 +102,9 @@ export async function captureFullSnapshot(dbx: SchemaDatabase = db): Promise<Bac
 		dbx.select().from(listAddons),
 		dbx.select().from(listEditors),
 		dbx.select().from(purchaseAttachments),
+		dbx.select().from(giftExchanges),
+		dbx.select().from(giftExchangeMembers),
+		dbx.select().from(giftExchangeBlocks),
 	])
 
 	return {
@@ -125,6 +134,9 @@ export async function captureFullSnapshot(dbx: SchemaDatabase = db): Promise<Bac
 			listAddons: listAddonsRows,
 			listEditors: listEditorsRows,
 			purchaseAttachments: purchaseAttachmentsRows,
+			giftExchanges: giftExchangesRows,
+			giftExchangeMembers: giftExchangeMembersRows,
+			giftExchangeBlocks: giftExchangeBlocksRows,
 		},
 	}
 }
@@ -814,6 +826,81 @@ export async function restoreBackupTablesImpl(args: {
 			}
 		}
 		result.purchaseAttachments = tables.purchaseAttachments.length
+	}
+
+	// -------- giftExchanges --------
+	// After users (createdByUserId).
+	if (tables.giftExchanges.length > 0) {
+		if (mode === 'wipe') {
+			await tx.insert(giftExchanges).values(tables.giftExchanges)
+		} else {
+			for (const row of tables.giftExchanges) {
+				await tx
+					.insert(giftExchanges)
+					.values(row)
+					.onConflictDoUpdate({
+						target: giftExchanges.id,
+						set: {
+							name: row.name,
+							budget: row.budget,
+							budgetCurrency: row.budgetCurrency,
+							giftDate: row.giftDate,
+							drawnAt: row.drawnAt,
+							archivedAt: row.archivedAt,
+							createdByUserId: row.createdByUserId,
+							createdAt: row.createdAt,
+							updatedAt: row.updatedAt,
+						},
+					})
+			}
+		}
+		result.giftExchanges = tables.giftExchanges.length
+	}
+
+	// -------- giftExchangeMembers (pass 1: givesToMemberId=null) --------
+	// givesToMemberId points at this same table, so a member can reference
+	// one inserted after it. Pass 2 below sets the pairings.
+	if (tables.giftExchangeMembers.length > 0) {
+		const pass1 = tables.giftExchangeMembers.map(m => ({ ...m, givesToMemberId: null }))
+		if (mode === 'wipe') {
+			await tx.insert(giftExchangeMembers).values(pass1)
+		} else {
+			for (const row of pass1) {
+				await tx
+					.insert(giftExchangeMembers)
+					.values(row)
+					.onConflictDoUpdate({
+						target: giftExchangeMembers.id,
+						set: {
+							exchangeId: row.exchangeId,
+							userId: row.userId,
+							givesToMemberId: null,
+							seenAt: row.seenAt,
+							changedAt: row.changedAt,
+							readyEmailSentAt: row.readyEmailSentAt,
+						},
+					})
+			}
+		}
+		for (const m of tables.giftExchangeMembers) {
+			if (m.givesToMemberId) {
+				await tx.update(giftExchangeMembers).set({ givesToMemberId: m.givesToMemberId }).where(eq(giftExchangeMembers.id, m.id))
+			}
+		}
+		result.giftExchangeMembers = tables.giftExchangeMembers.length
+	}
+
+	// -------- giftExchangeBlocks --------
+	// Every column is in the primary key, so a merge has nothing to update.
+	if (tables.giftExchangeBlocks.length > 0) {
+		if (mode === 'wipe') {
+			await tx.insert(giftExchangeBlocks).values(tables.giftExchangeBlocks)
+		} else {
+			for (const row of tables.giftExchangeBlocks) {
+				await tx.insert(giftExchangeBlocks).values(row).onConflictDoNothing()
+			}
+		}
+		result.giftExchangeBlocks = tables.giftExchangeBlocks.length
 	}
 
 	// -------- users pass 2: set partnerId where non-null --------

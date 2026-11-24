@@ -6,6 +6,9 @@ import {
 	dependents,
 	giftContributions,
 	giftedItems,
+	giftExchangeBlocks,
+	giftExchangeMembers,
+	giftExchanges,
 	giftSuggestionFeedback,
 	guardianships,
 	itemComments,
@@ -27,6 +30,8 @@ import {
 // Order used for inserts during import. Every referenced row must appear
 // before any row that references it. users is written twice: once with
 // partnerId=null, then again in a second pass to set partnerId.
+// giftExchangeMembers is written the same way: givesToMemberId points at
+// the same table, so members go in with it null and a second pass sets it.
 export const BACKUP_TABLES = [
 	{ name: 'users', table: users, idSequence: null },
 	{ name: 'appSettings', table: appSettings, idSequence: null },
@@ -51,6 +56,9 @@ export const BACKUP_TABLES = [
 	{ name: 'listAddons', table: listAddons, idSequence: 'list_addons_id_seq' },
 	{ name: 'listEditors', table: listEditors, idSequence: 'list_editors_id_seq' },
 	{ name: 'purchaseAttachments', table: purchaseAttachments, idSequence: null },
+	{ name: 'giftExchanges', table: giftExchanges, idSequence: null },
+	{ name: 'giftExchangeMembers', table: giftExchangeMembers, idSequence: null },
+	{ name: 'giftExchangeBlocks', table: giftExchangeBlocks, idSequence: null },
 ] as const
 
 export type BackupTableName = (typeof BACKUP_TABLES)[number]['name']
@@ -60,6 +68,9 @@ export type BackupTableName = (typeof BACKUP_TABLES)[number]['name']
 // listed: they're cleared separately, and only when the backup file
 // carries the table (see restoreBackupTablesImpl).
 export const BACKUP_TABLES_DELETE_ORDER = [
+	giftExchangeBlocks,
+	giftExchangeMembers,
+	giftExchanges,
 	purchaseAttachments,
 	listEditors,
 	listAddons,

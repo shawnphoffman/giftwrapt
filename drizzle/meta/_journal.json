@@ -183,6 +183,13 @@
       "when": 1795028905112,
       "tag": "0025_user_locale",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795550224140,
+      "tag": "0026_gift_exchanges",
+      "breakpoints": true
     }
   ]
 }

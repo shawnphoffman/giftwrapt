@@ -342,6 +342,38 @@ const itemScrapeJobRowSchema = z.object({
 	completedAt: dateField.nullable(),
 })
 
+// Gift exchanges (plan 39). Pairings are stored in the clear and backed up
+// by decision. Members reference each other through givesToMemberId, so the
+// restore inserts members with it null and sets it in a second pass.
+const giftExchangeRowSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	budget: z.string().nullable(),
+	budgetCurrency: z.string().nullable(),
+	giftDate: z.string(),
+	drawnAt: dateField.nullable(),
+	archivedAt: dateField.nullable(),
+	createdByUserId: z.string().nullable(),
+	updatedAt: dateField,
+	createdAt: dateField,
+})
+
+const giftExchangeMemberRowSchema = z.object({
+	id: z.string(),
+	exchangeId: z.string(),
+	userId: z.string().nullable(),
+	givesToMemberId: z.string().nullable(),
+	seenAt: dateField.nullable(),
+	changedAt: dateField.nullable(),
+	readyEmailSentAt: dateField.nullable(),
+})
+
+const giftExchangeBlockRowSchema = z.object({
+	exchangeId: z.string(),
+	giverMemberId: z.string(),
+	recipientMemberId: z.string(),
+})
+
 // Row schema per backed-up table, keyed like `BACKUP_TABLES` names. The
 // coverage test diffs each against its Drizzle table's columns.
 export const BACKUP_ROW_SCHEMAS = {
@@ -368,6 +400,9 @@ export const BACKUP_ROW_SCHEMAS = {
 	listAddons: listAddonRowSchema,
 	listEditors: listEditorRowSchema,
 	purchaseAttachments: purchaseAttachmentRowSchema,
+	giftExchanges: giftExchangeRowSchema,
+	giftExchangeMembers: giftExchangeMemberRowSchema,
+	giftExchangeBlocks: giftExchangeBlockRowSchema,
 } as const
 
 export const BackupFileSchema = z.object({
@@ -416,6 +451,12 @@ export const BackupFileSchema = z.object({
 		// table existed import; the rows cascade off claims and addons, so a
 		// wipe clears them either way.
 		purchaseAttachments: z.array(purchaseAttachmentRowSchema).default([]),
+		// Defaulted so backups written before gift exchanges existed import.
+		// A wipe clears live exchanges either way (they are in the delete
+		// order), the same as every other table a wipe replaces.
+		giftExchanges: z.array(giftExchangeRowSchema).default([]),
+		giftExchangeMembers: z.array(giftExchangeMemberRowSchema).default([]),
+		giftExchangeBlocks: z.array(giftExchangeBlockRowSchema).default([]),
 	}),
 })
 

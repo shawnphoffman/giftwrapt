@@ -20,6 +20,9 @@ import {
 	dependents,
 	giftContributions,
 	giftedItems,
+	giftExchangeBlocks,
+	giftExchangeMembers,
+	giftExchanges,
 	giftSuggestionFeedback,
 	guardianships,
 	itemComments,
@@ -95,6 +98,8 @@ function perturbValue(column: Column, value: unknown): unknown {
 			return !value
 		case 'PgTimestamp':
 			return new Date((value as Date).getTime() + 86_400_000)
+		case 'PgDateString':
+			return new Date(Date.parse(`${String(value)}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10)
 		case 'PgEnumColumn':
 			return (column.enumValues ?? []).find(v => v !== value)
 		case 'PgNumeric':
@@ -151,6 +156,9 @@ const T2 = new Date('2026-02-03T04:05:06.789Z')
 const T3 = new Date('2026-03-04T05:06:07.891Z')
 const stamps = { createdAt: T1, updatedAt: T2 }
 const HOLIDAY_ID = '6f1c0f3e-8a5b-4c2d-9e7f-0a1b2c3d4e5f'
+const EXCHANGE_ID = 'e0e0e0e0-0000-4000-8000-000000000001'
+const MEMBER_OWNER_ID = 'e0e0e0e0-0000-4000-8000-000000000011'
+const MEMBER_PARTNER_ID = 'e0e0e0e0-0000-4000-8000-000000000012'
 
 async function seedEveryColumn(tx: SchemaDatabase) {
 	await tx.insert(users).values([
@@ -372,6 +380,28 @@ async function seedEveryColumn(tx: SchemaDatabase) {
 			...stamps,
 		},
 	])
+	// Each member gifts to the other, so both pass-2 pairings point at a
+	// row inserted in the same pass.
+	await tx.insert(giftExchanges).values({
+		id: EXCHANGE_ID,
+		name: 'Family Exchange',
+		budget: '50.00',
+		budgetCurrency: 'USD',
+		giftDate: '2026-12-24',
+		drawnAt: T1,
+		archivedAt: T3,
+		createdByUserId: 'bk_owner',
+		...stamps,
+	})
+	await tx.insert(giftExchangeMembers).values([
+		{ id: MEMBER_OWNER_ID, exchangeId: EXCHANGE_ID, userId: 'bk_owner', seenAt: T1, changedAt: T2, readyEmailSentAt: T3 },
+		{ id: MEMBER_PARTNER_ID, exchangeId: EXCHANGE_ID, userId: 'bk_partner' },
+	])
+	await tx.update(giftExchangeMembers).set({ givesToMemberId: MEMBER_PARTNER_ID }).where(eq(giftExchangeMembers.id, MEMBER_OWNER_ID))
+	await tx.update(giftExchangeMembers).set({ givesToMemberId: MEMBER_OWNER_ID }).where(eq(giftExchangeMembers.id, MEMBER_PARTNER_ID))
+	await tx
+		.insert(giftExchangeBlocks)
+		.values({ exchangeId: EXCHANGE_ID, giverMemberId: MEMBER_PARTNER_ID, recipientMemberId: MEMBER_OWNER_ID })
 }
 
 function expectEveryColumnPopulated(snapshot: BackupFile) {
@@ -421,7 +451,10 @@ describe('backup round-trip', () => {
 			const perturbed = normalize(await captureFullSnapshot(tx))
 			// Sanity: the perturbed state really does differ row by row.
 			const want = normalize(original)
-			for (const { name } of BACKUP_TABLES) {
+			// A table whose every column is in its primary key has nothing to
+			// perturb (giftExchangeBlocks); its rows stay equal by design.
+			for (const { name, table } of BACKUP_TABLES) {
+				if (columnInfo(table).every(c => c.isPrimary)) continue
 				perturbed[name].forEach((row, i) => expect(row, name).not.toEqual(want[name][i]))
 			}
 
@@ -465,6 +498,9 @@ describe('backup round-trip', () => {
 				'recommendationSubItemDismissals',
 				'giftSuggestionFeedback',
 				'itemScrapeJobs',
+				'giftExchanges',
+				'giftExchangeMembers',
+				'giftExchangeBlocks',
 			]) {
 				delete legacy.tables[name]
 			}
