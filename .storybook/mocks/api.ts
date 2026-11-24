@@ -228,6 +228,8 @@ export const saveGiftExchangeMemberRulesAsAdmin = (): Promise<{ kind: 'ok'; redr
 export const drawGiftExchangeAsAdmin = ok
 export const redrawGiftExchangeAsAdmin = ok
 export const archiveGiftExchangeAsAdmin = ok
+export const sendGiftExchangeReadyEmailsAsAdmin = (): Promise<{ kind: 'ok'; sent: number; failed: number }> =>
+	Promise.resolve({ kind: 'ok', sent: 0, failed: 0 })
 
 // @/api/purchases
 export const getPurchaseSummary = (): Promise<{ items: Array<unknown>; partner: null }> => Promise.resolve({ items: [], partner: null })

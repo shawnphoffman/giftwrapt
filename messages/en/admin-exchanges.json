@@ -153,5 +153,53 @@
 	"admin_exchanges_error_not_drawn": "Names haven't been drawn yet.",
 	"admin_exchanges_error_invalid_block": "That change couldn't be saved. Reload the page and try again.",
 	"admin_exchanges_error_needs_redraw": "{name} can't be fitted in without redrawing names. Redraw first, then add them.",
-	"admin_exchanges_error_needs_redraw_generic": "Someone can't be fitted in without redrawing names. Redraw first, then add them."
+	"admin_exchanges_error_needs_redraw_generic": "Someone can't be fitted in without redrawing names. Redraw first, then add them.",
+	"admin_exchanges_send_emails": "Send Emails",
+	"admin_exchanges_send_emails_title": "Send emails?",
+	"admin_exchanges_send_emails_body": [
+		{
+			"declarations": ["input count", "local p = count: plural"],
+			"selectors": ["p"],
+			"match": {
+				"p=one": "{count} person who hasn't been emailed yet gets an email saying their assignment is ready. It doesn't say who they have.",
+				"p=*": "{count} people who haven't been emailed yet get an email saying their assignment is ready. It doesn't say who anyone has."
+			}
+		}
+	],
+	"admin_exchanges_emails_sent_toast": [
+		{
+			"declarations": ["input count", "local p = count: plural"],
+			"selectors": ["p"],
+			"match": {
+				"p=one": "Sent {count} email",
+				"p=*": "Sent {count} emails"
+			}
+		}
+	],
+	"admin_exchanges_emails_none_sent": "No emails could be sent. Try again in a moment.",
+	"admin_exchanges_emails_some_failed": [
+		{
+			"declarations": ["input failed", "local p = failed: plural"],
+			"selectors": ["p"],
+			"match": {
+				"p=one": "{failed} email couldn't be sent. Press Send Emails to try again.",
+				"p=*": "{failed} emails couldn't be sent. Press Send Emails to try again."
+			}
+		}
+	],
+	"admin_exchanges_emails_status_none": "Emails not sent yet.",
+	"admin_exchanges_emails_status_all": "Emails sent.",
+	"admin_exchanges_emails_status_one": "{name} hasn't been emailed yet.",
+	"admin_exchanges_emails_status_many": [
+		{
+			"declarations": ["input count", "local p = count: plural"],
+			"selectors": ["p"],
+			"match": {
+				"p=one": "{count} person hasn't been emailed yet.",
+				"p=*": "{count} people haven't been emailed yet."
+			}
+		}
+	],
+	"admin_exchanges_emails_not_configured": "Email isn't set up.",
+	"admin_exchanges_emails_switched_off": "Gift exchange emails are off in Email settings."
 }

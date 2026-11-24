@@ -55,6 +55,30 @@ export const DrawnAndSomeoneLooked: Story = {
 	args: { exchange: exchange({ state: 'drawn', drawnAt: new Date('2026-11-24T18:00:00Z'), anyoneHasLooked: true }) },
 }
 
+const DRAWN = { state: 'drawn', drawnAt: new Date('2026-11-24T18:00:00Z') } as const
+
+/** Send Emails shows while anyone hasn't been emailed; the line names the one left. */
+export const DrawnOneNotEmailed: Story = {
+	args: { exchange: exchange({ ...DRAWN, notEmailedCount: 1, notEmailedMemberId: 'dana' }) },
+}
+
+export const DrawnSomeNotEmailed: Story = {
+	args: { exchange: exchange({ ...DRAWN, notEmailedCount: 3 }) },
+}
+
+/** Everyone has been emailed: no Send Emails button. */
+export const DrawnAllEmailed: Story = {
+	args: { exchange: exchange({ ...DRAWN, notEmailedCount: 0 }) },
+}
+
+export const DrawnEmailNotSetUp: Story = {
+	args: { exchange: exchange({ ...DRAWN, emailStatus: 'not-configured' }) },
+}
+
+export const DrawnEmailsSwitchedOff: Story = {
+	args: { exchange: exchange({ ...DRAWN, emailStatus: 'switched-off' }) },
+}
+
 export const Archived: Story = {
 	args: {
 		exchange: exchange({

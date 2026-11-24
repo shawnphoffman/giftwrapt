@@ -144,5 +144,21 @@
 	"emails_reveal_occasion_holiday": "holiday",
 	"emails_test_subject": "Test Email",
 	"emails_test_hello": "Hello {#strong}Test User{/strong}!",
-	"emails_test_button": "View Site"
+	"emails_test_button": "View Site",
+	"emails_exchange_ready_subject": "Your assignment for {exchangeName} is ready",
+	"emails_exchange_ready_subject_child": "{childName}'s assignment for {exchangeName} is ready",
+	"emails_exchange_ready_heading": "Your assignment is ready",
+	"emails_exchange_ready_heading_child": "{childName}'s assignment is ready",
+	"emails_exchange_ready_body": "Names have been drawn for {exchangeName}. Open the Gift Exchange page to see who you're gifting to.",
+	"emails_exchange_ready_body_child": "Names have been drawn for {exchangeName}. {childName} can open the Gift Exchange page to see who they're gifting to.",
+	"emails_exchange_changed_subject": "Your assignment for {exchangeName} has changed",
+	"emails_exchange_changed_subject_child": "{childName}'s assignment for {exchangeName} has changed",
+	"emails_exchange_changed_heading": "Your assignment has changed",
+	"emails_exchange_changed_heading_child": "{childName}'s assignment has changed",
+	"emails_exchange_changed_body": "Your assignment for {exchangeName} has changed. Open the Gift Exchange page to see who you're gifting to now.",
+	"emails_exchange_changed_body_child": "{childName}'s assignment for {exchangeName} has changed. {childName} can open the Gift Exchange page to see who they're gifting to now.",
+	"emails_exchange_gift_date": "Gift date: {date}",
+	"emails_exchange_budget": "Budget: {budget}",
+	"emails_exchange_secret": "This email doesn't say who, so the surprise stays a surprise.",
+	"emails_exchange_button": "Open Gift Exchange"
 }

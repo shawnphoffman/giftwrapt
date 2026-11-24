@@ -7,7 +7,7 @@
 import { makeUser } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
 	addMembersImpl,
@@ -20,10 +20,18 @@ import {
 	redrawExchangeImpl,
 	removeMemberImpl,
 	saveMemberRulesImpl,
+	sendReadyEmailsImpl,
 	updateExchangeImpl,
 } from '@/api/_gift-exchanges-impl'
 import type { SchemaDatabase } from '@/db'
-import { giftExchangeBlocks, giftExchangeMembers } from '@/db/schema'
+import { appSettings, giftExchangeBlocks, giftExchangeMembers } from '@/db/schema'
+
+// Send Emails runs for real against a stubbed mail transport.
+vi.mock('@/lib/resend', () => ({
+	isEmailConfigured: vi.fn(() => Promise.resolve(true)),
+	sendGiftExchangeReadyEmail: vi.fn(() => Promise.resolve({ data: { id: 'x' }, error: null })),
+	sendGiftExchangeChangedEmail: vi.fn(() => Promise.resolve({ data: { id: 'x' }, error: null })),
+}))
 
 async function pairings(tx: SchemaDatabase, exchangeId: string): Promise<Array<[string, string]>> {
 	const rows = await tx
@@ -83,6 +91,7 @@ describe('gift exchange admin secrecy', () => {
 			})
 			if (created.kind !== 'ok') throw new Error('create failed')
 			const exchangeId = created.id
+			await tx.insert(appSettings).values({ key: 'enableGiftExchangeEmails', value: true })
 
 			const results: Array<[string, unknown]> = []
 			const check = async () => {
@@ -100,6 +109,7 @@ describe('gift exchange admin secrecy', () => {
 				await updateExchangeImpl({ input: { exchangeId, name: 'Secret 2', budget: 40, giftDate: '2026-12-24' }, dbx: tx }),
 			])
 			results.push(['delete (refused)', await deleteExchangeImpl({ exchangeId, dbx: tx })])
+			results.push(['send ready emails', await sendReadyEmailsImpl({ exchangeId, dbx: tx })])
 			await check()
 
 			results.push(['redraw', await redrawExchangeImpl({ exchangeId, dbx: tx })])

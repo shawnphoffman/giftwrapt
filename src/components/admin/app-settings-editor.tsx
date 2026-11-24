@@ -727,6 +727,30 @@ export function CommentsSettingsSection() {
 	)
 }
 
+// On the Email page (plan 39). Read at send time; off stops both gift
+// exchange emails and nothing else.
+export function GiftExchangeEmailSettingsSection() {
+	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
+
+	if (!settings) return <LoadingOrEmpty isLoading={isLoading} settings={settings} />
+
+	return (
+		<div className="flex items-center justify-between gap-4">
+			<div className="space-y-0.5">
+				<Label htmlFor="enableGiftExchangeEmails" className="text-base">
+					{m.admin_settings_email_gift_exchange_label()}
+				</Label>
+				<p className="text-sm text-muted-foreground">{m.admin_settings_email_gift_exchange_description()}</p>
+			</div>
+			<Switch
+				id="enableGiftExchangeEmails"
+				checked={settings.enableGiftExchangeEmails}
+				onCheckedChange={checked => handleSettingChange('enableGiftExchangeEmails', checked)}
+			/>
+		</div>
+	)
+}
+
 export function AuthSettingsSection() {
 	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
 

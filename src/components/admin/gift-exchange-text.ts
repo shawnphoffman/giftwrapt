@@ -1,7 +1,7 @@
 // Text for the admin gift exchange screens. Every function renders at call
 // time, never at module load (see messages/README.md).
 
-import type { AdminExchangeMember } from '@/api/_gift-exchanges-impl'
+import type { AdminExchangeDetail, AdminExchangeMember } from '@/api/_gift-exchanges-impl'
 import type { DrawProblem } from '@/lib/gift-exchange/draw'
 import type { LockedReason } from '@/lib/gift-exchange/rules'
 import { formatCalendarDate, formatCurrency, formatList } from '@/lib/i18n/format'
@@ -45,6 +45,34 @@ export function lockedReasonText(reason: LockedReason, giver: string, recipient:
 			return m.admin_exchanges_locked_denied({ giver, recipient })
 		case 'self':
 			return m.admin_exchanges_tip_self()
+	}
+}
+
+/**
+ * The line beside the Drawn badge: "Emails not sent yet.", "Emails sent.",
+ * "Priya hasn't been emailed yet." or "3 people haven't been emailed yet."
+ */
+export function emailStatusLine(
+	exchange: Pick<AdminExchangeDetail, 'members' | 'notEmailedCount' | 'notEmailedMemberId'>,
+	nameOf: (memberId: string) => string
+): string {
+	const { notEmailedCount: count, notEmailedMemberId: soleId } = exchange
+	if (count === 0) return m.admin_exchanges_emails_status_all()
+	const emailable = exchange.members.filter(x => x.userId !== null && !x.banned).length
+	if (count >= emailable) return m.admin_exchanges_emails_status_none()
+	if (count === 1 && soleId) return m.admin_exchanges_emails_status_one({ name: nameOf(soleId) })
+	return m.admin_exchanges_emails_status_many({ count })
+}
+
+/** Why Send Emails is disabled, shown beside it. Null when it can send. */
+export function emailBlockedReason(status: AdminExchangeDetail['emailStatus']): string | null {
+	switch (status) {
+		case 'ready':
+			return null
+		case 'not-configured':
+			return m.admin_exchanges_emails_not_configured()
+		case 'switched-off':
+			return m.admin_exchanges_emails_switched_off()
 	}
 }
 
@@ -144,6 +172,10 @@ function refusalTitle(
 			return m.admin_exchanges_error_already_drawn()
 		case 'not-drawn':
 			return m.admin_exchanges_error_not_drawn()
+		case 'email-not-configured':
+			return m.admin_exchanges_emails_not_configured()
+		case 'emails-off':
+			return m.admin_exchanges_emails_switched_off()
 		case 'invalid-block':
 		case 'confirm-redraw-required':
 			return m.admin_exchanges_error_invalid_block()

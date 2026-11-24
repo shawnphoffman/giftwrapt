@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { AlertTriangle, Archive, ArrowRight, Ban, Pencil, Shuffle, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Archive, ArrowRight, Ban, Mail, Pencil, Shuffle, Trash2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
-import type { AdminExchangeDetail, AdminExchangeMember } from '@/api/_gift-exchanges-impl'
+import type { AdminExchangeDetail, AdminExchangeMember, SendReadyEmailsResult } from '@/api/_gift-exchanges-impl'
 import { getUsersAsAdmin } from '@/api/admin'
 import {
 	addGiftExchangeMembersAsAdmin,
@@ -13,6 +13,7 @@ import {
 	drawGiftExchangeAsAdmin,
 	redrawGiftExchangeAsAdmin,
 	removeGiftExchangeMemberAsAdmin,
+	sendGiftExchangeReadyEmailsAsAdmin,
 } from '@/api/gift-exchanges'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import UserAvatar from '@/components/common/user-avatar'
@@ -30,17 +31,30 @@ import { GiftExchangeMatrix } from './gift-exchange-matrix'
 import { buildExchangeModel, type ExchangeModel, optionCounts } from './gift-exchange-model'
 import { GiftExchangePersonPicker, type PickablePerson } from './gift-exchange-person-picker'
 import { GiftExchangeRulesDialog } from './gift-exchange-rules-dialog'
-import { exchangeMetaLine, memberName, problemText, type RefusalMessage, refusalMessage } from './gift-exchange-text'
+import {
+	emailBlockedReason,
+	emailStatusLine,
+	exchangeMetaLine,
+	memberName,
+	problemText,
+	type RefusalMessage,
+	refusalMessage,
+} from './gift-exchange-text'
 import { ExchangeStateBadge } from './gift-exchanges-list'
 
 type AdminUserRow = PickablePerson & { banned: boolean }
 
-type Confirm = 'delete' | 'archive' | 'redraw' | null
+type Confirm = 'delete' | 'archive' | 'redraw' | 'send-emails' | null
 
 /**
  * One exchange as a page of stacked cards, like the Users page: details with
  * the actions, People, and Who Can Gift to Whom. Once archived, the details
  * card and the list of who gifted to whom.
+ *
+ * After the draw, Send Emails shows while anyone hasn't had "your assignment
+ * is ready", and the line beside the Drawn badge says who hasn't. It is
+ * disabled, with the reason beside it, when email isn't set up or gift
+ * exchange emails are off.
  */
 export function GiftExchangePage({ exchange }: { exchange: AdminExchangeDetail }) {
 	const queryClient = useQueryClient()
@@ -93,6 +107,24 @@ export function GiftExchangePage({ exchange }: { exchange: AdminExchangeDetail }
 	const draw = () => run(() => drawGiftExchangeAsAdmin({ data }), m.admin_exchanges_drawn_toast())
 	const redraw = () => run(() => redrawGiftExchangeAsAdmin({ data }), m.admin_exchanges_redrawn_toast())
 	const archive = () => run(() => archiveGiftExchangeAsAdmin({ data }), m.admin_exchanges_archived_toast())
+	const sendEmails = async () => {
+		try {
+			// The shared mutation is typed loosely; this call's result is SendReadyEmailsResult.
+			const result = (await action.mutateAsync(() => sendGiftExchangeReadyEmailsAsAdmin({ data }))) as SendReadyEmailsResult
+			if (result.kind === 'error') {
+				showRefusal(refusalMessage(result, nameOf, userName))
+				return
+			}
+			const { sent, failed } = result
+			if (sent > 0) toast.success(m.admin_exchanges_emails_sent_toast({ count: sent }))
+			if (failed > 0) {
+				toast.error(sent > 0 ? m.admin_exchanges_emails_some_failed({ failed }) : m.admin_exchanges_emails_none_sent())
+			}
+			await invalidate()
+		} catch {
+			toast.error(m.admin_exchanges_action_failed())
+		}
+	}
 	const remove = () =>
 		run(
 			() => deleteGiftExchangeAsAdmin({ data }),
@@ -116,6 +148,8 @@ export function GiftExchangePage({ exchange }: { exchange: AdminExchangeDetail }
 	const tooFew = exchange.members.length < MIN_DRAW_MEMBERS
 	const problem = !archived && exchange.drawCheck && !exchange.drawCheck.ok ? problemText(exchange.drawCheck, nameOf) : null
 	const canDraw = exchange.drawCheck?.ok === true
+	const showSendEmails = drawn && exchange.notEmailedCount > 0
+	const emailBlocked = emailBlockedReason(exchange.emailStatus)
 
 	return (
 		<>
@@ -141,6 +175,15 @@ export function GiftExchangePage({ exchange }: { exchange: AdminExchangeDetail }
 											<Shuffle className="size-4" />
 											{m.admin_exchanges_redraw()}
 										</Button>
+										{showSendEmails && (
+											<>
+												<Button size="sm" onClick={() => setConfirm('send-emails')} disabled={busy || emailBlocked !== null}>
+													<Mail className="size-4" />
+													{m.admin_exchanges_send_emails()}
+												</Button>
+												{emailBlocked && <span className="text-xs text-muted-foreground">{emailBlocked}</span>}
+											</>
+										)}
 									</>
 								) : (
 									<>
@@ -170,7 +213,10 @@ export function GiftExchangePage({ exchange }: { exchange: AdminExchangeDetail }
 						{drawn && exchange.drawnAt && (
 							<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
 								<ExchangeStateBadge state="drawn" />
-								<span>{m.admin_exchanges_drawn_at({ date: formatDate(exchange.drawnAt, { dateStyle: 'medium' }) })}</span>
+								<span>
+									{m.admin_exchanges_drawn_at({ date: formatDate(exchange.drawnAt, { dateStyle: 'medium' }) })}{' '}
+									{emailStatusLine(exchange, nameOf)}
+								</span>
 							</div>
 						)}
 						{!archived && tooFew && (
@@ -273,6 +319,14 @@ export function GiftExchangePage({ exchange }: { exchange: AdminExchangeDetail }
 				description={exchange.anyoneHasLooked ? m.admin_exchanges_redraw_body_looked() : m.admin_exchanges_redraw_body()}
 				confirmLabel={m.admin_exchanges_redraw()}
 				onConfirm={redraw}
+			/>
+			<ConfirmDialog
+				open={confirm === 'send-emails'}
+				onOpenChange={open => !open && setConfirm(null)}
+				title={m.admin_exchanges_send_emails_title()}
+				description={m.admin_exchanges_send_emails_body({ count: exchange.notEmailedCount })}
+				confirmLabel={m.admin_exchanges_send_emails()}
+				onConfirm={sendEmails}
 			/>
 		</>
 	)

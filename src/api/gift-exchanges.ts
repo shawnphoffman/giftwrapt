@@ -31,6 +31,8 @@ import {
 	type RemoveMemberResult,
 	saveMemberRulesImpl,
 	type SaveMemberRulesResult,
+	sendReadyEmailsImpl,
+	type SendReadyEmailsResult,
 	updateExchangeImpl,
 	type UpdateExchangeResult,
 } from './_gift-exchanges-impl'
@@ -57,6 +59,7 @@ export type {
 	RedrawExchangeResult,
 	RemoveMemberResult,
 	SaveMemberRulesResult,
+	SendReadyEmailsResult,
 	UpdateExchangeResult,
 }
 
@@ -113,3 +116,9 @@ export const archiveGiftExchangeAsAdmin = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ExchangeIdInputSchema>) => ExchangeIdInputSchema.parse(data))
 	.handler(({ data }): Promise<ArchiveExchangeResult> => archiveExchangeImpl({ exchangeId: data.exchangeId }))
+
+/** Send Emails: "your assignment is ready" to everyone not emailed yet. Never automatic. */
+export const sendGiftExchangeReadyEmailsAsAdmin = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof ExchangeIdInputSchema>) => ExchangeIdInputSchema.parse(data))
+	.handler(({ data }): Promise<SendReadyEmailsResult> => sendReadyEmailsImpl({ exchangeId: data.exchangeId }))

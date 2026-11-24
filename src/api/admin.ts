@@ -324,7 +324,7 @@ export async function deleteUserAsAdminImpl(args: {
 		// items/claims/comments/addons/editors), guardianships, etc.
 		await tx.delete(users).where(eq(users.id, userId))
 	})
-	await afterPairingsChanged(exchangeEvents)
+	await afterPairingsChanged(exchangeEvents, dbx)
 
 	// Best-effort avatar cleanup, after the DB commit.
 	if (user.image) {

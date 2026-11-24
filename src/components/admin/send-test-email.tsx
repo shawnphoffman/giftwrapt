@@ -44,6 +44,10 @@ function testEmailKindLabel(kind: TestEmailKind): string {
 			return m.admin_settings_email_kind_password_reset()
 		case 'intelligence-operator-digest':
 			return m.admin_settings_email_kind_intelligence_operator_digest()
+		case 'gift-exchange-ready':
+			return m.admin_settings_email_kind_gift_exchange_ready()
+		case 'gift-exchange-changed':
+			return m.admin_settings_email_kind_gift_exchange_changed()
 	}
 }
 

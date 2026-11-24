@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { testResendApiKeyAsAdmin } from '@/api/admin-email'
+import { GiftExchangeEmailSettingsSection } from '@/components/admin/app-settings-editor'
 import { SecretField, type SecretFieldState } from '@/components/admin/secret-field'
 import SendTestEmailButton from '@/components/admin/send-test-email'
 import { Button } from '@/components/ui/button'
@@ -48,6 +49,12 @@ export function EmailSettingsEditor() {
 					<AddressesSection config={data} onSave={save} saving={mutation.isPending} />
 				</>
 			)}
+
+			<Separator />
+			<section className="flex flex-col gap-6">
+				<h3 className="text-lg font-medium">{m.admin_settings_email_gift_exchange_title()}</h3>
+				<GiftExchangeEmailSettingsSection />
+			</section>
 
 			<Separator />
 			<SendTestSection defaultRecipient={data.bccAddress.value ?? data.fromEmail.value ?? ''} />

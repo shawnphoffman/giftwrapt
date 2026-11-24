@@ -144,5 +144,21 @@
 	"emails_reveal_occasion_holiday": "Fêtes de fin d’année",
 	"emails_test_subject": "E-mail de test",
 	"emails_test_hello": "Bonjour {#strong}Utilisateur de test{/strong} !",
-	"emails_test_button": "Voir le site"
+	"emails_test_button": "Voir le site",
+	"emails_exchange_ready_subject": "Votre tirage pour « {exchangeName} » est prêt",
+	"emails_exchange_ready_subject_child": "Le tirage de {childName} pour « {exchangeName} » est prêt",
+	"emails_exchange_ready_heading": "Votre tirage est prêt",
+	"emails_exchange_ready_heading_child": "Le tirage de {childName} est prêt",
+	"emails_exchange_ready_body": "Les noms ont été tirés au sort pour « {exchangeName} ». Ouvrez la page Échange de cadeaux pour découvrir à qui vous offrez.",
+	"emails_exchange_ready_body_child": "Les noms ont été tirés au sort pour « {exchangeName} ». {childName} peut ouvrir la page Échange de cadeaux pour découvrir à qui offrir.",
+	"emails_exchange_changed_subject": "Votre tirage pour « {exchangeName} » a changé",
+	"emails_exchange_changed_subject_child": "Le tirage de {childName} pour « {exchangeName} » a changé",
+	"emails_exchange_changed_heading": "Votre tirage a changé",
+	"emails_exchange_changed_heading_child": "Le tirage de {childName} a changé",
+	"emails_exchange_changed_body": "Votre tirage pour « {exchangeName} » a changé. Ouvrez la page Échange de cadeaux pour découvrir à qui vous offrez désormais.",
+	"emails_exchange_changed_body_child": "Le tirage de {childName} pour « {exchangeName} » a changé. {childName} peut ouvrir la page Échange de cadeaux pour découvrir à qui offrir désormais.",
+	"emails_exchange_gift_date": "Date des cadeaux : {date}",
+	"emails_exchange_budget": "Budget : {budget}",
+	"emails_exchange_secret": "Cet e-mail ne donne aucun nom, pour que la surprise reste entière.",
+	"emails_exchange_button": "Ouvrir l’échange de cadeaux"
 }

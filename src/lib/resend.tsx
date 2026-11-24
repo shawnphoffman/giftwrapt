@@ -500,6 +500,89 @@ export const sendPasswordResetEmail = async (params: {
 	return res
 }
 
+// Gift exchange emails (plan 39). Neither names anyone but the reader. A
+// guardian's copy of a child's email passes `childName`, in the guardian's
+// own language. Callers check `enableGiftExchangeEmails` and the member's
+// ban; see `src/lib/gift-exchange/emails.ts`.
+export type GiftExchangeEmailArgs = {
+	exchangeName: string
+	budget: number | null
+	budgetCurrency: string | null
+	/** A calendar date, `YYYY-MM-DD`. */
+	giftDate: string
+	/** Set on a guardian's copy: the child the email is about. */
+	childName?: string | null
+	locale: StoredLocale
+}
+
+export const sendGiftExchangeReadyEmail = async (recipient: string, args: GiftExchangeEmailArgs) => {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
+		warnNotConfigured('sendGiftExchangeReadyEmail')
+		return null
+	}
+	const { appTitle, defaultLocale } = await getAppSettings(db)
+	const locale = recipientLocale(args.locale, defaultLocale)
+	const { exchangeName, childName } = args
+	emailLog.info({ kind: 'gift-exchange-ready', recipient, guardianCopy: Boolean(childName) }, 'sending email')
+	const { default: GiftExchangeReadyEmail } = await import('@/emails/gift-exchange-ready-email')
+	const res = await client.emails.send({
+		...commonEmailProps(cfg),
+		to: recipient,
+		subject: childName
+			? m.emails_exchange_ready_subject_child({ childName, exchangeName }, { locale })
+			: m.emails_exchange_ready_subject({ exchangeName }, { locale }),
+		react: (
+			<GiftExchangeReadyEmail
+				locale={locale}
+				appTitle={appTitle}
+				exchangeName={exchangeName}
+				budget={args.budget}
+				budgetCurrency={args.budgetCurrency}
+				giftDate={args.giftDate}
+				childName={childName}
+			/>
+		),
+	})
+	logSendResult('gift-exchange-ready', recipient, res as SendResult)
+	return res
+}
+
+export const sendGiftExchangeChangedEmail = async (recipient: string, args: GiftExchangeEmailArgs) => {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
+		warnNotConfigured('sendGiftExchangeChangedEmail')
+		return null
+	}
+	const { appTitle, defaultLocale } = await getAppSettings(db)
+	const locale = recipientLocale(args.locale, defaultLocale)
+	const { exchangeName, childName } = args
+	emailLog.info({ kind: 'gift-exchange-changed', recipient, guardianCopy: Boolean(childName) }, 'sending email')
+	const { default: GiftExchangeChangedEmail } = await import('@/emails/gift-exchange-changed-email')
+	const res = await client.emails.send({
+		...commonEmailProps(cfg),
+		to: recipient,
+		subject: childName
+			? m.emails_exchange_changed_subject_child({ childName, exchangeName }, { locale })
+			: m.emails_exchange_changed_subject({ exchangeName }, { locale }),
+		react: (
+			<GiftExchangeChangedEmail
+				locale={locale}
+				appTitle={appTitle}
+				exchangeName={exchangeName}
+				budget={args.budget}
+				budgetCurrency={args.budgetCurrency}
+				giftDate={args.giftDate}
+				childName={childName}
+			/>
+		),
+	})
+	logSendResult('gift-exchange-changed', recipient, res as SendResult)
+	return res
+}
+
 // Operator Digest. Sends one email per recipient with that recipient in
 // `to`, so admins' addresses aren't exposed to each other. Never addressed
 // to the From address (often a send-only address with no mailbox, so it
@@ -556,6 +639,8 @@ export const TEST_EMAIL_KINDS = [
 	{ value: 'post-holiday' },
 	{ value: 'password-reset' },
 	{ value: 'intelligence-operator-digest' },
+	{ value: 'gift-exchange-ready' },
+	{ value: 'gift-exchange-changed' },
 ] as const
 
 export type TestEmailKind = (typeof TEST_EMAIL_KINDS)[number]['value']
@@ -739,6 +824,38 @@ const buildTestEmailPayload = async (
 						resetUrl="https://giftwrapt.app/reset-password?token=preview-token"
 						expiresInMinutes={60}
 						appTitle={appTitle}
+					/>
+				),
+			}
+		}
+		case 'gift-exchange-ready': {
+			const { default: GiftExchangeReadyEmail } = await import('@/emails/gift-exchange-ready-email')
+			return {
+				subject: m.emails_exchange_ready_subject({ exchangeName: 'Family Christmas' }, o),
+				react: (
+					<GiftExchangeReadyEmail
+						locale={locale}
+						appTitle={appTitle}
+						exchangeName="Family Christmas"
+						budget={50}
+						budgetCurrency="USD"
+						giftDate="2026-12-25"
+					/>
+				),
+			}
+		}
+		case 'gift-exchange-changed': {
+			const { default: GiftExchangeChangedEmail } = await import('@/emails/gift-exchange-changed-email')
+			return {
+				subject: m.emails_exchange_changed_subject({ exchangeName: 'Family Christmas' }, o),
+				react: (
+					<GiftExchangeChangedEmail
+						locale={locale}
+						appTitle={appTitle}
+						exchangeName="Family Christmas"
+						budget={50}
+						budgetCurrency="USD"
+						giftDate="2026-12-25"
 					/>
 				),
 			}

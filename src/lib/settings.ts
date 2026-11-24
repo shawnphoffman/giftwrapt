@@ -314,6 +314,11 @@ export const appSettingsSchema = z.object({
 	enableComments: z.boolean(),
 	// Whether a notification email is sent to the list owner on new comments.
 	enableCommentEmails: z.boolean(),
+	// Whether gift exchange emails are sent (plan 39): "your assignment is
+	// ready" when an admin presses Send Emails, and the automatic "your
+	// assignment has changed". Read at send time. Off stops both emails and
+	// nothing else.
+	enableGiftExchangeEmails: z.boolean(),
 	// =====================================================================
 	// Pre-event broadcast reminders (Phase B). Each family sends one email
 	// to every user when (today + leadDays) matches the event date, gated
@@ -651,6 +656,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableGenericHolidayEmails: false,
 	enableComments: true,
 	enableCommentEmails: false,
+	enableGiftExchangeEmails: false,
 	enableBirthdayReminderEmails: false,
 	birthdayReminderLeadDays: 30,
 	enableChristmasReminderEmails: false,

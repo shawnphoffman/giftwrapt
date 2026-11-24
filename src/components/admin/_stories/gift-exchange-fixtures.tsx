@@ -45,6 +45,7 @@ export const BLOCKED: Array<MemberPair> = [
 
 /** An exchange whose draw check is computed from its own rules, like the server's read. */
 export function exchange(overrides: Partial<AdminExchangeDetail> = {}): AdminExchangeDetail {
+	const members = overrides.members ?? MEMBERS
 	const base: AdminExchangeDetail = {
 		id: 'ex-1',
 		name: 'Christmas 2026',
@@ -59,7 +60,9 @@ export function exchange(overrides: Partial<AdminExchangeDetail> = {}): AdminExc
 		locked: LOCKED,
 		drawCheck: null,
 		anyoneHasLooked: false,
-		notEmailedCount: 8,
+		notEmailedCount: members.length,
+		notEmailedMemberId: null,
+		emailStatus: 'ready',
 		pairings: null,
 		...overrides,
 	}

@@ -17,6 +17,14 @@ import { db as defaultDb } from '@/db'
 import type { Role } from '@/db/schema'
 import { giftExchangeBlocks, giftExchangeMembers, giftExchanges, users } from '@/db/schema'
 import { checkDraw, drawAssignments, type DrawCheck, type DrawProblem, type MemberPair } from '@/lib/gift-exchange/draw'
+import {
+	type GiftExchangeEmailStatus,
+	giftExchangeEmailStatus,
+	loadExchangeForEmail,
+	loadMembersForEmail,
+	sendChangedEmails,
+	sendMemberEmail,
+} from '@/lib/gift-exchange/emails'
 import { canGiftTo, loadExchangeGiftRules, type LockedPair } from '@/lib/gift-exchange/rules'
 import { secureRandomInt } from '@/lib/gift-exchange/secure-random'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -76,8 +84,21 @@ export type AdminExchangeDetail = {
 	drawCheck: DrawCheck | null
 	/** True when any member has looked at their current assignment. Never says who. */
 	anyoneHasLooked: boolean
-	/** Members who haven't had the "your assignment is ready" email (39c sends it). */
+	/**
+	 * Members who haven't had the "your assignment is ready" email. Banned
+	 * members and deleted accounts are left out: Send Emails skips them, so
+	 * counting them would keep the button up for good.
+	 */
 	notEmailedCount: number
+	/**
+	 * When exactly one member hasn't been emailed, their member id, so the page
+	 * can name them. A single id rather than a list: a list of member ids in
+	 * some order could put a giver next to their recipient, and the secrecy
+	 * test treats that as a leak.
+	 */
+	notEmailedMemberId: string | null
+	/** Whether Send Emails can send right now, and if not why. */
+	emailStatus: GiftExchangeEmailStatus
 	/** Who gifted to whom. Only for an archived exchange; null otherwise. */
 	pairings: Array<MemberPair> | null
 }
@@ -87,13 +108,12 @@ type Archived = { kind: 'error'; reason: 'archived' }
 type NoValidDraw = { kind: 'error'; reason: 'no-valid-draw'; problem: DrawProblem }
 
 // ===============================
-// Email hook (39c)
+// Email hook
 // ===============================
 
 /**
  * What a write did to people's assignments, for the "your assignment has
- * changed" email. 39c sends that email from `afterPairingsChanged`; nothing
- * else needs to change to wire it.
+ * changed" email, which `afterPairingsChanged` sends.
  *
  * - `redrawn-after-look`: a redraw (Redraw, Save and Redraw, a removal that
  *   needed a full redraw, or an account deletion that did) replaced every
@@ -117,14 +137,23 @@ export type PairingChangeEvent =
 /**
  * Called once after every write that replaced pairings, after its transaction
  * has committed (never inside it, so an email can't go out for a write that
- * rolled back). A no-op until 39c adds the emails.
+ * rolled back). Sends "your assignment has changed" to each member named in
+ * the events, once per member even when several events name them, and stamps
+ * `readyEmailSentAt` for anyone told who didn't have it. Skipped silently
+ * when email isn't configured or `enableGiftExchangeEmails` is off. Never
+ * throws: a failed send can't fail the admin's action.
  */
-export function afterPairingsChanged(events: ReadonlyArray<PairingChangeEvent>): Promise<void> {
-	if (events.length === 0) return Promise.resolve()
-	// 39c: send "your assignment has changed" to each member in each event,
-	// stamping `readyEmailSentAt` for anyone who didn't have it. Make this
-	// async when it starts awaiting the sends.
-	return Promise.resolve()
+export async function afterPairingsChanged(events: ReadonlyArray<PairingChangeEvent>, dbx: SchemaDatabase = defaultDb): Promise<void> {
+	if (events.length === 0) return
+	const byExchange = new Map<string, Set<string>>()
+	for (const event of events) {
+		const ids = byExchange.get(event.exchangeId) ?? new Set<string>()
+		for (const id of event.memberIds) ids.add(id)
+		byExchange.set(event.exchangeId, ids)
+	}
+	for (const [exchangeId, memberIds] of byExchange) {
+		await sendChangedEmails(dbx, exchangeId, [...memberIds])
+	}
 }
 
 // ===============================
@@ -288,6 +317,8 @@ export async function getExchangeForAdminImpl(args: { exchangeId: string; dbx?: 
 		.orderBy(sql`${users.name} is null`, asc(sql`lower(${users.name})`), asc(users.email), asc(giftExchangeMembers.id))
 
 	const rules = await loadExchangeGiftRules(exchange.id, dbx)
+	const emailStatus = await giftExchangeEmailStatus(dbx)
+	const notEmailedMemberIds = memberRows.filter(r => r.readyEmailSentAt === null && r.userId !== null && !r.banned).map(r => r.id)
 
 	let pairings: Array<MemberPair> | null = null
 	if (state === 'archived') {
@@ -322,7 +353,9 @@ export async function getExchangeForAdminImpl(args: { exchangeId: string; dbx?: 
 			locked: rules.locked.filter(p => p.reason !== 'self'),
 			drawCheck: state === 'archived' ? null : checkDraw(rules.memberIds, rules.allowed),
 			anyoneHasLooked: memberRows.some(r => r.seenAt !== null),
-			notEmailedCount: memberRows.filter(r => r.readyEmailSentAt === null).length,
+			notEmailedCount: notEmailedMemberIds.length,
+			notEmailedMemberId: notEmailedMemberIds.length === 1 ? notEmailedMemberIds[0] : null,
+			emailStatus,
 			pairings,
 		},
 	}
@@ -425,6 +458,73 @@ export async function archiveExchangeImpl(args: { exchangeId: string; dbx?: Sche
 }
 
 // ===============================
+// Send Emails
+// ===============================
+
+export type SendReadyEmailsResult =
+	/** `sent` were accepted by the provider and stamped; `failed` stay unstamped so a second press retries them. */
+	| { kind: 'ok'; sent: number; failed: number }
+	| NotFound
+	| Archived
+	| { kind: 'error'; reason: 'not-drawn' | 'email-not-configured' | 'emails-off' }
+
+/**
+ * Send Emails: "your assignment is ready" to every member of a drawn,
+ * unarchived exchange whose `readyEmailSentAt` is null, stamping it for each
+ * one sent. Nothing sends this email automatically.
+ *
+ * Each member is claimed before the send (`readyEmailSentAt` set where it is
+ * still null), so two admins pressing at once can't email anyone twice, and
+ * the claim is released when the send fails so the next press retries it.
+ * Banned members are skipped and stay unstamped. Sends happen outside any
+ * transaction, so no row lock is held across the network.
+ */
+export async function sendReadyEmailsImpl(args: { exchangeId: string; dbx?: SchemaDatabase }): Promise<SendReadyEmailsResult> {
+	const dbx = args.dbx ?? defaultDb
+	const exchange = await loadExchangeForEmail(dbx, args.exchangeId)
+	if (!exchange) return { kind: 'error', reason: 'not-found' }
+	if (exchange.archived) return { kind: 'error', reason: 'archived' }
+	if (!exchange.drawn) return { kind: 'error', reason: 'not-drawn' }
+
+	const status = await giftExchangeEmailStatus(dbx)
+	if (status === 'not-configured') return { kind: 'error', reason: 'email-not-configured' }
+	if (status === 'switched-off') return { kind: 'error', reason: 'emails-off' }
+
+	const pending = await dbx
+		.select({ id: giftExchangeMembers.id })
+		.from(giftExchangeMembers)
+		.where(and(eq(giftExchangeMembers.exchangeId, args.exchangeId), isNull(giftExchangeMembers.readyEmailSentAt)))
+	const members = await loadMembersForEmail(
+		dbx,
+		args.exchangeId,
+		pending.map(r => r.id)
+	)
+
+	let sent = 0
+	let failed = 0
+	for (const member of members) {
+		if (!member.userId || member.banned) continue
+		const stamp = new Date()
+		const claimed = await dbx
+			.update(giftExchangeMembers)
+			.set({ readyEmailSentAt: stamp })
+			.where(and(eq(giftExchangeMembers.id, member.memberId), isNull(giftExchangeMembers.readyEmailSentAt)))
+			.returning({ id: giftExchangeMembers.id })
+		if (claimed.length === 0) continue
+		if (await sendMemberEmail(dbx, 'ready', exchange, member)) {
+			sent += 1
+		} else {
+			failed += 1
+			await dbx
+				.update(giftExchangeMembers)
+				.set({ readyEmailSentAt: null })
+				.where(and(eq(giftExchangeMembers.id, member.memberId), eq(giftExchangeMembers.readyEmailSentAt, stamp)))
+		}
+	}
+	return { kind: 'ok', sent, failed }
+}
+
+// ===============================
 // Draw and redraw
 // ===============================
 
@@ -446,7 +546,7 @@ export async function drawExchangeImpl(args: { exchangeId: string; dbx?: SchemaD
 		if (!drawn.ok) return { result: { kind: 'error', reason: 'no-valid-draw', problem: drawn.problem }, events: [] }
 		return { result: { kind: 'ok' }, events: drawn.events }
 	})
-	await afterPairingsChanged(result.events)
+	await afterPairingsChanged(result.events, dbx)
 	return result.result
 }
 
@@ -464,7 +564,7 @@ export async function redrawExchangeImpl(args: { exchangeId: string; dbx?: Schem
 		if (!drawn.ok) return { result: { kind: 'error', reason: 'no-valid-draw', problem: drawn.problem }, events: [] }
 		return { result: { kind: 'ok' }, events: drawn.events }
 	})
-	await afterPairingsChanged(result.events)
+	await afterPairingsChanged(result.events, dbx)
 	return result.result
 }
 
@@ -535,7 +635,7 @@ export async function saveMemberRulesImpl(args: { input: SaveMemberRulesInput; d
 		if (!drawn.ok) throw new Refusal({ result: { kind: 'error', reason: 'no-valid-draw', problem: drawn.problem }, events: [] })
 		return { result: { kind: 'ok', redrew: true }, events: drawn.events }
 	})
-	await afterPairingsChanged(result.events)
+	await afterPairingsChanged(result.events, dbx)
 	return result.result
 }
 
@@ -625,7 +725,7 @@ export async function addMembersImpl(args: { input: AddMembersInput; dbx?: Schem
 			changed.size > 0 ? [{ kind: 'assignment-changed', exchangeId: exchange.id, memberIds: [...changed] }] : []
 		return { result: { kind: 'ok', added: inserted.length }, events }
 	})
-	await afterPairingsChanged(result.events)
+	await afterPairingsChanged(result.events, dbx)
 	return result.result
 }
 
@@ -750,7 +850,7 @@ export async function removeMemberImpl(args: { input: RemoveMemberInput; dbx?: S
 				return { result: { kind: 'error', reason: 'no-valid-draw', problem: outcome.problem }, events: [] }
 		}
 	})
-	await afterPairingsChanged(result.events)
+	await afterPairingsChanged(result.events, dbx)
 	return result.result
 }
 

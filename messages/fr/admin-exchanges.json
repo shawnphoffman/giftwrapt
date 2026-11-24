@@ -153,5 +153,53 @@
 	"admin_exchanges_error_not_drawn": "Les noms n’ont pas encore été tirés.",
 	"admin_exchanges_error_invalid_block": "Impossible d’enregistrer cette modification. Rechargez la page et réessayez.",
 	"admin_exchanges_error_needs_redraw": "Impossible d’ajouter {name} sans refaire le tirage. Refaites le tirage, puis ajoutez cette personne.",
-	"admin_exchanges_error_needs_redraw_generic": "Impossible d’ajouter quelqu’un sans refaire le tirage. Refaites le tirage, puis ajoutez cette personne."
+	"admin_exchanges_error_needs_redraw_generic": "Impossible d’ajouter quelqu’un sans refaire le tirage. Refaites le tirage, puis ajoutez cette personne.",
+	"admin_exchanges_send_emails": "Envoyer les e-mails",
+	"admin_exchanges_send_emails_title": "Envoyer les e-mails ?",
+	"admin_exchanges_send_emails_body": [
+		{
+			"declarations": ["input count", "local p = count: plural"],
+			"selectors": ["p"],
+			"match": {
+				"p=one": "{count} personne qui n’a pas encore reçu d’e-mail va être prévenue que son tirage est prêt. L’e-mail ne dit pas qui elle a tiré.",
+				"p=*": "{count} personnes qui n’ont pas encore reçu d’e-mail vont être prévenues que leur tirage est prêt. L’e-mail ne dit pas qui elles ont tiré."
+			}
+		}
+	],
+	"admin_exchanges_emails_sent_toast": [
+		{
+			"declarations": ["input count", "local p = count: plural"],
+			"selectors": ["p"],
+			"match": {
+				"p=one": "{count} e-mail envoyé",
+				"p=*": "{count} e-mails envoyés"
+			}
+		}
+	],
+	"admin_exchanges_emails_none_sent": "Aucun e-mail n’a pu être envoyé. Réessayez dans un instant.",
+	"admin_exchanges_emails_some_failed": [
+		{
+			"declarations": ["input failed", "local p = failed: plural"],
+			"selectors": ["p"],
+			"match": {
+				"p=one": "{failed} e-mail n’a pas pu être envoyé. Cliquez sur Envoyer les e-mails pour réessayer.",
+				"p=*": "{failed} e-mails n’ont pas pu être envoyés. Cliquez sur Envoyer les e-mails pour réessayer."
+			}
+		}
+	],
+	"admin_exchanges_emails_status_none": "E-mails pas encore envoyés.",
+	"admin_exchanges_emails_status_all": "E-mails envoyés.",
+	"admin_exchanges_emails_status_one": "{name} n’a pas encore reçu d’e-mail.",
+	"admin_exchanges_emails_status_many": [
+		{
+			"declarations": ["input count", "local p = count: plural"],
+			"selectors": ["p"],
+			"match": {
+				"p=one": "{count} personne n’a pas encore reçu d’e-mail.",
+				"p=*": "{count} personnes n’ont pas encore reçu d’e-mail."
+			}
+		}
+	],
+	"admin_exchanges_emails_not_configured": "L’envoi d’e-mails n’est pas configuré.",
+	"admin_exchanges_emails_switched_off": "Les e-mails des échanges de cadeaux sont désactivés dans les paramètres E-mail."
 }
