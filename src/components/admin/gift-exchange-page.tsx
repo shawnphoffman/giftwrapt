@@ -155,12 +155,16 @@ export function GiftExchangePage({ exchange }: { exchange: AdminExchangeDetail }
 		<>
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
-					<div className="flex flex-col gap-3 @lg/admin-content:flex-row @lg/admin-content:items-start @lg/admin-content:justify-between">
-						<CardTitle className="min-w-0 text-2xl break-words">{exchange.name}</CardTitle>
+					{/* The actions wrap under the title when they would leave it too little room.
+					    French labels, plus the "email not set up" reason, are wider than the card. */}
+					<div className="flex flex-col gap-3 @lg/admin-content:flex-row @lg/admin-content:flex-wrap @lg/admin-content:items-start @lg/admin-content:justify-between">
+						<CardTitle className="min-w-0 text-2xl break-words @lg/admin-content:min-w-48 @lg/admin-content:flex-1">
+							{exchange.name}
+						</CardTitle>
 						{archived ? (
 							<ExchangeStateBadge state="archived" />
 						) : (
-							<div className="flex shrink-0 flex-wrap items-center gap-2">
+							<div className="flex max-w-full flex-wrap items-center gap-2">
 								<Button size="sm" variant="outline" onClick={() => setEditOpen(true)} disabled={busy}>
 									<Pencil className="size-4" />
 									{m.action_edit()}
