@@ -7,7 +7,7 @@
 	"admin_exchanges_empty": "No exchanges yet.",
 	"admin_exchanges_load_error": "Couldn't load the exchanges.",
 	"admin_exchanges_not_found": "This exchange doesn't exist.",
-	"admin_exchanges_back": "Back to Exchanges",
+	"admin_exchanges_back": "Back to Gift Exchanges",
 	"admin_exchanges_state_not_drawn": "Not Drawn",
 	"admin_exchanges_state_drawn": "Drawn",
 	"admin_exchanges_state_archived": "Archived",

@@ -7,7 +7,7 @@
 	"admin_exchanges_empty": "Aucun échange pour l’instant.",
 	"admin_exchanges_load_error": "Impossible de charger les échanges.",
 	"admin_exchanges_not_found": "Cet échange n’existe pas.",
-	"admin_exchanges_back": "Retour aux échanges",
+	"admin_exchanges_back": "Retour aux échanges de cadeaux",
 	"admin_exchanges_state_not_drawn": "Tirage à faire",
 	"admin_exchanges_state_drawn": "Tirage effectué",
 	"admin_exchanges_state_archived": "Archivé",
