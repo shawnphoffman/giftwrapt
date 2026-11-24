@@ -168,6 +168,14 @@
 		"readsTheWeb": false
 	},
 	{
+		"name": "list_my_gift_exchanges",
+		"title": "My Gift Exchanges",
+		"description": "The gift exchanges (Secret Santa) the user is in where names have been drawn: each with its name, budget, gift date, and the person the user drew, soonest first. Calling this counts as the user having looked at who they drew, just like opening it in the app, so call it only when the user wants to know. Only the user’s own assignments are returned, never anyone else’s. Pass the person’s id to get_gift_context to plan the gift.",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
 		"name": "list_my_gifts",
 		"title": "My Gifts",
 		"description": "Everything the user (or their partner) is giving: claims and off-list gifts across every list, with costs and totals per recipient. Filter by recipient_id (user or dependent) or by list type. Costs are this household’s share.",

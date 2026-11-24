@@ -17,6 +17,7 @@ import { toolError } from './errors'
 import { registerPrompts, registerResources } from './extras'
 import { registerCommentTools } from './tools/comments'
 import { registerDependentTools } from './tools/dependents'
+import { registerExchangeTools } from './tools/exchanges'
 import { registerGroupTools } from './tools/groups'
 import { registerIntelligenceTools } from './tools/intelligence'
 import { registerItemTools } from './tools/items'
@@ -36,6 +37,7 @@ const INSTRUCTIONS = [
 	'- Gifter view (get_gift_context for a person, get_wishlist for one list): other people’s lists, including claims, so the user can shop without duplicating gifts.',
 	'Gift ideas (giftideas lists, and myGiftIdeas in get_wishlist) are the user’s own private notes about someone. The person did not ask for them and cannot see them. Never describe a gift idea as on someone’s list, as something they want or asked for, or mix ideas in with their list items; always present them separately as the user’s ideas.',
 	'Start with get_me to learn who the user is, then list_people to see who they can shop for. To decide what to give someone, call get_gift_context with their id: one call covers their lists, the user’s ideas and past gifts for them, and upcoming occasions.',
+	'If the user asks who they drew in a gift exchange (Secret Santa), call list_my_gift_exchanges; it records that they looked, so call it only when they want to know.',
 	'Long results are paged: when a result says it is truncated, call again with the offset it names.',
 	'Ids are stable: use the numeric list and item ids the tools return.',
 ].join('\n')
@@ -111,6 +113,7 @@ export function createMcpServer(ctx: ToolContext): McpServer {
 	registerOccasionTools(server, ctx)
 	registerIntelligenceTools(server, ctx)
 	registerDependentTools(server, ctx)
+	registerExchangeTools(server, ctx)
 	registerResources(server, ctx)
 	registerPrompts(server)
 	return server

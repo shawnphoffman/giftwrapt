@@ -19,8 +19,9 @@ import {
 import { eq, inArray } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { createExchangeImpl, drawExchangeImpl } from '@/api/_gift-exchanges-impl'
 import { db } from '@/db'
-import { appSettings, itemGroups, items, recommendations, users } from '@/db/schema'
+import { appSettings, giftExchanges, itemGroups, items, recommendations, users } from '@/db/schema'
 import { createLogger } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
 
@@ -106,6 +107,7 @@ const NO_IDS = new Set(['preview_url', 'lookup_barcode'])
 const OPEN_WORLD = new Set(['add_item', 'add_items', 'preview_url', 'lookup_barcode'])
 
 const createdUserIds: Array<string> = []
+const createdExchangeIds: Array<string> = []
 
 describe('MCP tool text and annotations', () => {
 	beforeEach(async () => {
@@ -114,6 +116,7 @@ describe('MCP tool text and annotations', () => {
 		await setSetting('intelligenceEnabled', true)
 	})
 	afterEach(async () => {
+		if (createdExchangeIds.length) await db.delete(giftExchanges).where(inArray(giftExchanges.id, createdExchangeIds.splice(0)))
 		if (createdUserIds.length) await db.delete(users).where(inArray(users.id, createdUserIds.splice(0)))
 		await setSetting('intelligenceEnabled', false)
 		await setMcpEnabled(false)
@@ -205,6 +208,16 @@ describe('MCP tool text and annotations', () => {
 			payload: { actions: [] },
 		})
 
+		// A drawn gift exchange, so list_my_gift_exchanges returns a person.
+		const exchange = await createExchangeImpl({
+			actorId: me.id,
+			input: { name: 'Family Swap', budget: 25, giftDate: '2026-12-25', memberUserIds: [me.id, partner.id, friend.id] },
+		})
+		if (exchange.kind !== 'ok') throw new Error(`create failed: ${exchange.reason}`)
+		createdExchangeIds.push(exchange.id)
+		const drawn = await drawExchangeImpl({ exchangeId: exchange.id })
+		if (drawn.kind !== 'ok') throw new Error(`draw failed: ${drawn.reason}`)
+
 		const cases: Record<string, Record<string, unknown>> = {
 			get_me: {},
 			list_my_lists: {},
@@ -218,6 +231,7 @@ describe('MCP tool text and annotations', () => {
 			list_upcoming_occasions: { days: 366 },
 			list_received_gifts: {},
 			list_recommendations: {},
+			list_my_gift_exchanges: {},
 		}
 
 		const { client, close } = await connect(me.id)
@@ -249,6 +263,10 @@ describe('MCP tool text and annotations', () => {
 			expect(myList).toContain(`Group #${myGroup.id} "Either" (pick one): #${kettle.id}`)
 			expect(myList).toContain('https://example.com/kettle Notes: the red one')
 			expect(myList).toMatch(/Teapot \[no link\]/u)
+
+			const exchanges = textOf((await client.callTool({ name: 'list_my_gift_exchanges', arguments: {} })) as ToolResult)
+			expect(exchanges).toContain(`[exchange id ${exchange.id}]`)
+			expect(exchanges).toMatch(/You give to .+ \[user id [^\]]+\]\./u)
 		} finally {
 			await close()
 		}
