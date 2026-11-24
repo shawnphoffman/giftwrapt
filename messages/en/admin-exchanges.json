@@ -97,10 +97,10 @@
 	"admin_exchanges_locked_denied": "{giver} can't gift to {recipient} because {giver} can't see {recipient}'s lists",
 	"admin_exchanges_problem_nobody_to_gift_to_title": "{name} has nobody to gift to",
 	"admin_exchanges_problem_nobody_to_gift_to_title_many": "{names} have nobody to gift to",
-	"admin_exchanges_problem_nobody_to_gift_to_body": "Turn on at least one person they can gift to.",
+	"admin_exchanges_problem_nobody_to_gift_to_body": "Answer Yes for at least one person they can gift to.",
 	"admin_exchanges_problem_nobody_can_gift_title": "Nobody can gift to {name}",
 	"admin_exchanges_problem_nobody_can_gift_title_many": "Nobody can gift to {names}",
-	"admin_exchanges_problem_nobody_can_gift_body": "Turn on at least one person who can gift to them.",
+	"admin_exchanges_problem_nobody_can_gift_body": "Answer Yes for at least one person who can gift to them.",
 	"admin_exchanges_problem_stuck_title": "Names can't be drawn",
 	"admin_exchanges_problem_stuck_givers": "{givers} can only gift to {recipients}.",
 	"admin_exchanges_problem_stuck_givers_count": [
