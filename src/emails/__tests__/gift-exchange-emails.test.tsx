@@ -37,7 +37,7 @@ describe('GiftExchangeReadyEmail', () => {
 		expect(html).toContain('lang="fr"')
 		expect(body).toContain('Votre tirage est prêt')
 		expect(body).toContain('« Family Swap »')
-		expect(body).toContain('Date des cadeaux : 25 décembre 2026')
+		expect(body).toContain('Date de l’échange : 25 décembre 2026')
 		expect(body).toContain('Budget : 25,50 €')
 		expect(body).not.toContain('Your assignment')
 	})
