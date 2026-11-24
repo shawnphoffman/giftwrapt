@@ -11,6 +11,16 @@ export function memberName(member: Pick<AdminExchangeMember, 'name' | 'email'> |
 	return member?.name || member?.email || m.admin_exchanges_deleted_user()
 }
 
+/**
+ * The short name the Yes / No dialog's column headers and the table's column
+ * headers show: the first word of the name, or the whole email when there is
+ * no name. The locked-pair reasons use it too, so they read
+ * "Maya can't gift to Nora, who is Maya's guardian".
+ */
+export function memberShortName(member: Pick<AdminExchangeMember, 'name' | 'email'> | undefined): string {
+	return memberName(member).split(' ')[0]
+}
+
 export function giftDateLabel(giftDate: string): string {
 	return formatCalendarDate(giftDate, { dateStyle: 'medium' })
 }
@@ -26,6 +36,7 @@ export function exchangeMetaLine(
 	return m.admin_exchanges_meta_with_budget({ date, budget, count })
 }
 
+/** Pass short names (`memberShortName`), as the column headers show them. */
 export function lockedReasonText(reason: LockedReason, giver: string, recipient: string): string {
 	switch (reason) {
 		case 'giver-is-child-of-recipient':

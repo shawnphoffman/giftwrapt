@@ -18,7 +18,7 @@ import { m } from '@/paraglide/messages.js'
 
 import { GIFT_EXCHANGES_QUERY_KEY } from './gift-exchange-details-dialog'
 import { buildExchangeModel, pairKey } from './gift-exchange-model'
-import { lockedReasonText, memberName, problemText, refusalMessage } from './gift-exchange-text'
+import { lockedReasonText, memberName, memberShortName, problemText, refusalMessage } from './gift-exchange-text'
 
 /**
  * The Yes / No dialog for one person: for each other person, "Can {name}
@@ -171,10 +171,12 @@ export function GiftExchangeRulesDialog({
 										const otherName = memberName(other)
 										const givesLocked = draftModel?.lockedReason.get(pairKey(memberId!, other.id))
 										const receivesLocked = draftModel?.lockedReason.get(pairKey(other.id, memberId!))
-										const reasons = [
-											givesLocked && lockedReasonText(givesLocked, name, otherName),
-											receivesLocked && lockedReasonText(receivesLocked, otherName, name),
-										].filter((r): r is string => Boolean(r))
+										// Short names, the same ones the column headers use.
+										const shortName = memberShortName(member)
+										const otherShortName = memberShortName(other)
+										const givesReason = givesLocked && lockedReasonText(givesLocked, shortName, otherShortName)
+										const receivesReason = receivesLocked && lockedReasonText(receivesLocked, otherShortName, shortName)
+										const reasons = [givesReason, receivesReason].filter((r): r is string => Boolean(r))
 										return (
 											<div key={other.id} className="contents">
 												<div className="col-span-2 flex min-w-0 items-center gap-2 border-t px-3 pt-3 sm:col-span-1 sm:py-3">
@@ -192,7 +194,7 @@ export function GiftExchangeRulesDialog({
 													<YesNo
 														yes={!givesLocked && !blocks.has(pairKey(memberId!, other.id))}
 														locked={givesLocked}
-														lockedText={givesLocked && lockedReasonText(givesLocked, name, otherName)}
+														lockedText={givesReason}
 														label={m.admin_exchanges_rules_pair_aria({ giver: name, recipient: otherName })}
 														disabled={busy}
 														onChange={yes => setPair(memberId!, other.id, yes)}
@@ -202,7 +204,7 @@ export function GiftExchangeRulesDialog({
 													<YesNo
 														yes={!receivesLocked && !blocks.has(pairKey(other.id, memberId!))}
 														locked={receivesLocked}
-														lockedText={receivesLocked && lockedReasonText(receivesLocked, otherName, name)}
+														lockedText={receivesReason}
 														label={m.admin_exchanges_rules_pair_aria({ giver: otherName, recipient: name })}
 														disabled={busy}
 														onChange={yes => setPair(other.id, memberId!, yes)}

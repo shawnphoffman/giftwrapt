@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 import { type ExchangeModel, pairKey } from './gift-exchange-model'
-import { lockedReasonText, memberName } from './gift-exchange-text'
+import { lockedReasonText, memberName, memberShortName } from './gift-exchange-text'
 
 type CellKind = 'self' | 'can' | 'off' | 'locked'
 
@@ -70,7 +70,12 @@ export function GiftExchangeMatrix({
 			case 'off':
 				return m.admin_exchanges_tip_off({ giver: g, recipient: r })
 			case 'locked':
-				return lockedReasonText(model.lockedReason.get(pairKey(giver.id, recipient.id))!, g, r)
+				// Short names, as in the column headers and the Yes / No dialog.
+				return lockedReasonText(
+					model.lockedReason.get(pairKey(giver.id, recipient.id))!,
+					memberShortName(giver),
+					memberShortName(recipient)
+				)
 		}
 	}
 
