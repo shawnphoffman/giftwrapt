@@ -8,7 +8,7 @@
 // A giver is never allowed to draw themselves, whatever the relation says.
 //
 // Randomness comes from an injected `RandomInt` so tests are repeatable. On
-// the server pass `crypto.randomInt`.
+// the server pass `secureRandomInt` from `secure-random.ts`.
 
 // ===============================
 // Types

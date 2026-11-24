@@ -10,11 +10,6 @@
 // Every write that touches pairings locks the exchange row first, so two
 // admins pressing Redraw at once can't interleave.
 
-// A namespace import, read only when called: `admin.ts` imports this module
-// and is itself in the client graph, where `node:crypto` is an external that
-// throws on a named import.
-import * as nodeCrypto from 'node:crypto'
-
 import { and, asc, count, desc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
@@ -23,6 +18,7 @@ import type { Role } from '@/db/schema'
 import { giftExchangeBlocks, giftExchangeMembers, giftExchanges, users } from '@/db/schema'
 import { checkDraw, drawAssignments, type DrawCheck, type DrawProblem, type MemberPair } from '@/lib/gift-exchange/draw'
 import { canGiftTo, loadExchangeGiftRules, type LockedPair } from '@/lib/gift-exchange/rules'
+import { secureRandomInt } from '@/lib/gift-exchange/secure-random'
 import { getAppSettings } from '@/lib/settings-loader'
 
 import type {
@@ -164,7 +160,7 @@ function budgetNumber(budget: string | null): number | null {
 	return Number.isFinite(n) ? n : null
 }
 
-const random = (maxExclusive: number) => nodeCrypto.randomInt(maxExclusive)
+const random = (maxExclusive: number) => secureRandomInt(maxExclusive)
 
 type LockedExchange = { id: string; drawnAt: Date | null; archivedAt: Date | null }
 
