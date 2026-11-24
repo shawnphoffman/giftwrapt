@@ -57,6 +57,11 @@ export function initSentryServer(): void {
 		release: resolveSentryRelease(),
 		tracesSampleRate: env.SENTRY_TRACES_SAMPLE_RATE ?? 0,
 		sendDefaultPii: false,
+		// The SDK's ESM loader hooks exist to patch libraries as they are
+		// imported. Ours are bundled, so there is little for them to match, but
+		// every chunk loaded after init pays for them: about a fifth of the CPU
+		// of a cold start. Request and outgoing-call spans don't use them.
+		registerEsmLoaderHooks: false,
 		beforeSend,
 	})
 }

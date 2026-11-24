@@ -76,6 +76,12 @@ describe('with SENTRY_DSN', () => {
 		expect(mocks.flush).toHaveBeenCalledTimes(1)
 	})
 
+	it('leaves the ESM loader hooks off, which slow every chunk loaded after init', async () => {
+		const { initSentryServer } = await load()
+		initSentryServer()
+		expect(mocks.init).toHaveBeenCalledWith(expect.objectContaining({ registerEsmLoaderHooks: false }))
+	})
+
 	it('does not re-initialize when another bundle copy already did', async () => {
 		mocks.initialized = true
 		const { initSentryServer, captureServerException } = await load()
