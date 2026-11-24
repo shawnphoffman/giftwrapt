@@ -18,6 +18,7 @@ import { revealListPurchases } from '@/lib/reveal'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
+import { afterPairingsChanged, type PairingChangeEvent, removeUserFromOpenExchangesInTx } from './_gift-exchanges-impl'
 import {
 	getOwnersWithRelationshipsForMeImpl,
 	getUsersWithRelationshipsImpl,
@@ -305,7 +306,13 @@ export async function deleteUserAsAdminImpl(args: {
 	})
 	if (!user) return { kind: 'error', reason: 'not-found' }
 
+	let exchangeEvents: Array<PairingChangeEvent> = []
 	await dbx.transaction(async tx => {
+		// Gift exchanges that aren't archived lose the member before the user
+		// row goes, patching or redrawing so everyone left still has one giver
+		// and one recipient (plan 39). Archived ones keep the row; the FK
+		// nulls its userId ("Deleted user").
+		exchangeEvents = await removeUserFromOpenExchangesInTx(tx as unknown as SchemaDatabase, userId)
 		// Clear dangling partner pointers (no FK constraint on partnerId).
 		await tx.update(users).set({ partnerId: null }).where(eq(users.partnerId, userId))
 		// Pre-null item_scrapes.userId before falling into the cascade. Without
@@ -317,6 +324,7 @@ export async function deleteUserAsAdminImpl(args: {
 		// items/claims/comments/addons/editors), guardianships, etc.
 		await tx.delete(users).where(eq(users.id, userId))
 	})
+	await afterPairingsChanged(exchangeEvents)
 
 	// Best-effort avatar cleanup, after the DB commit.
 	if (user.image) {

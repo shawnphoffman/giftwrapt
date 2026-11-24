@@ -214,6 +214,21 @@ export const addCatalogEntryAsAdmin = ok
 export const updateCatalogEntryAsAdmin = ok
 export const deleteCatalogEntryAsAdmin = ok
 
+// @/api/gift-exchanges
+export const listGiftExchangesAsAdmin = emptyArray
+export const getGiftExchangeAsAdmin = (): Promise<{ kind: 'error'; reason: 'not-found' }> =>
+	Promise.resolve({ kind: 'error', reason: 'not-found' })
+export const createGiftExchangeAsAdmin = (): Promise<{ kind: 'ok'; id: string }> => Promise.resolve({ kind: 'ok', id: 'storybook' })
+export const updateGiftExchangeAsAdmin = ok
+export const deleteGiftExchangeAsAdmin = ok
+export const addGiftExchangeMembersAsAdmin = (): Promise<{ kind: 'ok'; added: number }> => Promise.resolve({ kind: 'ok', added: 0 })
+export const removeGiftExchangeMemberAsAdmin = ok
+export const saveGiftExchangeMemberRulesAsAdmin = (): Promise<{ kind: 'ok'; redrew: boolean }> =>
+	Promise.resolve({ kind: 'ok', redrew: false })
+export const drawGiftExchangeAsAdmin = ok
+export const redrawGiftExchangeAsAdmin = ok
+export const archiveGiftExchangeAsAdmin = ok
+
 // @/api/purchases
 export const getPurchaseSummary = (): Promise<{ items: Array<unknown>; partner: null }> => Promise.resolve({ items: [], partner: null })
 

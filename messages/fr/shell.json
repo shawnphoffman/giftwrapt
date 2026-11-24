@@ -1,6 +1,7 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"page_users": "Utilisateurs",
+	"page_exchanges": "Échanges de cadeaux",
 	"page_two_factor_code": "Code à deux facteurs",
 	"page_suggestions": "Suggestions",
 	"page_storage": "Stockage",

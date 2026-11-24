@@ -11,6 +11,7 @@ export default function NavBreadcrumbs() {
 	const isAdminIntelligence = location.pathname === '/admin/intelligence' || location.pathname.startsWith('/admin/intelligence/')
 	const isDeepAdmin = location.pathname.includes('/admin/') && !isAdminIntelligence
 	const isAdminUserEdit = location.pathname.startsWith('/admin/user/')
+	const isAdminExchange = location.pathname.startsWith('/admin/exchanges/') && location.pathname !== '/admin/exchanges/'
 	const isAdminIntelligenceSubpage = location.pathname.startsWith('/admin/intelligence/') && location.pathname !== '/admin/intelligence/'
 
 	const isOrganizing = location.pathname.includes('/organize')
@@ -62,6 +63,16 @@ export default function NavBreadcrumbs() {
 						<BreadcrumbItem>
 							<BreadcrumbLink asChild>
 								<Link to="/admin/users">{m.page_users()}</Link>
+							</BreadcrumbLink>
+						</BreadcrumbItem>
+					</>
+				)}
+				{isAdminExchange && (
+					<>
+						<BreadcrumbSeparator />
+						<BreadcrumbItem>
+							<BreadcrumbLink asChild>
+								<Link to="/admin/exchanges">{m.page_exchanges()}</Link>
 							</BreadcrumbLink>
 						</BreadcrumbItem>
 					</>

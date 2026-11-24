@@ -334,6 +334,7 @@
 	"admin_nav_email": "Email",
 	"admin_nav_auth": "Auth",
 	"admin_nav_users": "Users",
+	"admin_nav_exchanges": "Exchanges",
 	"admin_nav_storage": "Storage",
 	"admin_nav_scraping": "Scraping",
 	"admin_nav_ai": "AI",

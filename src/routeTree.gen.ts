@@ -79,6 +79,7 @@ import { Route as authSignInMobilePasskeyRouteImport } from './routes/(auth)/sig
 import { Route as authOauthConsentRouteImport } from './routes/(auth)/oauth.consent'
 import { Route as coreAdminIntelligenceRouteRouteImport } from './routes/(core)/admin_/intelligence/route'
 import { Route as coreAdminIntelligenceIndexRouteImport } from './routes/(core)/admin_/intelligence/index'
+import { Route as coreAdminExchangesIndexRouteImport } from './routes/(core)/admin/exchanges.index'
 import { Route as ApiSseListListIdRouteImport } from './routes/api/sse/list.$listId'
 import { Route as coreListsListIdOrganizeRouteImport } from './routes/(core)/lists_/$listId.organize'
 import { Route as coreListsListIdEditRouteImport } from './routes/(core)/lists_/$listId.edit'
@@ -88,6 +89,7 @@ import { Route as coreAdminIntelligenceNotificationsRouteImport } from './routes
 import { Route as coreAdminIntelligenceHistoryRouteImport } from './routes/(core)/admin_/intelligence/history'
 import { Route as coreAdminIntelligenceAnalyzersRouteImport } from './routes/(core)/admin_/intelligence/analyzers'
 import { Route as coreAdminUserIdRouteImport } from './routes/(core)/admin/user.$id'
+import { Route as coreAdminExchangesExchangeIdRouteImport } from './routes/(core)/admin/exchanges.$exchangeId'
 
 const coreRouteRoute = coreRouteRouteImport.update({
   id: '/(core)',
@@ -448,6 +450,11 @@ const coreAdminIntelligenceIndexRoute =
     path: '/',
     getParentRoute: () => coreAdminIntelligenceRouteRoute,
   } as any)
+const coreAdminExchangesIndexRoute = coreAdminExchangesIndexRouteImport.update({
+  id: '/exchanges/',
+  path: '/exchanges/',
+  getParentRoute: () => coreAdminRouteRoute,
+} as any)
 const ApiSseListListIdRoute = ApiSseListListIdRouteImport.update({
   id: '/api/sse/list/$listId',
   path: '/api/sse/list/$listId',
@@ -498,6 +505,12 @@ const coreAdminUserIdRoute = coreAdminUserIdRouteImport.update({
   path: '/user/$id',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
+const coreAdminExchangesExchangeIdRoute =
+  coreAdminExchangesExchangeIdRouteImport.update({
+    id: '/exchanges/$exchangeId',
+    path: '/exchanges/$exchangeId',
+    getParentRoute: () => coreAdminRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/admin': typeof coreAdminRouteRouteWithChildren
@@ -568,6 +581,7 @@ export interface FileRoutesByFullPath {
   '/purchases': typeof corePurchasesIndexRoute
   '/settings/': typeof coreSettingsIndexRoute
   '/temp/': typeof coreTempIndexRoute
+  '/admin/exchanges/$exchangeId': typeof coreAdminExchangesExchangeIdRoute
   '/admin/user/$id': typeof coreAdminUserIdRoute
   '/admin/intelligence/analyzers': typeof coreAdminIntelligenceAnalyzersRoute
   '/admin/intelligence/history': typeof coreAdminIntelligenceHistoryRoute
@@ -577,6 +591,7 @@ export interface FileRoutesByFullPath {
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
   '/lists/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
+  '/admin/exchanges': typeof coreAdminExchangesIndexRoute
   '/admin/intelligence/': typeof coreAdminIntelligenceIndexRoute
 }
 export interface FileRoutesByTo {
@@ -644,6 +659,7 @@ export interface FileRoutesByTo {
   '/purchases': typeof corePurchasesIndexRoute
   '/settings': typeof coreSettingsIndexRoute
   '/temp': typeof coreTempIndexRoute
+  '/admin/exchanges/$exchangeId': typeof coreAdminExchangesExchangeIdRoute
   '/admin/user/$id': typeof coreAdminUserIdRoute
   '/admin/intelligence/analyzers': typeof coreAdminIntelligenceAnalyzersRoute
   '/admin/intelligence/history': typeof coreAdminIntelligenceHistoryRoute
@@ -653,6 +669,7 @@ export interface FileRoutesByTo {
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
   '/lists/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
+  '/admin/exchanges': typeof coreAdminExchangesIndexRoute
   '/admin/intelligence': typeof coreAdminIntelligenceIndexRoute
 }
 export interface FileRoutesById {
@@ -726,6 +743,7 @@ export interface FileRoutesById {
   '/(core)/purchases/': typeof corePurchasesIndexRoute
   '/(core)/settings/': typeof coreSettingsIndexRoute
   '/(core)/temp/': typeof coreTempIndexRoute
+  '/(core)/admin/exchanges/$exchangeId': typeof coreAdminExchangesExchangeIdRoute
   '/(core)/admin/user/$id': typeof coreAdminUserIdRoute
   '/(core)/admin_/intelligence/analyzers': typeof coreAdminIntelligenceAnalyzersRoute
   '/(core)/admin_/intelligence/history': typeof coreAdminIntelligenceHistoryRoute
@@ -735,6 +753,7 @@ export interface FileRoutesById {
   '/(core)/lists_/$listId/edit': typeof coreListsListIdEditRoute
   '/(core)/lists_/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
+  '/(core)/admin/exchanges/': typeof coreAdminExchangesIndexRoute
   '/(core)/admin_/intelligence/': typeof coreAdminIntelligenceIndexRoute
 }
 export interface FileRouteTypes {
@@ -808,6 +827,7 @@ export interface FileRouteTypes {
     | '/purchases'
     | '/settings/'
     | '/temp/'
+    | '/admin/exchanges/$exchangeId'
     | '/admin/user/$id'
     | '/admin/intelligence/analyzers'
     | '/admin/intelligence/history'
@@ -817,6 +837,7 @@ export interface FileRouteTypes {
     | '/lists/$listId/edit'
     | '/lists/$listId/organize'
     | '/api/sse/list/$listId'
+    | '/admin/exchanges'
     | '/admin/intelligence/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -884,6 +905,7 @@ export interface FileRouteTypes {
     | '/purchases'
     | '/settings'
     | '/temp'
+    | '/admin/exchanges/$exchangeId'
     | '/admin/user/$id'
     | '/admin/intelligence/analyzers'
     | '/admin/intelligence/history'
@@ -893,6 +915,7 @@ export interface FileRouteTypes {
     | '/lists/$listId/edit'
     | '/lists/$listId/organize'
     | '/api/sse/list/$listId'
+    | '/admin/exchanges'
     | '/admin/intelligence'
   id:
     | '__root__'
@@ -965,6 +988,7 @@ export interface FileRouteTypes {
     | '/(core)/purchases/'
     | '/(core)/settings/'
     | '/(core)/temp/'
+    | '/(core)/admin/exchanges/$exchangeId'
     | '/(core)/admin/user/$id'
     | '/(core)/admin_/intelligence/analyzers'
     | '/(core)/admin_/intelligence/history'
@@ -974,6 +998,7 @@ export interface FileRouteTypes {
     | '/(core)/lists_/$listId/edit'
     | '/(core)/lists_/$listId/organize'
     | '/api/sse/list/$listId'
+    | '/(core)/admin/exchanges/'
     | '/(core)/admin_/intelligence/'
   fileRoutesById: FileRoutesById
 }
@@ -1504,6 +1529,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminIntelligenceIndexRouteImport
       parentRoute: typeof coreAdminIntelligenceRouteRoute
     }
+    '/(core)/admin/exchanges/': {
+      id: '/(core)/admin/exchanges/'
+      path: '/exchanges'
+      fullPath: '/admin/exchanges'
+      preLoaderRoute: typeof coreAdminExchangesIndexRouteImport
+      parentRoute: typeof coreAdminRouteRoute
+    }
     '/api/sse/list/$listId': {
       id: '/api/sse/list/$listId'
       path: '/api/sse/list/$listId'
@@ -1567,6 +1599,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminUserIdRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
+    '/(core)/admin/exchanges/$exchangeId': {
+      id: '/(core)/admin/exchanges/$exchangeId'
+      path: '/exchanges/$exchangeId'
+      fullPath: '/admin/exchanges/$exchangeId'
+      preLoaderRoute: typeof coreAdminExchangesExchangeIdRouteImport
+      parentRoute: typeof coreAdminRouteRoute
+    }
   }
 }
 
@@ -1585,7 +1624,9 @@ interface coreAdminRouteRouteChildren {
   coreAdminStorageRoute: typeof coreAdminStorageRoute
   coreAdminUsersRoute: typeof coreAdminUsersRoute
   coreAdminIndexRoute: typeof coreAdminIndexRoute
+  coreAdminExchangesExchangeIdRoute: typeof coreAdminExchangesExchangeIdRoute
   coreAdminUserIdRoute: typeof coreAdminUserIdRoute
+  coreAdminExchangesIndexRoute: typeof coreAdminExchangesIndexRoute
 }
 
 const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
@@ -1603,7 +1644,9 @@ const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
   coreAdminStorageRoute: coreAdminStorageRoute,
   coreAdminUsersRoute: coreAdminUsersRoute,
   coreAdminIndexRoute: coreAdminIndexRoute,
+  coreAdminExchangesExchangeIdRoute: coreAdminExchangesExchangeIdRoute,
   coreAdminUserIdRoute: coreAdminUserIdRoute,
+  coreAdminExchangesIndexRoute: coreAdminExchangesIndexRoute,
 }
 
 const coreAdminRouteRouteWithChildren = coreAdminRouteRoute._addFileChildren(

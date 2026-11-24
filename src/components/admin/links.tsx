@@ -1,5 +1,20 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { Barcode, Bug, CalendarClock, Database, Eye, Globe, HardDrive, Lock, Mail, Plug, ShieldCheck, Sparkles, Users } from 'lucide-react'
+import {
+	Barcode,
+	Bug,
+	CalendarClock,
+	Database,
+	Eye,
+	Gift,
+	Globe,
+	HardDrive,
+	Lock,
+	Mail,
+	Plug,
+	ShieldCheck,
+	Sparkles,
+	Users,
+} from 'lucide-react'
 
 import { buttonVariants } from '@/components/ui/button'
 import { useAppSetting } from '@/hooks/use-app-settings'
@@ -45,6 +60,10 @@ export default function AdminLinks() {
 			<Link to="/admin/users" className={navLinkClass(pathname === '/admin/users' || pathname.startsWith('/admin/user/'))}>
 				<Users />
 				{m.admin_nav_users()}
+			</Link>
+			<Link to="/admin/exchanges" className={navLinkClass(pathname === '/admin/exchanges' || pathname.startsWith('/admin/exchanges/'))}>
+				<Gift />
+				{m.admin_nav_exchanges()}
 			</Link>
 			{storageConfigured && (
 				<Link to="/admin/storage" className={navLinkClass(pathname === '/admin/storage')}>

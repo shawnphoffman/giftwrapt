@@ -18,7 +18,7 @@ function roleLabel(role: string): string {
 	}
 }
 
-export default function UserTypeBadge({ user }: { user: User }) {
+export default function UserTypeBadge({ user }: { user: Pick<User, 'role'> }) {
 	const variant = user.role === 'admin' ? 'destructive' : user.role === 'child' ? 'default' : 'secondary'
 	const label = roleLabel(user.role)
 	return (

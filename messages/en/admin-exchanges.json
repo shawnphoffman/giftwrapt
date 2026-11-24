@@ -1,0 +1,157 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"admin_exchanges_title": "Gift Exchanges",
+	"admin_exchanges_description": "Draw names so everyone gifts to one person.",
+	"admin_exchanges_add": "Add Exchange",
+	"admin_exchanges_adding": "Adding…",
+	"admin_exchanges_empty": "No exchanges yet.",
+	"admin_exchanges_load_error": "Couldn't load the exchanges.",
+	"admin_exchanges_not_found": "This exchange doesn't exist.",
+	"admin_exchanges_back": "Back to Exchanges",
+	"admin_exchanges_state_not_drawn": "Not Drawn",
+	"admin_exchanges_state_drawn": "Drawn",
+	"admin_exchanges_state_archived": "Archived",
+	"admin_exchanges_meta": [
+		{
+			"declarations": ["input count", "input date", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{date}, {count} person",
+				"countPlural=*": "{date}, {count} people"
+			}
+		}
+	],
+	"admin_exchanges_meta_with_budget": [
+		{
+			"declarations": ["input count", "input date", "input budget", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{date}, {budget} budget, {count} person",
+				"countPlural=*": "{date}, {budget} budget, {count} people"
+			}
+		}
+	],
+	"admin_exchanges_drawn_at": "Names drawn {date}.",
+	"admin_exchanges_dialog_add_title": "Add Exchange",
+	"admin_exchanges_dialog_edit_title": "Edit Exchange",
+	"admin_exchanges_name_label": "Name",
+	"admin_exchanges_name_placeholder": "Family Christmas",
+	"admin_exchanges_budget_label": "Budget (Optional)",
+	"admin_exchanges_budget_invalid": "Enter an amount, like 50 or 25.50.",
+	"admin_exchanges_gift_date_label": "Gift Date",
+	"admin_exchanges_people_label": "People",
+	"admin_exchanges_add_person": "Add Person",
+	"admin_exchanges_add_everybody": "Add Everybody",
+	"admin_exchanges_person_search_placeholder": "Search people…",
+	"admin_exchanges_person_search_empty": "Nobody found.",
+	"admin_exchanges_remove_person_aria": "Remove {name}",
+	"admin_exchanges_created_toast": "Exchange added",
+	"admin_exchanges_saved_toast": "Exchange saved",
+	"admin_exchanges_save_failed": "Couldn't save the exchange.",
+	"admin_exchanges_action_failed": "Something went wrong. Try again.",
+	"admin_exchanges_draw": "Draw Names",
+	"admin_exchanges_redraw": "Redraw",
+	"admin_exchanges_archive": "Archive",
+	"admin_exchanges_too_few": "Add at least {minimum} people to draw names.",
+	"admin_exchanges_drawn_toast": "Names drawn",
+	"admin_exchanges_redrawn_toast": "Names redrawn",
+	"admin_exchanges_archived_toast": "Exchange archived",
+	"admin_exchanges_deleted_toast": "Exchange deleted",
+	"admin_exchanges_delete_title": "Delete {name}?",
+	"admin_exchanges_delete_body": "Names haven't been drawn yet, so the exchange and its people are deleted. This can't be undone.",
+	"admin_exchanges_archive_title": "Archive {name}?",
+	"admin_exchanges_archive_body": "The exchange ends for everyone, and this page then lists who gifted to whom. This can't be undone.",
+	"admin_exchanges_redraw_title": "Redraw names?",
+	"admin_exchanges_redraw_body": "Everyone gets a new person to gift to.",
+	"admin_exchanges_redraw_body_looked": "Someone has already looked at who they have. Everyone gets a new person to gift to and is told their assignment changed.",
+	"admin_exchanges_people_title": "People",
+	"admin_exchanges_people_description": "Pick someone to change who they can gift to and who can gift to them.",
+	"admin_exchanges_people_empty": "Nobody yet. Add people to get started.",
+	"admin_exchanges_person_counts": "Can gift to {gives}. {receives} can gift to {name}.",
+	"admin_exchanges_deleted_user": "Deleted user",
+	"admin_exchanges_added_toast": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Added {count} person",
+				"countPlural=*": "Added {count} people"
+			}
+		}
+	],
+	"admin_exchanges_removed_toast": "{name} removed",
+	"admin_exchanges_matrix_title": "Who Can Gift to Whom",
+	"admin_exchanges_matrix_description": "Pick a name to change it.",
+	"admin_exchanges_matrix_axis_recipient": "Gifts to →",
+	"admin_exchanges_matrix_axis_giver": "Person ↓",
+	"admin_exchanges_tip_can": "{giver} can gift to {recipient}",
+	"admin_exchanges_tip_off": "{giver} can't gift to {recipient}. It's turned off.",
+	"admin_exchanges_tip_self": "Nobody gifts to themselves",
+	"admin_exchanges_legend_can": "Can",
+	"admin_exchanges_legend_can_hint": "Can gift to them",
+	"admin_exchanges_legend_off": "Off",
+	"admin_exchanges_legend_off_hint": "Turned off",
+	"admin_exchanges_legend_locked": "Locked",
+	"admin_exchanges_legend_locked_hint": "Can't see their lists, or is their guardian",
+	"admin_exchanges_locked_guardian": "{giver} can't gift to {recipient}, who is {giver}'s guardian",
+	"admin_exchanges_locked_denied": "{giver} can't gift to {recipient} because {giver} can't see {recipient}'s lists",
+	"admin_exchanges_problem_nobody_to_gift_to_title": "{name} has nobody to gift to",
+	"admin_exchanges_problem_nobody_to_gift_to_title_many": "{names} have nobody to gift to",
+	"admin_exchanges_problem_nobody_to_gift_to_body": "Turn on at least one person they can gift to.",
+	"admin_exchanges_problem_nobody_can_gift_title": "Nobody can gift to {name}",
+	"admin_exchanges_problem_nobody_can_gift_title_many": "Nobody can gift to {names}",
+	"admin_exchanges_problem_nobody_can_gift_body": "Turn on at least one person who can gift to them.",
+	"admin_exchanges_problem_stuck_title": "Names can't be drawn",
+	"admin_exchanges_problem_stuck_givers": "{givers} can only gift to {recipients}.",
+	"admin_exchanges_problem_stuck_givers_count": [
+		{
+			"declarations": ["input giverCount", "input recipientCount", "local recipientPlural = recipientCount: plural"],
+			"selectors": ["recipientPlural"],
+			"match": {
+				"recipientPlural=one": "That's {giverCount} people gifting and only {recipientCount} person to gift to.",
+				"recipientPlural=*": "That's {giverCount} people gifting and only {recipientCount} people to gift to."
+			}
+		}
+	],
+	"admin_exchanges_problem_stuck_givers_fix": "Let one of them gift to someone else.",
+	"admin_exchanges_problem_stuck_recipients": "Only {givers} can gift to {recipients}.",
+	"admin_exchanges_problem_stuck_recipients_count": [
+		{
+			"declarations": ["input giverCount", "input recipientCount", "local giverPlural = giverCount: plural"],
+			"selectors": ["giverPlural"],
+			"match": {
+				"giverPlural=one": "That's {recipientCount} people to gift to and only {giverCount} person gifting.",
+				"giverPlural=*": "That's {recipientCount} people to gift to and only {giverCount} people gifting."
+			}
+		}
+	],
+	"admin_exchanges_problem_stuck_recipients_fix": "Let someone else gift to one of them.",
+	"admin_exchanges_problem_too_few_title": "Not enough people",
+	"admin_exchanges_rules_person_column": "Person",
+	"admin_exchanges_rules_gives_column": "Can {name} gift to them?",
+	"admin_exchanges_rules_receives_column": "Can they gift to {name}?",
+	"admin_exchanges_rules_pair_aria": "Can {giver} gift to {recipient}?",
+	"admin_exchanges_rules_drawn_note": "Names are already drawn. Saving a change here redraws them for everyone.",
+	"admin_exchanges_rules_empty": "Add more people to choose who they can gift to.",
+	"admin_exchanges_rules_save_and_redraw": "Save and Redraw",
+	"admin_exchanges_rules_saved_toast": "Saved",
+	"admin_exchanges_rules_saved_redrawn_toast": "Saved, and names were redrawn",
+	"admin_exchanges_remove_title": "Remove {name}?",
+	"admin_exchanges_remove_body_drawn": "Names are already drawn. Whoever had {name} gets a new person and is told their assignment changed.",
+	"admin_exchanges_remove_redraw_title": "Remove {name} and redraw?",
+	"admin_exchanges_remove_redraw_body": "Whoever had {name} can't take on the person {name} had, so names have to be redrawn for everyone.",
+	"admin_exchanges_remove_and_redraw": "Remove and Redraw",
+	"admin_exchanges_pairings_title": "Who Gifted to Whom",
+	"admin_exchanges_pairings_description": "Shown because this exchange is archived.",
+	"admin_exchanges_pairings_empty": "Nobody was paired.",
+	"admin_exchanges_gifted_to_aria": "gifted to",
+	"admin_exchanges_error_not_found": "This exchange no longer exists.",
+	"admin_exchanges_error_archived": "This exchange is archived and can't be changed.",
+	"admin_exchanges_error_user_banned": "Banned people can't be added.",
+	"admin_exchanges_error_user_not_found": "One of those people no longer exists.",
+	"admin_exchanges_error_already_drawn": "Names are already drawn, so this exchange can't be deleted. Archive it instead.",
+	"admin_exchanges_error_not_drawn": "Names haven't been drawn yet.",
+	"admin_exchanges_error_invalid_block": "That change couldn't be saved. Reload the page and try again.",
+	"admin_exchanges_error_needs_redraw": "{name} can't be fitted in without redrawing names. Redraw first, then add them.",
+	"admin_exchanges_error_needs_redraw_generic": "Someone can't be fitted in without redrawing names. Redraw first, then add them."
+}

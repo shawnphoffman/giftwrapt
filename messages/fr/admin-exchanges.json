@@ -1,0 +1,157 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"admin_exchanges_title": "Échanges de cadeaux",
+	"admin_exchanges_description": "Tirez les noms au sort pour que chaque personne offre un cadeau à une autre.",
+	"admin_exchanges_add": "Ajouter un échange",
+	"admin_exchanges_adding": "Ajout…",
+	"admin_exchanges_empty": "Aucun échange pour l’instant.",
+	"admin_exchanges_load_error": "Impossible de charger les échanges.",
+	"admin_exchanges_not_found": "Cet échange n’existe pas.",
+	"admin_exchanges_back": "Retour aux échanges",
+	"admin_exchanges_state_not_drawn": "Non tiré",
+	"admin_exchanges_state_drawn": "Tiré au sort",
+	"admin_exchanges_state_archived": "Archivé",
+	"admin_exchanges_meta": [
+		{
+			"declarations": ["input count", "input date", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{date}, {count} personne",
+				"countPlural=*": "{date}, {count} personnes"
+			}
+		}
+	],
+	"admin_exchanges_meta_with_budget": [
+		{
+			"declarations": ["input count", "input date", "input budget", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{date}, budget de {budget}, {count} personne",
+				"countPlural=*": "{date}, budget de {budget}, {count} personnes"
+			}
+		}
+	],
+	"admin_exchanges_drawn_at": "Tirage effectué le {date}.",
+	"admin_exchanges_dialog_add_title": "Ajouter un échange",
+	"admin_exchanges_dialog_edit_title": "Modifier l’échange",
+	"admin_exchanges_name_label": "Nom",
+	"admin_exchanges_name_placeholder": "Noël en famille",
+	"admin_exchanges_budget_label": "Budget (facultatif)",
+	"admin_exchanges_budget_invalid": "Saisissez un montant, par exemple 50 ou 25,50.",
+	"admin_exchanges_gift_date_label": "Date des cadeaux",
+	"admin_exchanges_people_label": "Personnes",
+	"admin_exchanges_add_person": "Ajouter une personne",
+	"admin_exchanges_add_everybody": "Ajouter tout le monde",
+	"admin_exchanges_person_search_placeholder": "Rechercher une personne…",
+	"admin_exchanges_person_search_empty": "Aucune personne trouvée.",
+	"admin_exchanges_remove_person_aria": "Retirer {name}",
+	"admin_exchanges_created_toast": "Échange ajouté",
+	"admin_exchanges_saved_toast": "Échange enregistré",
+	"admin_exchanges_save_failed": "Impossible d’enregistrer l’échange.",
+	"admin_exchanges_action_failed": "Une erreur s’est produite. Réessayez.",
+	"admin_exchanges_draw": "Tirer les noms",
+	"admin_exchanges_redraw": "Refaire le tirage",
+	"admin_exchanges_archive": "Archiver",
+	"admin_exchanges_too_few": "Ajoutez au moins {minimum} personnes pour tirer les noms.",
+	"admin_exchanges_drawn_toast": "Noms tirés au sort",
+	"admin_exchanges_redrawn_toast": "Nouveau tirage effectué",
+	"admin_exchanges_archived_toast": "Échange archivé",
+	"admin_exchanges_deleted_toast": "Échange supprimé",
+	"admin_exchanges_delete_title": "Supprimer « {name} » ?",
+	"admin_exchanges_delete_body": "Les noms n’ont pas encore été tirés, l’échange et ses personnes sont donc supprimés. Cette action est irréversible.",
+	"admin_exchanges_archive_title": "Archiver « {name} » ?",
+	"admin_exchanges_archive_body": "L’échange prend fin pour tout le monde, et cette page indique ensuite qui a offert à qui. Cette action est irréversible.",
+	"admin_exchanges_redraw_title": "Refaire le tirage ?",
+	"admin_exchanges_redraw_body": "Chaque personne reçoit un nouveau nom.",
+	"admin_exchanges_redraw_body_looked": "Quelqu’un a déjà regardé le nom qui lui a été attribué. Chaque personne reçoit un nouveau nom et est prévenue du changement.",
+	"admin_exchanges_people_title": "Personnes",
+	"admin_exchanges_people_description": "Choisissez une personne pour modifier à qui elle peut offrir et qui peut lui offrir.",
+	"admin_exchanges_people_empty": "Personne pour l’instant. Ajoutez des personnes pour commencer.",
+	"admin_exchanges_person_counts": "Peut offrir à : {gives}. Peuvent offrir à {name} : {receives}.",
+	"admin_exchanges_deleted_user": "Compte supprimé",
+	"admin_exchanges_added_toast": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} personne ajoutée",
+				"countPlural=*": "{count} personnes ajoutées"
+			}
+		}
+	],
+	"admin_exchanges_removed_toast": "{name} ne fait plus partie de l’échange",
+	"admin_exchanges_matrix_title": "Qui peut offrir à qui",
+	"admin_exchanges_matrix_description": "Choisissez un nom pour le modifier.",
+	"admin_exchanges_matrix_axis_recipient": "Offre à →",
+	"admin_exchanges_matrix_axis_giver": "Personne ↓",
+	"admin_exchanges_tip_can": "{giver} peut offrir à {recipient}",
+	"admin_exchanges_tip_off": "{giver} ne peut pas offrir à {recipient}. C’est désactivé.",
+	"admin_exchanges_tip_self": "Personne ne s’offre de cadeau à soi-même",
+	"admin_exchanges_legend_can": "Oui",
+	"admin_exchanges_legend_can_hint": "Peut lui offrir",
+	"admin_exchanges_legend_off": "Non",
+	"admin_exchanges_legend_off_hint": "Désactivé",
+	"admin_exchanges_legend_locked": "Bloqué",
+	"admin_exchanges_legend_locked_hint": "Ne voit pas ses listes, ou en est responsable",
+	"admin_exchanges_locked_guardian": "{giver} ne peut pas offrir à {recipient}, qui est responsable de {giver}",
+	"admin_exchanges_locked_denied": "{giver} ne peut pas offrir à {recipient}, car {giver} ne voit pas les listes de {recipient}",
+	"admin_exchanges_problem_nobody_to_gift_to_title": "{name} n’a personne à qui offrir",
+	"admin_exchanges_problem_nobody_to_gift_to_title_many": "{names} n’ont personne à qui offrir",
+	"admin_exchanges_problem_nobody_to_gift_to_body": "Activez au moins une personne à qui offrir.",
+	"admin_exchanges_problem_nobody_can_gift_title": "Personne ne peut offrir à {name}",
+	"admin_exchanges_problem_nobody_can_gift_title_many": "Personne ne peut offrir à {names}",
+	"admin_exchanges_problem_nobody_can_gift_body": "Activez au moins une personne qui peut offrir à chaque personne concernée.",
+	"admin_exchanges_problem_stuck_title": "Les noms ne peuvent pas être tirés",
+	"admin_exchanges_problem_stuck_givers": "{givers} ne peuvent offrir qu’à {recipients}.",
+	"admin_exchanges_problem_stuck_givers_count": [
+		{
+			"declarations": ["input giverCount", "input recipientCount", "local recipientPlural = recipientCount: plural"],
+			"selectors": ["recipientPlural"],
+			"match": {
+				"recipientPlural=one": "Cela fait {giverCount} personnes qui offrent pour seulement {recipientCount} personne à qui offrir.",
+				"recipientPlural=*": "Cela fait {giverCount} personnes qui offrent pour seulement {recipientCount} personnes à qui offrir."
+			}
+		}
+	],
+	"admin_exchanges_problem_stuck_givers_fix": "Permettez à l’une d’elles d’offrir à quelqu’un d’autre.",
+	"admin_exchanges_problem_stuck_recipients": "Il n’y a que {givers} qui peuvent offrir à {recipients}.",
+	"admin_exchanges_problem_stuck_recipients_count": [
+		{
+			"declarations": ["input giverCount", "input recipientCount", "local giverPlural = giverCount: plural"],
+			"selectors": ["giverPlural"],
+			"match": {
+				"giverPlural=one": "Cela fait {recipientCount} personnes à qui offrir pour seulement {giverCount} personne qui offre.",
+				"giverPlural=*": "Cela fait {recipientCount} personnes à qui offrir pour seulement {giverCount} personnes qui offrent."
+			}
+		}
+	],
+	"admin_exchanges_problem_stuck_recipients_fix": "Permettez à quelqu’un d’autre d’offrir à l’une d’elles.",
+	"admin_exchanges_problem_too_few_title": "Pas assez de personnes",
+	"admin_exchanges_rules_person_column": "Personne",
+	"admin_exchanges_rules_gives_column": "{name} peut offrir à cette personne ?",
+	"admin_exchanges_rules_receives_column": "Cette personne peut offrir à {name} ?",
+	"admin_exchanges_rules_pair_aria": "{giver} peut offrir à {recipient} ?",
+	"admin_exchanges_rules_drawn_note": "Les noms sont déjà tirés. Enregistrer une modification ici refait le tirage pour tout le monde.",
+	"admin_exchanges_rules_empty": "Ajoutez d’autres personnes pour choisir à qui elles peuvent offrir.",
+	"admin_exchanges_rules_save_and_redraw": "Enregistrer et refaire le tirage",
+	"admin_exchanges_rules_saved_toast": "Enregistré",
+	"admin_exchanges_rules_saved_redrawn_toast": "Enregistré, et un nouveau tirage a été effectué",
+	"admin_exchanges_remove_title": "Retirer {name} ?",
+	"admin_exchanges_remove_body_drawn": "Les noms sont déjà tirés. La personne qui avait tiré {name} reçoit un nouveau nom et est prévenue du changement.",
+	"admin_exchanges_remove_redraw_title": "Retirer {name} et refaire le tirage ?",
+	"admin_exchanges_remove_redraw_body": "La personne qui avait tiré {name} ne peut pas reprendre le nom que {name} avait, il faut donc refaire le tirage pour tout le monde.",
+	"admin_exchanges_remove_and_redraw": "Retirer et refaire le tirage",
+	"admin_exchanges_pairings_title": "Qui a offert à qui",
+	"admin_exchanges_pairings_description": "Affiché parce que cet échange est archivé.",
+	"admin_exchanges_pairings_empty": "Aucun nom n’a été attribué.",
+	"admin_exchanges_gifted_to_aria": "a offert à",
+	"admin_exchanges_error_not_found": "Cet échange n’existe plus.",
+	"admin_exchanges_error_archived": "Cet échange est archivé et ne peut plus être modifié.",
+	"admin_exchanges_error_user_banned": "Les comptes bannis ne peuvent pas être ajoutés.",
+	"admin_exchanges_error_user_not_found": "L’une de ces personnes n’existe plus.",
+	"admin_exchanges_error_already_drawn": "Les noms sont déjà tirés, cet échange ne peut donc pas être supprimé. Archivez-le plutôt.",
+	"admin_exchanges_error_not_drawn": "Les noms n’ont pas encore été tirés.",
+	"admin_exchanges_error_invalid_block": "Impossible d’enregistrer cette modification. Rechargez la page et réessayez.",
+	"admin_exchanges_error_needs_redraw": "Impossible d’ajouter {name} sans refaire le tirage. Refaites le tirage, puis ajoutez cette personne.",
+	"admin_exchanges_error_needs_redraw_generic": "Impossible d’ajouter quelqu’un sans refaire le tirage. Refaites le tirage, puis ajoutez cette personne."
+}
