@@ -153,7 +153,7 @@ export function GiftExchangePage({ exchange }: { exchange: AdminExchangeDetail }
 
 	return (
 		<>
-			<Card className="animate-page-in max-w-2xl">
+			<Card className="animate-page-in">
 				<CardHeader>
 					{/* The actions wrap under the title when they would leave it too little room.
 					    French labels, plus the "email not set up" reason, are wider than the card. */}
@@ -255,7 +255,7 @@ export function GiftExchangePage({ exchange }: { exchange: AdminExchangeDetail }
 				<PairingsCard exchange={exchange} nameOf={nameOf} />
 			) : (
 				<>
-					<Card className="animate-page-in max-w-2xl">
+					<Card className="animate-page-in">
 						<CardHeader>
 							<div className="flex flex-col gap-3 @lg/admin-content:flex-row @lg/admin-content:items-center @lg/admin-content:justify-between">
 								<CardTitle className="text-2xl">{m.admin_exchanges_people_title()}</CardTitle>
@@ -281,7 +281,7 @@ export function GiftExchangePage({ exchange }: { exchange: AdminExchangeDetail }
 					</Card>
 
 					{exchange.members.length > 0 && (
-						<Card className="animate-page-in max-w-2xl">
+						<Card className="animate-page-in">
 							<CardHeader>
 								<CardTitle className="text-2xl">{m.admin_exchanges_matrix_title()}</CardTitle>
 								<CardDescription>{m.admin_exchanges_matrix_description()}</CardDescription>
@@ -411,7 +411,7 @@ function PairingsCard({ exchange, nameOf }: { exchange: AdminExchangeDetail; nam
 		)
 	}
 	return (
-		<Card className="animate-page-in max-w-2xl">
+		<Card className="animate-page-in">
 			<CardHeader>
 				<CardTitle className="text-2xl">{m.admin_exchanges_pairings_title()}</CardTitle>
 				<CardDescription>{m.admin_exchanges_pairings_description()}</CardDescription>

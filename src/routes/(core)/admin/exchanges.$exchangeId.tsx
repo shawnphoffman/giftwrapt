@@ -32,7 +32,7 @@ function ExchangeLoader({ exchangeId }: { exchangeId: string }) {
 	if (isLoading) return <LoadingSkeleton />
 	if (error || !data || data.kind === 'error') {
 		return (
-			<Card className="animate-page-in max-w-2xl">
+			<Card className="animate-page-in">
 				<CardHeader>
 					<CardTitle className="text-2xl">{error ? m.admin_exchanges_load_error() : m.admin_exchanges_not_found()}</CardTitle>
 				</CardHeader>
