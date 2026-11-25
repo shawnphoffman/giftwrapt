@@ -59,6 +59,8 @@ export function exchange(overrides: Partial<AdminExchangeDetail> = {}): AdminExc
 		blocked: BLOCKED,
 		locked: LOCKED,
 		drawCheck: null,
+		avoidsRepeatsFrom: null,
+		repeatExpected: false,
 		anyoneHasLooked: false,
 		notEmailedCount: members.length,
 		notEmailedMemberId: null,

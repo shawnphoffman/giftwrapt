@@ -17,7 +17,7 @@ import { db as defaultDb } from '@/db'
 import type { Role } from '@/db/schema'
 import { giftExchangeBlocks, giftExchangeMembers, giftExchanges, users } from '@/db/schema'
 import { calendarDayInZone } from '@/lib/calendar-day'
-import { checkDraw, drawAssignments, type DrawCheck, type DrawProblem, type MemberPair } from '@/lib/gift-exchange/draw'
+import { checkDraw, drawAssignments, type DrawCheck, type DrawProblem, type MemberPair, willRepeat } from '@/lib/gift-exchange/draw'
 import {
 	type GiftExchangeEmailStatus,
 	giftExchangeEmailStatus,
@@ -26,7 +26,7 @@ import {
 	sendChangedEmails,
 	sendMemberEmail,
 } from '@/lib/gift-exchange/emails'
-import { canGiftTo, loadExchangeGiftRules, type LockedPair } from '@/lib/gift-exchange/rules'
+import { canGiftTo, type EarlierExchange, loadExchangeGiftRules, type LockedPair } from '@/lib/gift-exchange/rules'
 import { secureRandomInt } from '@/lib/gift-exchange/secure-random'
 import { getAppSettings } from '@/lib/settings-loader'
 
@@ -83,6 +83,18 @@ export type AdminExchangeDetail = {
 	locked: Array<LockedPair>
 	/** Whether names can be drawn under the current rules, and if not who is stuck. Null once archived. */
 	drawCheck: DrawCheck | null
+	/**
+	 * The archived exchange whose pairs a draw here avoids repeating (plan 40).
+	 * The app picks it; see `findEarlierExchange`. Null when there is none, and
+	 * once archived. Its pairs are never included here.
+	 */
+	avoidsRepeatsFrom: EarlierExchange | null
+	/**
+	 * Before the draw only: true when names can be drawn but someone will get
+	 * the person they had in `avoidsRepeatsFrom`. Always false once drawn, so
+	 * the page says nothing about the pairings that exist.
+	 */
+	repeatExpected: boolean
 	/** True when any member has looked at their current assignment. Never says who. */
 	anyoneHasLooked: boolean
 	/**
@@ -238,7 +250,7 @@ async function drawInTx(
 	now: Date
 ): Promise<{ ok: true; events: Array<PairingChangeEvent> } | { ok: false; problem: DrawProblem }> {
 	const rules = await loadExchangeGiftRules(exchangeId, tx)
-	const result = drawAssignments(rules.memberIds, rules.allowed, { randomInt: random })
+	const result = drawAssignments(rules.memberIds, rules.allowed, { randomInt: random, avoid: rules.avoid })
 	if (!result.ok) {
 		const { ok: _ok, ...problem } = result
 		return { ok: false, problem }
@@ -354,6 +366,8 @@ export async function getExchangeForAdminImpl(args: { exchangeId: string; dbx?: 
 			blocked: rules.blocked,
 			locked: rules.locked.filter(p => p.reason !== 'self'),
 			drawCheck: state === 'archived' ? null : checkDraw(rules.memberIds, rules.allowed),
+			avoidsRepeatsFrom: state === 'archived' ? null : rules.earlier,
+			repeatExpected: state === 'not-drawn' && willRepeat(rules.memberIds, rules.allowed, rules.avoid),
 			anyoneHasLooked: memberRows.some(r => r.seenAt !== null),
 			notEmailedCount: notEmailedMemberIds.length,
 			notEmailedMemberId: notEmailedMemberIds.length === 1 ? notEmailedMemberIds[0] : null,
@@ -683,8 +697,9 @@ export type AddMembersResult =
  * Adds one or many users (Add Person, Add Everybody). Already-members are
  * skipped. Before the draw that's all. After the draw each newcomer Z is
  * fitted in one at a time: a random pairing A to B where A can gift to Z and
- * Z can gift to B becomes A to Z to B, and A is marked changed. If any
- * newcomer can't be fitted, nothing is added.
+ * Z can gift to B becomes A to Z to B, and A is marked changed. A place where
+ * neither new pair repeats the earlier exchange is picked first (plan 40).
+ * If any newcomer can't be fitted, nothing is added.
  */
 export async function addMembersImpl(args: { input: AddMembersInput; dbx?: SchemaDatabase }): Promise<AddMembersResult> {
 	const dbx = args.dbx ?? defaultDb
@@ -735,7 +750,11 @@ export async function addMembersImpl(args: { input: AddMembersInput; dbx?: Schem
 			if (candidates.length === 0) {
 				throw new Refusal({ result: { kind: 'error', reason: 'needs-redraw', userId: newcomer.userId! }, events: [] })
 			}
-			const pick = candidates[random(candidates.length)]
+			// Prefer a place that gives nobody the person they had last time.
+			const repeats = new Set(rules.avoid.map(p => `${p.giverMemberId}:${p.recipientMemberId}`))
+			const fresh = candidates.filter(p => !repeats.has(`${p.giver}:${newcomerId}`) && !repeats.has(`${newcomerId}:${p.recipient!}`))
+			const pool = fresh.length > 0 ? fresh : candidates
+			const pick = pool[random(pool.length)]
 			await tx.update(giftExchangeMembers).set({ givesToMemberId: pick.recipient }).where(eq(giftExchangeMembers.id, newcomerId))
 			if (newcomerIds.has(pick.giver)) {
 				// Another newcomer from this same call: nobody has told them anything yet.

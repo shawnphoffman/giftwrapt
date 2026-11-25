@@ -1,12 +1,13 @@
 import { makeGuardianship, makeUser, makeUserRelationship } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
+import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import type { SchemaDatabase } from '@/db'
-import { giftExchangeBlocks, giftExchangeMembers, giftExchanges } from '@/db/schema'
+import { giftExchangeBlocks, giftExchangeMembers, giftExchanges, users } from '@/db/schema'
 
 import { checkDraw } from '../draw'
-import { canGiftTo, findLockedPairs, loadExchangeGiftRules } from '../rules'
+import { canGiftTo, findEarlierExchange, findLockedPairs, loadExchangeGiftRules } from '../rules'
 
 // An exchange with one member per user. Returns the exchange id and a
 // userId -> memberId lookup.
@@ -189,6 +190,168 @@ describe('loadExchangeGiftRules', () => {
 			expect([...rules.allowed.get(memberOf[guardian.id])!].sort()).toEqual([memberOf[child.id], memberOf[c.id]].sort())
 			// child -> c -> guardian -> child is the only draw.
 			expect(checkDraw(rules.memberIds, rules.allowed)).toEqual({ ok: true })
+		})
+	})
+})
+
+// Avoiding the pairs of an earlier exchange (plan 40).
+describe('findEarlierExchange', () => {
+	// An archived exchange where each listed giver gifted to the listed recipient.
+	async function makeArchived(
+		tx: SchemaDatabase,
+		args: { name: string; giftDate: string; archivedAt?: Date | null; pairs: Array<[string, string]> }
+	) {
+		const userIds = [...new Set(args.pairs.flat())]
+		const [exchange] = await tx
+			.insert(giftExchanges)
+			.values({
+				name: args.name,
+				giftDate: args.giftDate,
+				drawnAt: new Date('2025-11-01T12:00:00Z'),
+				archivedAt: args.archivedAt === undefined ? new Date('2026-01-05T12:00:00Z') : args.archivedAt,
+			})
+			.returning()
+		const rows = await tx
+			.insert(giftExchangeMembers)
+			.values(userIds.map(userId => ({ exchangeId: exchange.id, userId })))
+			.returning()
+		const idOf = new Map(rows.map(r => [r.userId!, r.id]))
+		for (const [giver, recipient] of args.pairs) {
+			await tx
+				.update(giftExchangeMembers)
+				.set({ givesToMemberId: idOf.get(recipient)! })
+				.where(eq(giftExchangeMembers.id, idOf.get(giver)!))
+		}
+		return exchange.id
+	}
+
+	async function load(tx: SchemaDatabase, exchangeId: string) {
+		const rules = await loadExchangeGiftRules(exchangeId, tx)
+		return { earlier: rules.earlier, avoid: new Set(rules.avoid.map(p => `${p.giverMemberId}>${p.recipientMemberId}`)) }
+	}
+
+	it('finds nothing when no exchange is archived', async () => {
+		await withRollback(async tx => {
+			const [a, b, c] = [await makeUser(tx), await makeUser(tx), await makeUser(tx)]
+			// Drawn, with the same people, but still running.
+			await makeArchived(tx, {
+				name: 'Running',
+				giftDate: '2025-12-25',
+				archivedAt: null,
+				pairs: [
+					[a.id, b.id],
+					[b.id, c.id],
+					[c.id, a.id],
+				],
+			})
+			const { exchangeId } = await makeExchange(tx, [a.id, b.id, c.id])
+			expect(await load(tx, exchangeId)).toEqual({ earlier: null, avoid: new Set() })
+		})
+	})
+
+	it('maps who had whom to this exchange, one direction each, leaving out anyone who is not in it', async () => {
+		await withRollback(async tx => {
+			const [a, b, c, gone] = [await makeUser(tx), await makeUser(tx), await makeUser(tx), await makeUser(tx)]
+			const earlierId = await makeArchived(tx, {
+				name: 'Christmas 2025',
+				giftDate: '2025-12-25',
+				pairs: [
+					[a.id, b.id],
+					[b.id, gone.id],
+					[gone.id, c.id],
+					[c.id, a.id],
+				],
+			})
+			const { exchangeId, memberOf } = await makeExchange(tx, [a.id, b.id, c.id])
+			expect(await load(tx, exchangeId)).toEqual({
+				earlier: { id: earlierId, name: 'Christmas 2025' },
+				avoid: new Set([`${memberOf[a.id]}>${memberOf[b.id]}`, `${memberOf[c.id]}>${memberOf[a.id]}`]),
+			})
+		})
+	})
+
+	it('picks the latest gift date, and the one archived last when dates match', async () => {
+		await withRollback(async tx => {
+			const [a, b, c] = [await makeUser(tx), await makeUser(tx), await makeUser(tx)]
+			const loop: Array<[string, string]> = [
+				[a.id, b.id],
+				[b.id, c.id],
+				[c.id, a.id],
+			]
+			const back: Array<[string, string]> = [
+				[a.id, c.id],
+				[c.id, b.id],
+				[b.id, a.id],
+			]
+			await makeArchived(tx, { name: '2024', giftDate: '2024-12-25', archivedAt: new Date('2026-03-01T12:00:00Z'), pairs: back })
+			await makeArchived(tx, { name: '2025 first', giftDate: '2025-12-25', archivedAt: new Date('2026-01-05T12:00:00Z'), pairs: back })
+			const latest = await makeArchived(tx, {
+				name: '2025 second',
+				giftDate: '2025-12-25',
+				archivedAt: new Date('2026-01-06T12:00:00Z'),
+				pairs: loop,
+			})
+			const { exchangeId, memberOf } = await makeExchange(tx, [a.id, b.id, c.id])
+			const found = await load(tx, exchangeId)
+			expect(found.earlier).toEqual({ id: latest, name: '2025 second' })
+			expect(found.avoid).toEqual(new Set(loop.map(([g, r]) => `${memberOf[g]}>${memberOf[r]}`)))
+		})
+	})
+
+	it('skips an exchange that shares fewer than two people, however recent', async () => {
+		await withRollback(async tx => {
+			const [a, b, c] = [await makeUser(tx), await makeUser(tx), await makeUser(tx)]
+			const [x, y] = [await makeUser(tx), await makeUser(tx)]
+			const family = await makeArchived(tx, {
+				name: 'Family 2024',
+				giftDate: '2024-12-25',
+				pairs: [
+					[a.id, b.id],
+					[b.id, c.id],
+					[c.id, a.id],
+				],
+			})
+			// The office exchange is newer but only a is in both.
+			await makeArchived(tx, {
+				name: 'Office 2025',
+				giftDate: '2025-12-20',
+				pairs: [
+					[a.id, x.id],
+					[x.id, y.id],
+					[y.id, a.id],
+				],
+			})
+			const { exchangeId } = await makeExchange(tx, [a.id, b.id, c.id])
+			expect((await load(tx, exchangeId)).earlier).toEqual({ id: family, name: 'Family 2024' })
+		})
+	})
+
+	it('never matches the row of a deleted account', async () => {
+		await withRollback(async tx => {
+			const [a, b, c] = [await makeUser(tx), await makeUser(tx), await makeUser(tx)]
+			await makeArchived(tx, {
+				name: 'Christmas 2025',
+				giftDate: '2025-12-25',
+				pairs: [
+					[a.id, b.id],
+					[b.id, c.id],
+					[c.id, a.id],
+				],
+			})
+			await tx.delete(users).where(eq(users.id, c.id))
+			const d = await makeUser(tx)
+			const { exchangeId, memberOf } = await makeExchange(tx, [a.id, b.id, d.id])
+			const found = await load(tx, exchangeId)
+			expect(found.avoid).toEqual(new Set([`${memberOf[a.id]}>${memberOf[b.id]}`]))
+		})
+	})
+
+	it('needs two members with accounts before it looks at all', async () => {
+		await withRollback(async tx => {
+			const a = await makeUser(tx)
+			const { exchangeId } = await makeExchange(tx, [a.id])
+			const members = await tx.select().from(giftExchangeMembers).where(eq(giftExchangeMembers.exchangeId, exchangeId))
+			expect(await findEarlierExchange(exchangeId, members, tx)).toEqual({ earlier: null, avoid: [] })
 		})
 	})
 })

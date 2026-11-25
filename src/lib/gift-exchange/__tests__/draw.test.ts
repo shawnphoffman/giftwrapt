@@ -7,9 +7,11 @@ import {
 	checkMatching,
 	drawAssignments,
 	findLoops,
+	findRepeats,
 	findSwaps,
 	type MemberPair,
 	type RandomInt,
+	willRepeat,
 } from '../draw'
 
 // mulberry32: small, seeded, good enough to make every test repeatable.
@@ -204,5 +206,138 @@ describe('drawAssignments', () => {
 		const ids = ['ann', 'bea', 'cal', 'dee']
 		const allowed = only({ ann: ['bea', 'cal', 'dee'], bea: ['ann'], cal: ['ann', 'bea'], dee: ['ann', 'bea'] })
 		expect(drawAssignments(ids, allowed, { randomInt: seeded(1) })).toMatchObject({ ok: false, reason: 'stuck-group' })
+	})
+})
+
+// Avoiding the pairs of an earlier exchange (plan 40).
+describe('drawAssignments with pairs to avoid', () => {
+	const pairs = (list: Array<[string, string]>): Array<MemberPair> =>
+		list.map(([giverMemberId, recipientMemberId]) => ({ giverMemberId, recipientMemberId }))
+	const draw = (ids: Array<string>, allowed: AllowedRelation, avoid: Array<MemberPair>, seed: number) => {
+		const result = drawAssignments(ids, allowed, { randomInt: seeded(seed), avoid })
+		if (!result.ok) throw new Error(result.reason)
+		expectValidDraw(ids, allowed, result.assignments)
+		return result
+	}
+
+	// Two families of three. Inside a family anyone can gift to anyone; the
+	// only ways across are c -> d and f -> a, so every loop through all six
+	// uses both.
+	const TWO_FAMILIES = only({
+		a: ['b', 'c'],
+		b: ['a', 'c'],
+		c: ['a', 'b', 'd'],
+		d: ['e', 'f'],
+		e: ['d', 'f'],
+		f: ['d', 'e', 'a'],
+	})
+	const SIX = ['a', 'b', 'c', 'd', 'e', 'f']
+
+	// The only draws: the loop a -> b -> c -> d -> a, or the swaps a/b and c/d.
+	const LOOP_OR_SWAPS = only({ a: ['b'], b: ['c', 'a'], c: ['d'], d: ['a', 'c'] })
+	const FOUR = ['a', 'b', 'c', 'd']
+
+	// a and b can only have each other, so every draw has that swap; c, d and
+	// e go round one way or the other.
+	const ALWAYS_A_SWAP = only({ a: ['b'], b: ['a'], c: ['d', 'e'], d: ['c', 'e'], e: ['c', 'd'] })
+	const FIVE = ['a', 'b', 'c', 'd', 'e']
+
+	it('never repeats a pair across 200 draws when a draw with no repeats and no swaps exists', () => {
+		const ids = people(6)
+		const allowed = buildAllowedRelation(ids)
+		// Last time was one loop through everyone, in order.
+		const avoid = pairs(ids.map((id, i) => [id, ids[(i + 1) % ids.length]]))
+		for (let seed = 1; seed <= 200; seed++) {
+			const result = draw(ids, allowed, avoid, seed)
+			expect(findRepeats(result.assignments, avoid), `seed ${seed}`).toEqual([])
+			expect(findSwaps(result.assignments), `seed ${seed}`).toEqual([])
+			expect(result.level).toBe('single-loop')
+		}
+		expect(willRepeat(ids, allowed, avoid)).toBe(false)
+	})
+
+	it('still draws when a repeat cannot be avoided', () => {
+		const ids = ['a', 'b', 'c']
+		const allowed = only({ a: ['b'], b: ['c'], c: ['a'] })
+		const avoid = pairs([['a', 'b']])
+		const result = draw(ids, allowed, avoid, 1)
+		expect(findRepeats(result.assignments, avoid)).toEqual(avoid)
+		expect(willRepeat(ids, allowed, avoid)).toBe(true)
+	})
+
+	it('gives up the single loop to avoid a repeat', () => {
+		const avoid = pairs([['c', 'd']])
+		for (let seed = 1; seed <= 50; seed++) {
+			const result = draw(SIX, TWO_FAMILIES, avoid, seed)
+			expect(result.level, `seed ${seed}`).toBe('no-swaps')
+			expect(findRepeats(result.assignments, avoid)).toEqual([])
+			expect(findSwaps(result.assignments)).toEqual([])
+		}
+		expect(willRepeat(SIX, TWO_FAMILIES, avoid)).toBe(false)
+		// With nothing to avoid the same rules give the loop.
+		expect(draw(SIX, TWO_FAMILIES, [], 1).level).toBe('single-loop')
+	})
+
+	it('never accepts a swap to avoid a repeat when a draw without swaps exists', () => {
+		const avoid = pairs([['b', 'c']])
+		for (let seed = 1; seed <= 50; seed++) {
+			const result = draw(FOUR, LOOP_OR_SWAPS, avoid, seed)
+			expect(findSwaps(result.assignments), `seed ${seed}`).toEqual([])
+			expect(findRepeats(result.assignments, avoid)).toEqual(avoid)
+		}
+		expect(willRepeat(FOUR, LOOP_OR_SWAPS, avoid)).toBe(true)
+	})
+
+	it('avoids a repeat among draws that all have a swap', () => {
+		const avoid = pairs([
+			['c', 'd'],
+			['d', 'e'],
+			['e', 'c'],
+		])
+		for (let seed = 1; seed <= 50; seed++) {
+			const result = draw(FIVE, ALWAYS_A_SWAP, avoid, seed)
+			expect(result.level).toBe('any')
+			expect(findRepeats(result.assignments, avoid), `seed ${seed}`).toEqual([])
+		}
+		expect(willRepeat(FIVE, ALWAYS_A_SWAP, avoid)).toBe(false)
+	})
+
+	it('counts a pair in the direction it was drawn only', () => {
+		const ids = ['a', 'b', 'c']
+		const allowed = buildAllowedRelation(ids)
+		// a had b last time. The other loop has b gifting to a, which is fine.
+		const avoid = pairs([['a', 'b']])
+		for (let seed = 1; seed <= 30; seed++) {
+			const result = draw(ids, allowed, avoid, seed)
+			expect(Object.fromEntries(result.assignments), `seed ${seed}`).toEqual({ a: 'c', c: 'b', b: 'a' })
+		}
+	})
+
+	it('draws exactly as before when nothing in the list applies', () => {
+		const ids = people(8)
+		const allowed = buildAllowedRelation(ids, [{ giverMemberId: 'm00', recipientMemberId: 'm01' }])
+		const plain = (seed: number) => {
+			const result = drawAssignments(ids, allowed, { randomInt: seeded(seed) })
+			if (!result.ok) throw new Error(result.reason)
+			return Object.fromEntries(result.assignments)
+		}
+		// Someone who isn't in this exchange, a pair the rules already forbid, and a self pair.
+		const stray = pairs([
+			['zz', 'm00'],
+			['m00', 'zz'],
+			['m00', 'm01'],
+			['m02', 'm02'],
+		])
+		for (const seed of [1, 7, 42]) {
+			expect(Object.fromEntries(draw(ids, allowed, [], seed).assignments)).toEqual(plain(seed))
+			expect(Object.fromEntries(draw(ids, allowed, stray, seed).assignments)).toEqual(plain(seed))
+		}
+		expect(willRepeat(ids, allowed, stray)).toBe(false)
+	})
+
+	it('says no repeat is coming when names cannot be drawn at all', () => {
+		const ids = ['ann', 'bea', 'cal', 'dee']
+		const allowed = only({ ann: ['bea', 'cal', 'dee'], bea: ['ann'], cal: ['ann', 'bea'], dee: ['ann', 'bea'] })
+		expect(willRepeat(ids, allowed, pairs([['bea', 'ann']]))).toBe(false)
 	})
 })

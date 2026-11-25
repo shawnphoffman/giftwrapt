@@ -84,6 +84,18 @@ describe('gift exchange admin secrecy', () => {
 			for (let i = 0; i < 6; i++) people.push(await makeUser(tx))
 			const late = await makeUser(tx)
 
+			// Last year's exchange with the same people, archived, so the reads
+			// below also carry which exchange this one avoids repeating (plan 40).
+			const lastYear = await createExchangeImpl({
+				now: new Date('2026-11-01T12:00:00Z'),
+				actorId: admin.id,
+				input: { name: 'Last Year', budget: null, giftDate: '2026-11-02', memberUserIds: people.map(p => p.id) },
+				dbx: tx,
+			})
+			if (lastYear.kind !== 'ok') throw new Error('create failed')
+			await drawExchangeImpl({ exchangeId: lastYear.id, dbx: tx })
+			await archiveExchangeImpl({ exchangeId: lastYear.id, dbx: tx })
+
 			const created = await createExchangeImpl({
 				now: new Date('2026-11-01T12:00:00Z'),
 				actorId: admin.id,
@@ -104,7 +116,10 @@ describe('gift exchange admin secrecy', () => {
 			results.push(['draw', await drawExchangeImpl({ exchangeId, dbx: tx })])
 			await check()
 			results.push(['list', await listExchangesImpl({ dbx: tx })])
-			results.push(['get', await getExchangeForAdminImpl({ exchangeId, dbx: tx })])
+			const read = await getExchangeForAdminImpl({ exchangeId, dbx: tx })
+			if (read.kind !== 'ok') throw new Error('expected ok')
+			expect(read.exchange.avoidsRepeatsFrom).toEqual({ id: lastYear.id, name: 'Last Year' })
+			results.push(['get', read])
 			results.push([
 				'update',
 				await updateExchangeImpl({

@@ -9,6 +9,11 @@
 //
 // Randomness comes from an injected `RandomInt` so tests are repeatable. On
 // the server pass `secureRandomInt` from `secure-random.ts`.
+//
+// Avoiding repeats (plan 40): `avoid` is a list of pairs from an earlier
+// exchange. It is a preference, never a rule: the draw leaves those pairs out
+// when it can and uses them when it can't. See `drawAssignments` for where it
+// ranks against loops and swaps.
 
 // ===============================
 // Types
@@ -77,6 +82,12 @@ export type DrawOptions = {
 	loopStepBudget?: number
 	/** Steps the no-swaps search may take before giving up on that level. */
 	noSwapStepBudget?: number
+	/**
+	 * Pairs to leave out when possible (who had whom in an earlier exchange).
+	 * One direction each. Pairs the relation doesn't allow anyway, or that name
+	 * someone outside `memberIds`, are ignored.
+	 */
+	avoid?: Iterable<MemberPair>
 }
 
 // ===============================
@@ -130,6 +141,32 @@ function reverse(memberIds: ReadonlyArray<string>, options: Map<string, Array<st
 		for (const r of options.get(giver) ?? []) givers.get(r)!.push(giver)
 	}
 	return givers
+}
+
+// `options` with the `avoid` pairs taken out. Null when that removes nothing,
+// so a draw with nothing to avoid takes exactly the steps, and the random
+// numbers, of a draw with no `avoid` at all.
+function withoutPairs(
+	memberIds: ReadonlyArray<string>,
+	options: Map<string, Array<string>>,
+	avoid: Iterable<MemberPair> | undefined
+): Map<string, Array<string>> | null {
+	if (!avoid) return null
+	const dropped = new Map<string, Set<string>>()
+	for (const { giverMemberId, recipientMemberId } of avoid) {
+		if (!(options.get(giverMemberId)?.includes(recipientMemberId) ?? false)) continue
+		const set = dropped.get(giverMemberId) ?? new Set<string>()
+		set.add(recipientMemberId)
+		dropped.set(giverMemberId, set)
+	}
+	if (dropped.size === 0) return null
+	return new Map(
+		memberIds.map(giver => {
+			const drop = dropped.get(giver)
+			const all = options.get(giver)!
+			return [giver, drop ? all.filter(r => !drop.has(r)) : all]
+		})
+	)
 }
 
 // ===============================
@@ -283,25 +320,93 @@ function shuffled<T>(items: ReadonlyArray<T>, randomInt: RandomInt): Array<T> {
  * within the best level reached. Running out of step budget at a level counts
  * as that level being impossible; the last level always succeeds when a
  * matching exists. Never assigns a pair the relation doesn't allow.
+ *
+ * With `avoid`, the order is:
+ * 1. a single loop, no avoided pair
+ * 2. no swaps, no avoided pair
+ * 3. a single loop
+ * 4. no swaps
+ * 5. any draw with no avoided pair
+ * 6. any draw
+ *
+ * So the single loop is given up to avoid a repeat, but a swap is never
+ * accepted to avoid one: a swap tells two people who has them, a repeat is
+ * only less fun. `level` reports the shape reached, with or without repeats;
+ * `findRepeats` says whether there are any.
  */
 export function drawAssignments(memberIds: ReadonlyArray<string>, allowed: AllowedRelation, opts: DrawOptions): DrawResult {
 	const check = checkDraw(memberIds, allowed)
 	if (!check.ok) return check
 
 	const { randomInt } = opts
+	const loopBudget = opts.loopStepBudget ?? DEFAULT_LOOP_STEP_BUDGET
+	const noSwapBudget = opts.noSwapStepBudget ?? DEFAULT_NO_SWAP_STEP_BUDGET
 	const options = normalize(memberIds, allowed)
+	const fresh = withoutPairs(memberIds, options, opts.avoid)
 
-	const loop = findSingleLoop(memberIds, options, randomInt, opts.loopStepBudget ?? DEFAULT_LOOP_STEP_BUDGET)
+	if (fresh) {
+		const loop = findSingleLoop(memberIds, fresh, randomInt, loopBudget)
+		if (loop) return { ok: true, assignments: loop, level: 'single-loop' }
+
+		const noSwaps = findNoSwapMatching(memberIds, fresh, randomInt, noSwapBudget)
+		if (noSwaps) return { ok: true, assignments: noSwaps, level: 'no-swaps' }
+	}
+
+	const loop = findSingleLoop(memberIds, options, randomInt, loopBudget)
 	if (loop) return { ok: true, assignments: loop, level: 'single-loop' }
 
-	const noSwaps = findNoSwapMatching(memberIds, options, randomInt, opts.noSwapStepBudget ?? DEFAULT_NO_SWAP_STEP_BUDGET)
+	const noSwaps = findNoSwapMatching(memberIds, options, randomInt, noSwapBudget)
 	if (noSwaps) return { ok: true, assignments: noSwaps, level: 'no-swaps' }
 
-	const shuffledOptions = new Map<string, Array<string>>(memberIds.map(id => [id, shuffled(options.get(id)!, randomInt)]))
-	const matching = maximumMatching(shuffled(memberIds, randomInt), shuffledOptions)
+	if (fresh) {
+		const matching = randomMatching(memberIds, fresh, randomInt)
+		if (matching.giverTo.size === memberIds.length) return { ok: true, assignments: matching.giverTo, level: 'any' }
+	}
+
 	// checkDraw already proved a perfect matching exists, and Kuhn's
 	// algorithm finds a maximum one whatever the order.
-	return { ok: true, assignments: matching.giverTo, level: 'any' }
+	return { ok: true, assignments: randomMatching(memberIds, options, randomInt).giverTo, level: 'any' }
+}
+
+function randomMatching(memberIds: ReadonlyArray<string>, options: Map<string, Array<string>>, randomInt: RandomInt): Matching {
+	const shuffledOptions = new Map<string, Array<string>>(memberIds.map(id => [id, shuffled(options.get(id)!, randomInt)]))
+	return maximumMatching(shuffled(memberIds, randomInt), shuffledOptions)
+}
+
+/**
+ * Whether a draw under `allowed` is going to give someone a pair from
+ * `avoid`. Walks the same steps as `drawAssignments` with a fixed order
+ * instead of a random one, so it says the same thing each time it is asked.
+ * False when names can't be drawn at all, and when nothing in `avoid` applies.
+ *
+ * Exact unless a search runs out of its step budget, which a draw of this
+ * size would too.
+ */
+export function willRepeat(
+	memberIds: ReadonlyArray<string>,
+	allowed: AllowedRelation,
+	avoid: Iterable<MemberPair>,
+	opts: Pick<DrawOptions, 'loopStepBudget' | 'noSwapStepBudget'> = {}
+): boolean {
+	if (!checkDraw(memberIds, allowed).ok) return false
+	const options = normalize(memberIds, allowed)
+	const fresh = withoutPairs(memberIds, options, avoid)
+	if (!fresh) return false
+
+	const first: RandomInt = () => 0
+	const loopBudget = opts.loopStepBudget ?? DEFAULT_LOOP_STEP_BUDGET
+	const noSwapBudget = opts.noSwapStepBudget ?? DEFAULT_NO_SWAP_STEP_BUDGET
+	// A single loop is also a draw with no swaps, so the loop search only
+	// saves the wider one some work.
+	const noSwapsIn = (candidates: Map<string, Array<string>>) =>
+		findSingleLoop(memberIds, candidates, first, loopBudget) !== null ||
+		findNoSwapMatching(memberIds, candidates, first, noSwapBudget) !== null
+
+	if (noSwapsIn(fresh)) return false
+	// No draw without swaps avoids every pair, so if one exists at all the
+	// draw takes it, repeat included.
+	if (noSwapsIn(options)) return true
+	return maximumMatching(memberIds, fresh).giverTo.size !== memberIds.length
 }
 
 // Level 1: a single loop through everyone (a Hamiltonian cycle), by
@@ -405,6 +510,18 @@ export function findSwaps(assignments: ReadonlyMap<string, string>): Array<[stri
 	const out: Array<[string, string]> = []
 	for (const [giver, recipient] of assignments) {
 		if (giver < recipient && assignments.get(recipient) === giver) out.push([giver, recipient])
+	}
+	return out
+}
+
+/** The pairs in `assignments` that are also in `avoid`. */
+export function findRepeats(assignments: ReadonlyMap<string, string>, avoid: Iterable<MemberPair>): Array<MemberPair> {
+	const out: Array<MemberPair> = []
+	const seen = new Set<string>()
+	for (const pair of avoid) {
+		if (assignments.get(pair.giverMemberId) !== pair.recipientMemberId || seen.has(pair.giverMemberId)) continue
+		seen.add(pair.giverMemberId)
+		out.push({ giverMemberId: pair.giverMemberId, recipientMemberId: pair.recipientMemberId })
 	}
 	return out
 }

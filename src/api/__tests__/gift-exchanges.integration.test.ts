@@ -859,6 +859,8 @@ describe('getExchangeForAdminImpl', () => {
 				budgetCurrency: 'USD',
 				pairings: null,
 				anyoneHasLooked: false,
+				avoidsRepeatsFrom: null,
+				repeatExpected: false,
 			})
 			expect(before.exchange.members.map(x => x.name)).toEqual(['Cal', 'Gwen', 'Ora'])
 			expect(before.exchange.locked).toEqual([
@@ -945,6 +947,159 @@ describe('gift date', () => {
 				dbx: tx,
 			})
 			expect(future).toEqual({ kind: 'ok' })
+		})
+	})
+})
+
+// ===============================
+// Avoiding the earlier exchange (plan 40)
+// ===============================
+
+describe('avoiding the pairs of the earlier exchange', () => {
+	// An archived exchange named "Last Year" where each giver had the listed recipient.
+	async function archivedWith(tx: SchemaDatabase, actorId: string, pairs: Array<[string, string]>) {
+		const id = await create(tx, actorId, [...new Set(pairs.flat())])
+		const m = await memberOf(tx, id)
+		await forcePairing(
+			tx,
+			pairs.map(([giver, recipient]) => [m[giver], m[recipient]])
+		)
+		await tx
+			.update(giftExchanges)
+			.set({
+				name: 'Last Year',
+				giftDate: '2025-12-25',
+				drawnAt: new Date('2025-11-20T12:00:00Z'),
+				archivedAt: new Date('2026-01-05T12:00:00Z'),
+			})
+			.where(eq(giftExchanges.id, id))
+		return id
+	}
+
+	// Who each user gifts to, as user ids.
+	async function pairsByUser(tx: SchemaDatabase, exchangeId: string) {
+		const rows = await members(tx, exchangeId)
+		const userOf = new Map(rows.map(r => [r.id, r.userId!]))
+		return new Set(rows.filter(r => r.givesToMemberId !== null).map(r => `${r.userId}>${userOf.get(r.givesToMemberId!)}`))
+	}
+
+	const loopOf = (ids: Array<string>): Array<[string, string]> => ids.map((id, i) => [id, ids[(i + 1) % ids.length]])
+
+	it('draws and redraws without giving anyone the person they had last time', async () => {
+		await withRollback(async tx => {
+			const admin = await makeUser(tx, { role: 'admin' })
+			const ids = (await makeUsers(tx, 5)).map(u => u.id)
+			const last = loopOf(ids)
+			const earlierId = await archivedWith(tx, admin.id, last)
+			const id = await create(tx, admin.id, ids)
+
+			const before = await getExchangeForAdminImpl({ exchangeId: id, dbx: tx })
+			if (before.kind !== 'ok') throw new Error('expected ok')
+			expect(before.exchange.avoidsRepeatsFrom).toEqual({ id: earlierId, name: 'Last Year' })
+			expect(before.exchange.repeatExpected).toBe(false)
+
+			expect(await drawExchangeImpl({ exchangeId: id, dbx: tx })).toEqual({ kind: 'ok' })
+			// A draw that ignored last year would repeat a pair about two times in three.
+			for (let i = 0; i < 15; i++) {
+				await expectPerfectPairing(tx, id)
+				const now = await pairsByUser(tx, id)
+				for (const [giver, recipient] of last) expect(now.has(`${giver}>${recipient}`), `round ${i}`).toBe(false)
+				expect(await redrawExchangeImpl({ exchangeId: id, dbx: tx })).toEqual({ kind: 'ok' })
+			}
+		})
+	})
+
+	it('warns before the draw when a repeat cannot be avoided, draws anyway, and says nothing after', async () => {
+		await withRollback(async tx => {
+			const admin = await makeUser(tx, { role: 'admin' })
+			const [a, b, c] = (await makeUsers(tx, 3)).map(u => u.id)
+			const earlierId = await archivedWith(tx, admin.id, loopOf([a, b, c]))
+			const id = await create(tx, admin.id, [a, b, c])
+			const m = await memberOf(tx, id)
+			// The only draw left is last year's loop.
+			await tx
+				.insert(giftExchangeBlocks)
+				.values(
+					loopOf([c, b, a]).map(([giver, recipient]) => ({ exchangeId: id, giverMemberId: m[giver], recipientMemberId: m[recipient] }))
+				)
+
+			const before = await getExchangeForAdminImpl({ exchangeId: id, dbx: tx })
+			if (before.kind !== 'ok') throw new Error('expected ok')
+			expect(before.exchange).toMatchObject({
+				drawCheck: { ok: true },
+				avoidsRepeatsFrom: { id: earlierId, name: 'Last Year' },
+				repeatExpected: true,
+			})
+
+			expect(await drawExchangeImpl({ exchangeId: id, dbx: tx })).toEqual({ kind: 'ok' })
+			expect(await pairsByUser(tx, id)).toEqual(new Set(loopOf([a, b, c]).map(([g, r]) => `${g}>${r}`)))
+
+			const after = await getExchangeForAdminImpl({ exchangeId: id, dbx: tx })
+			if (after.kind !== 'ok') throw new Error('expected ok')
+			expect(after.exchange).toMatchObject({
+				state: 'drawn',
+				avoidsRepeatsFrom: { id: earlierId, name: 'Last Year' },
+				repeatExpected: false,
+			})
+
+			await archiveExchangeImpl({ exchangeId: id, dbx: tx })
+			const archived = await getExchangeForAdminImpl({ exchangeId: id, dbx: tx })
+			if (archived.kind !== 'ok') throw new Error('expected ok')
+			expect(archived.exchange).toMatchObject({ avoidsRepeatsFrom: null, repeatExpected: false })
+		})
+	})
+
+	it('after the draw, fits a newcomer into the place that repeats nothing', async () => {
+		await withRollback(async tx => {
+			const admin = await makeUser(tx, { role: 'admin' })
+			const [a, b, c, z] = (await makeUsers(tx, 4)).map(u => u.id)
+			// Last year a and z had each other.
+			await archivedWith(tx, admin.id, [
+				[a, z],
+				[z, a],
+				[b, c],
+				[c, b],
+			])
+			const id = await create(tx, admin.id, [a, b, c])
+			await drawExchangeImpl({ exchangeId: id, dbx: tx })
+			const m = await memberOf(tx, id)
+			await forcePairing(
+				tx,
+				loopOf([a, b, c]).map(([giver, recipient]) => [m[giver], m[recipient]])
+			)
+
+			// After a would repeat a > z, and before a would repeat z > a. Only between b and c is new.
+			expect(await addMembersImpl({ input: { exchangeId: id, userIds: [z] }, dbx: tx })).toEqual({ kind: 'ok', added: 1 })
+			await expectPerfectPairing(tx, id)
+			expect(await pairsByUser(tx, id)).toEqual(new Set([`${a}>${b}`, `${b}>${z}`, `${z}>${c}`, `${c}>${a}`]))
+		})
+	})
+
+	it('after the draw, still fits a newcomer in when every place repeats something', async () => {
+		await withRollback(async tx => {
+			const admin = await makeUser(tx, { role: 'admin' })
+			const [a, b, c, z] = (await makeUsers(tx, 4)).map(u => u.id)
+			await archivedWith(tx, admin.id, [
+				[a, z],
+				[z, a],
+				[b, c],
+				[c, b],
+			])
+			// z set b to none, so b can't gift to z and the one new place is out.
+			await makeUserRelationship(tx, { ownerUserId: z, viewerUserId: b, accessLevel: 'none' })
+			const id = await create(tx, admin.id, [a, b, c])
+			await drawExchangeImpl({ exchangeId: id, dbx: tx })
+			const m = await memberOf(tx, id)
+			await forcePairing(
+				tx,
+				loopOf([a, b, c]).map(([giver, recipient]) => [m[giver], m[recipient]])
+			)
+
+			expect(await addMembersImpl({ input: { exchangeId: id, userIds: [z] }, dbx: tx })).toEqual({ kind: 'ok', added: 1 })
+			await expectPerfectPairing(tx, id)
+			const now = await pairsByUser(tx, id)
+			// After a (repeating a > z) or before a (repeating z > a).
+			expect(now.has(`${a}>${z}`) || now.has(`${z}>${a}`)).toBe(true)
 		})
 	})
 })

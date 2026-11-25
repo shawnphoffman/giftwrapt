@@ -51,6 +51,10 @@ type Confirm = 'delete' | 'archive' | 'redraw' | 'send-emails' | null
  * the actions, People, and Who Can Gift to Whom. Once archived, the details
  * card and the list of who gifted to whom.
  *
+ * When an archived exchange shares people with this one, a line names it:
+ * the draw avoids giving anyone the person they had there (plan 40). Before
+ * the draw a warning says when that can't be done for everyone.
+ *
  * After the draw, Send Emails shows while anyone hasn't had "your assignment
  * is ready", and the line beside the Drawn badge says who hasn't. It is
  * disabled, with the reason beside it, when email isn't set up or gift
@@ -149,6 +153,8 @@ export function GiftExchangePage({ exchange }: { exchange: AdminExchangeDetail }
 	const problem = !archived && exchange.drawCheck && !exchange.drawCheck.ok ? problemText(exchange.drawCheck, nameOf) : null
 	const canDraw = exchange.drawCheck?.ok === true
 	const showSendEmails = drawn && exchange.notEmailedCount > 0
+	// The archived exchange a draw here avoids repeating. The server picks it.
+	const earlier = archived ? null : exchange.avoidsRepeatsFrom
 	const emailBlocked = emailBlockedReason(exchange.emailStatus)
 
 	return (
@@ -212,7 +218,7 @@ export function GiftExchangePage({ exchange }: { exchange: AdminExchangeDetail }
 					</div>
 					<CardDescription>{exchangeMetaLine(exchange, exchange.members.length)}</CardDescription>
 				</CardHeader>
-				{(drawn || (!archived && tooFew) || problem) && (
+				{(drawn || (!archived && tooFew) || problem || earlier) && (
 					<CardContent className="space-y-3">
 						{drawn && exchange.drawnAt && (
 							<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -226,6 +232,7 @@ export function GiftExchangePage({ exchange }: { exchange: AdminExchangeDetail }
 						{!archived && tooFew && (
 							<p className="text-sm text-muted-foreground">{m.admin_exchanges_too_few({ minimum: MIN_DRAW_MEMBERS })}</p>
 						)}
+						{earlier && <p className="text-sm text-muted-foreground">{m.admin_exchanges_avoids_repeats_from({ name: earlier.name })}</p>}
 						{problem && (
 							<Alert variant="warning">
 								<AlertTriangle />
@@ -245,6 +252,14 @@ export function GiftExchangePage({ exchange }: { exchange: AdminExchangeDetail }
 										))}
 									</div>
 								</AlertDescription>
+							</Alert>
+						)}
+						{/* Before the draw only, and it names nobody. After it the page says nothing about repeats. */}
+						{earlier && exchange.repeatExpected && (
+							<Alert variant="warning">
+								<AlertTriangle />
+								<AlertTitle>{m.admin_exchanges_repeat_expected_title()}</AlertTitle>
+								<AlertDescription>{m.admin_exchanges_repeat_expected_body({ name: earlier.name })}</AlertDescription>
 							</Alert>
 						)}
 					</CardContent>

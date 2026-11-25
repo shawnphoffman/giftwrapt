@@ -47,8 +47,24 @@ export const NobodyYet: Story = {
 	args: { exchange: exchange({ name: 'Office Party', budget: null, budgetCurrency: null, members: [], blocked: [], locked: [] }) },
 }
 
+const LAST_YEAR = { id: 'ex-2025', name: 'Christmas 2025' }
+
+/** An archived exchange shares people with this one, so the draw avoids its pairs. */
+export const AvoidsRepeats: Story = {
+	args: { exchange: exchange({ avoidsRepeatsFrom: LAST_YEAR }) },
+}
+
+/** The rules leave no draw where everyone gets someone new. */
+export const RepeatExpected: Story = {
+	args: { exchange: exchange({ avoidsRepeatsFrom: LAST_YEAR, repeatExpected: true }) },
+}
+
 export const Drawn: Story = {
 	args: { exchange: exchange({ state: 'drawn', drawnAt: new Date('2026-11-24T18:00:00Z') }) },
+}
+
+export const DrawnAvoidsRepeats: Story = {
+	args: { exchange: exchange({ state: 'drawn', drawnAt: new Date('2026-11-24T18:00:00Z'), avoidsRepeatsFrom: LAST_YEAR }) },
 }
 
 export const DrawnAndSomeoneLooked: Story = {
