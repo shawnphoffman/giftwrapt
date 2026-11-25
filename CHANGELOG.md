@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.15.0...v1.16.0) (2026-11-25)
+
+
+### Features
+
+* **gift-exchange:** avoid repeating the last exchange's pairs ([5ff502d](https://github.com/shawnphoffman/giftwrapt/commit/5ff502d78b835c0cb5d93a2560d92211ec1e0217))
+
 ## [1.15.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.14.1...v1.15.0) (2026-11-25)
 
 
