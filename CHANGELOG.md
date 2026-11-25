@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.15.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.14.1...v1.15.0) (2026-11-25)
+
+
+### Features
+
+* **gift-exchange:** add admin setup screens for gift exchanges ([8846a69](https://github.com/shawnphoffman/giftwrapt/commit/8846a69566295b229a26ef44ff7d3c7c98423a2e))
+* **gift-exchange:** add assignment emails and Send Emails ([29cae20](https://github.com/shawnphoffman/giftwrapt/commit/29cae200c52b290c2281d12df5dd631a4d1d6474))
+* **gift-exchange:** add exchange schema, gifting rules and the draw ([53cc1d8](https://github.com/shawnphoffman/giftwrapt/commit/53cc1d8da4743c9fff6daeab62be9cc98e5b1f26))
+* **gift-exchange:** add the Gift Exchange page for members ([ae63630](https://github.com/shawnphoffman/giftwrapt/commit/ae63630f311abc7dd9adf7d15ed4848af14f7049))
+* **mcp:** add list_my_gift_exchanges ([8d96f7f](https://github.com/shawnphoffman/giftwrapt/commit/8d96f7f94ff56aa7870774ec988c7fdc1ae44a81))
+* **mobile-api:** add GET /v1/gift-exchanges for iOS ([2fc2bd0](https://github.com/shawnphoffman/giftwrapt/commit/2fc2bd0e58214d8ca0b5685e6280602a40f05903))
+
+
+### Bug Fixes
+
+* **forms:** stop password managers autofilling name and title fields ([fb0835d](https://github.com/shawnphoffman/giftwrapt/commit/fb0835d397152f4ee47f33d1e4126cc41f0bb8d3))
+* **gift-exchange:** call the admin pages Gift Exchanges ([de47cd8](https://github.com/shawnphoffman/giftwrapt/commit/de47cd81304e1b2ab2e6596b1ac9c616507fec74))
+* **gift-exchange:** keep the exchange title readable beside its actions ([5a4a35b](https://github.com/shawnphoffman/giftwrapt/commit/5a4a35b5d0631d534347ea05245d5c2d928a6561))
+* **gift-exchange:** let the exchange page use the full width ([dbd70b7](https://github.com/shawnphoffman/giftwrapt/commit/dbd70b75e184c82942d1cf2757d28077f7faeb57))
+* **gift-exchange:** refuse gift dates in the past ([fe2f174](https://github.com/shawnphoffman/giftwrapt/commit/fe2f174ea0f03596691341ff803e59a64150b62e))
+* **gift-exchange:** say Answer Yes in the no-options warnings ([b898e66](https://github.com/shawnphoffman/giftwrapt/commit/b898e66461f8b3b698484a1abaaebda6c83583c8))
+* **gift-exchange:** use short names in locked-pair reasons ([1465654](https://github.com/shawnphoffman/giftwrapt/commit/1465654469011b7715a24cd3363735e2745c4f6c))
+* **i18n:** load the default language only when nothing else decides it ([0912b0e](https://github.com/shawnphoffman/giftwrapt/commit/0912b0e16352b7be4d9d24de77a8f94843005d0c))
+* **i18n:** review the gift exchange French and clarify the rules table ([adef99d](https://github.com/shawnphoffman/giftwrapt/commit/adef99dcd80cc279da6ec9f17f82bbb504b593cc))
+
+
+### Performance Improvements
+
+* **observability:** turn off Sentry's ESM loader hooks ([195f545](https://github.com/shawnphoffman/giftwrapt/commit/195f54552634ba61b6e6da0d09a97cff5b04be2f))
+
 ## [1.14.1](https://github.com/shawnphoffman/giftwrapt/compare/v1.14.0...v1.14.1) (2026-11-23)
 
 
