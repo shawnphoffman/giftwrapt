@@ -515,6 +515,10 @@ function EditUserFormInner({
 									<Label htmlFor={field.name}>{m.admin_users_form_name_label()}</Label>
 									<Input
 										id={field.name}
+										name="person-full-name"
+										autoComplete="off"
+										data-1p-ignore
+										data-lpignore="true"
 										type="text"
 										placeholder={m.admin_users_form_name_placeholder()}
 										value={field.state.value}

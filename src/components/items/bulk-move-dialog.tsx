@@ -200,6 +200,9 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 								<Label htmlFor="new-list-name">{m.items_bulk_move_new_name_label()}</Label>
 								<Input
 									id="new-list-name"
+									autoComplete="off"
+									data-1p-ignore
+									data-lpignore="true"
 									value={newListName}
 									onChange={e => setNewListName(e.target.value)}
 									placeholder={m.items_bulk_move_new_name_placeholder()}

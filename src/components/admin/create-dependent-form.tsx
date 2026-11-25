@@ -92,6 +92,9 @@ export function CreateDependentForm({ onCreated }: { onCreated?: () => void }) {
 				<Label htmlFor="dep-name">{m.admin_users_dependent_name_label()}</Label>
 				<Input
 					id="dep-name"
+					autoComplete="off"
+					data-1p-ignore
+					data-lpignore="true"
 					value={name}
 					onChange={e => setName(e.target.value)}
 					placeholder={m.admin_users_dependent_name_placeholder()}

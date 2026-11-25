@@ -920,6 +920,9 @@ function AppTitleField({ currentValue, onSave }: AppTitleFieldProps) {
 			</div>
 			<Input
 				id="appTitle"
+				autoComplete="off"
+				data-1p-ignore
+				data-lpignore="true"
 				type="text"
 				maxLength={80}
 				value={draft}

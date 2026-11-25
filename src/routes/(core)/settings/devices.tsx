@@ -218,6 +218,9 @@ function CreateKeyDialog({
 						<Label htmlFor="deviceName">{m.settings_devices_name_label()}</Label>
 						<Input
 							id="deviceName"
+							autoComplete="off"
+							data-1p-ignore
+							data-lpignore="true"
 							value={name}
 							onChange={e => setName(e.target.value)}
 							maxLength={LIMITS.SHORT_NAME}

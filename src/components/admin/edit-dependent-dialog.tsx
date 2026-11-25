@@ -177,6 +177,9 @@ export function EditDependentDialog({
 						<Label htmlFor="edit-dep-name">{m.admin_users_dependent_name_label()}</Label>
 						<Input
 							id="edit-dep-name"
+							autoComplete="off"
+							data-1p-ignore
+							data-lpignore="true"
 							value={name}
 							onChange={e => setName(e.target.value)}
 							maxLength={60}

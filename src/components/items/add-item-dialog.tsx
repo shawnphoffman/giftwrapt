@@ -451,6 +451,9 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 						</Label>
 						<Input
 							id="add-item-title"
+							autoComplete="off"
+							data-1p-ignore
+							data-lpignore="true"
 							value={title}
 							onChange={e => setTitle(e.target.value)}
 							placeholder={m.items_add_title_placeholder()}

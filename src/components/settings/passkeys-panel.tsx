@@ -77,6 +77,9 @@ export function PasskeysPanelContent({
 					<Label htmlFor="new-passkey-name">{m.settings_passkeys_add_label()}</Label>
 					<Input
 						id="new-passkey-name"
+						autoComplete="off"
+						data-1p-ignore
+						data-lpignore="true"
 						value={newName}
 						onChange={e => setNewName(e.target.value)}
 						placeholder={m.settings_passkeys_name_placeholder()}

@@ -296,7 +296,15 @@ function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 							updateTitle.mutate(trimmed, { onSuccess: () => setEditing(false) })
 						}}
 					>
-						<Input value={title} onChange={e => setTitle(e.target.value)} autoFocus className="h-8" />
+						<Input
+							value={title}
+							onChange={e => setTitle(e.target.value)}
+							autoFocus
+							className="h-8"
+							autoComplete="off"
+							data-1p-ignore
+							data-lpignore="true"
+						/>
 						<Button type="submit" size="sm" disabled={updateTitle.isPending}>
 							{m.action_save()}
 						</Button>
@@ -544,7 +552,16 @@ function AddCustomDialog() {
 				<div className="flex flex-col gap-3">
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="custom-title">{m.admin_settings_holidays_custom_title_label()}</Label>
-						<Input id="custom-title" value={title} onChange={e => setTitle(e.target.value)} maxLength={120} autoFocus />
+						<Input
+							id="custom-title"
+							value={title}
+							onChange={e => setTitle(e.target.value)}
+							maxLength={120}
+							autoFocus
+							autoComplete="off"
+							data-1p-ignore
+							data-lpignore="true"
+						/>
 					</div>
 					<div className="flex gap-2">
 						<div className="flex flex-col gap-1.5 flex-1">
