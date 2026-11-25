@@ -63,6 +63,12 @@ export function GiftExchangeDetailsDialog({
 	const [giftDate, setGiftDate] = useState<string | undefined>(exchange?.giftDate)
 	const [chosenIds, setChosenIds] = useState<Array<string>>([])
 	const [currentYear] = useState(() => new Date().getUTCFullYear())
+	// The browser's own date, read once. The server checks again against the
+	// deployment's date and has the final say.
+	const [todayIso] = useState(() => {
+		const d = new Date()
+		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+	})
 
 	useEffect(() => {
 		if (!open) return
@@ -76,7 +82,10 @@ export function GiftExchangeDetailsDialog({
 	const budgetAmount = budgetText === '' ? null : parseAmount(budgetText)
 	const budgetInvalid = budgetText !== '' && budgetAmount === null
 	const dateValid = giftDate !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(giftDate)
-	const canSubmit = name.trim().length > 0 && dateValid && !budgetInvalid
+	// A new date can't be in the past. An exchange whose date has already
+	// passed can still be renamed without touching its date.
+	const dateInPast = dateValid && giftDate < todayIso && giftDate !== exchange?.giftDate
+	const canSubmit = name.trim().length > 0 && dateValid && !dateInPast && !budgetInvalid
 
 	const eligible = allUsers.filter(u => !u.banned)
 	const chosen = chosenIds.map(id => eligible.find(u => u.id === id)).filter((u): u is AdminUserRow => Boolean(u))
@@ -121,9 +130,13 @@ export function GiftExchangeDetailsDialog({
 					className="space-y-4"
 				>
 					<div className="grid gap-2">
-						<Label htmlFor="exchange-name">{m.admin_exchanges_name_label()}</Label>
+						<Label htmlFor="exchange-title">{m.admin_exchanges_name_label()}</Label>
 						<Input
-							id="exchange-name"
+							id="exchange-title"
+							name="exchange-title"
+							autoComplete="off"
+							data-1p-ignore
+							data-lpignore="true"
 							value={name}
 							onChange={e => setName(e.target.value)}
 							placeholder={m.admin_exchanges_name_placeholder()}
@@ -152,10 +165,12 @@ export function GiftExchangeDetailsDialog({
 								id="exchange-date"
 								value={giftDate}
 								onChange={setGiftDate}
-								fromYear={currentYear - 1}
+								fromYear={currentYear}
+								minDate={todayIso}
 								toYear={currentYear + 5}
 								disabled={mutation.isPending}
 							/>
+							{dateInPast && <p className="text-xs text-destructive">{m.admin_exchanges_gift_date_past()}</p>}
 						</div>
 					</div>
 

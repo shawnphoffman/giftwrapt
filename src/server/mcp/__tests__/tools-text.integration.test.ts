@@ -210,6 +210,7 @@ describe('MCP tool text and annotations', () => {
 
 		// A drawn gift exchange, so list_my_gift_exchanges returns a person.
 		const exchange = await createExchangeImpl({
+			now: new Date('2026-11-01T12:00:00Z'),
 			actorId: me.id,
 			input: { name: 'Family Swap', budget: 25, giftDate: '2026-12-25', memberUserIds: [me.id, partner.id, friend.id] },
 		})

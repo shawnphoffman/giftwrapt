@@ -38,6 +38,10 @@ export type DatePickerProps = {
 	/// Latest year selectable. Defaults to one year in the future so
 	/// upcoming-anniversary entries (booked weddings, etc.) work.
 	toYear?: number
+	/// Earliest selectable day, `YYYY-MM-DD`. Earlier days are disabled in
+	/// the calendar and earlier months can't be reached. Typing is not
+	/// blocked: the form that owns the value validates it.
+	minDate?: string
 }
 
 // Inserts hyphens at positions 4 and 7 ("YYYY-MM-DD") while ignoring
@@ -78,6 +82,7 @@ export function DatePicker({
 	className,
 	fromYear = 1900,
 	toYear = new Date().getUTCFullYear() + 1,
+	minDate,
 }: DatePickerProps) {
 	// Local buffer for partial input so each keystroke survives a
 	// controlled-value re-render. Synced back from `value` whenever the
@@ -120,7 +125,11 @@ export function DatePicker({
 
 	const selectedDate = value ? (parseIsoDate(value)?.date ?? undefined) : undefined
 
-	const startMonth = new Date(Date.UTC(fromYear, 0, 1))
+	// The calendar's day cells are local-midnight dates, so the earliest day
+	// is built the same way for the `before` matcher to compare like with like.
+	const minParts = minDate && /^\d{4}-\d{2}-\d{2}$/.test(minDate) ? minDate.split('-').map(Number) : null
+	const minDay = minParts ? new Date(minParts[0], minParts[1] - 1, minParts[2]) : undefined
+	const startMonth = minDay ? new Date(minDay.getFullYear(), minDay.getMonth(), 1) : new Date(Date.UTC(fromYear, 0, 1))
 	const endMonth = new Date(Date.UTC(toYear, 11, 1))
 
 	return (
@@ -159,6 +168,7 @@ export function DatePicker({
 						captionLayout="dropdown"
 						startMonth={startMonth}
 						endMonth={endMonth}
+						disabled={minDay ? { before: minDay } : undefined}
 					/>
 				</PopoverContent>
 			</Popover>

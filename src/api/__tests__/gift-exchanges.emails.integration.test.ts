@@ -80,6 +80,7 @@ async function makePeople(tx: SchemaDatabase, names: Array<string>) {
 
 async function create(tx: SchemaDatabase, actorId: string, userIds: Array<string>, budget: number | null = 40) {
 	const res = await createExchangeImpl({
+		now: new Date('2026-11-01T12:00:00Z'),
 		actorId,
 		input: { name: 'Family Swap', budget, giftDate: '2026-12-25', memberUserIds: userIds },
 		dbx: tx,

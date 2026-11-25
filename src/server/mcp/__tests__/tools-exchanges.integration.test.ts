@@ -100,6 +100,7 @@ async function createExchange(
 	opts: { name?: string; budget?: number | null; giftDate?: string } = {}
 ): Promise<string> {
 	const res = await createExchangeImpl({
+		now: new Date('2026-11-01T12:00:00Z'),
 		actorId,
 		input: {
 			name: opts.name ?? 'Family',

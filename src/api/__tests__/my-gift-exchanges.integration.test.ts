@@ -30,7 +30,12 @@ async function makePeople(tx: SchemaDatabase, names: Array<string>, role: 'user'
 }
 
 async function drawnExchange(tx: SchemaDatabase, actorId: string, userIds: Array<string>, name = 'Family') {
-	const res = await createExchangeImpl({ actorId, input: { name, budget: 50, giftDate: '2026-12-25', memberUserIds: userIds }, dbx: tx })
+	const res = await createExchangeImpl({
+		now: new Date('2026-11-01T12:00:00Z'),
+		actorId,
+		input: { name, budget: 50, giftDate: '2026-12-25', memberUserIds: userIds },
+		dbx: tx,
+	})
 	if (res.kind !== 'ok') throw new Error(`create failed: ${res.reason}`)
 	const drawn = await drawExchangeImpl({ exchangeId: res.id, dbx: tx })
 	if (drawn.kind !== 'ok') throw new Error(`draw failed: ${drawn.reason}`)
@@ -118,6 +123,7 @@ describe('getMyExchangesImpl', () => {
 			const [admin, ann, bea, cal, dee] = await makePeople(tx, ['Admin', 'Ann', 'Bea', 'Cal', 'Dee'])
 			const later = await drawnExchange(tx, admin.id, [ann.id, bea.id, cal.id], 'Later')
 			const sooner = await createExchangeImpl({
+				now: new Date('2026-11-01T12:00:00Z'),
 				actorId: admin.id,
 				input: { name: 'Sooner', budget: null, giftDate: '2026-12-01', memberUserIds: [ann.id, cal.id, dee.id] },
 				dbx: tx,
@@ -126,6 +132,7 @@ describe('getMyExchangesImpl', () => {
 			await drawExchangeImpl({ exchangeId: sooner.id, dbx: tx })
 			// Never drawn: not on the page.
 			await createExchangeImpl({
+				now: new Date('2026-11-01T12:00:00Z'),
 				actorId: admin.id,
 				input: { name: 'Undrawn', budget: null, giftDate: '2026-11-30', memberUserIds: [ann.id, bea.id, dee.id] },
 				dbx: tx,
@@ -205,6 +212,7 @@ describe('revealMyAssignmentImpl', () => {
 		await withRollback(async tx => {
 			const [admin, ann, bea, cal] = await makePeople(tx, ['Admin', 'Ann', 'Bea', 'Cal'])
 			const res = await createExchangeImpl({
+				now: new Date('2026-11-01T12:00:00Z'),
 				actorId: admin.id,
 				input: { name: 'Undrawn', budget: null, giftDate: '2026-12-25', memberUserIds: [ann.id, bea.id, cal.id] },
 				dbx: tx,

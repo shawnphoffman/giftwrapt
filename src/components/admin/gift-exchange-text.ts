@@ -161,6 +161,8 @@ function refusalTitle(
 			return m.admin_exchanges_error_not_found()
 		case 'archived':
 			return m.admin_exchanges_error_archived()
+		case 'gift-date-in-past':
+			return m.admin_exchanges_error_gift_date_in_past()
 		case 'user-banned':
 			return m.admin_exchanges_error_user_banned()
 		case 'user-not-found':

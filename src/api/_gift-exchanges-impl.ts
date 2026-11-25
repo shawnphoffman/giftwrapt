@@ -16,6 +16,7 @@ import type { SchemaDatabase } from '@/db'
 import { db as defaultDb } from '@/db'
 import type { Role } from '@/db/schema'
 import { giftExchangeBlocks, giftExchangeMembers, giftExchanges, users } from '@/db/schema'
+import { calendarDayInZone } from '@/lib/calendar-day'
 import { checkDraw, drawAssignments, type DrawCheck, type DrawProblem, type MemberPair } from '@/lib/gift-exchange/draw'
 import {
 	type GiftExchangeEmailStatus,
@@ -105,6 +106,7 @@ export type AdminExchangeDetail = {
 
 type NotFound = { kind: 'error'; reason: 'not-found' }
 type Archived = { kind: 'error'; reason: 'archived' }
+type GiftDateInPast = { kind: 'error'; reason: 'gift-date-in-past' }
 type NoValidDraw = { kind: 'error'; reason: 'no-valid-draw'; problem: DrawProblem }
 
 // ===============================
@@ -365,17 +367,26 @@ export async function getExchangeForAdminImpl(args: { exchangeId: string; dbx?: 
 // Create, edit, delete, archive
 // ===============================
 
-export type CreateExchangeResult = { kind: 'ok'; id: string } | { kind: 'error'; reason: 'user-not-found' | 'user-banned' }
+export type CreateExchangeResult = { kind: 'ok'; id: string } | { kind: 'error'; reason: 'user-not-found' | 'user-banned' } | GiftDateInPast
+
+/** Today's calendar date in the deployment's time zone, as `YYYY-MM-DD` (logic.md, "The deployment time zone decides which date it is"). */
+function deploymentToday(now: Date, timeZone: string | undefined): string {
+	return calendarDayInZone(now, timeZone).toISOString().slice(0, 10)
+}
 
 export async function createExchangeImpl(args: {
 	actorId: string
 	input: CreateExchangeInput
 	dbx?: SchemaDatabase
+	now?: Date
 }): Promise<CreateExchangeResult> {
 	const dbx = args.dbx ?? defaultDb
 	const { input } = args
 	const memberUserIds = [...new Set(input.memberUserIds)]
-	const budgetCurrency = input.budget === null ? null : (await getAppSettings(dbx)).defaultCurrency
+	const settings = await getAppSettings(dbx)
+	// `YYYY-MM-DD` strings compare in date order.
+	if (input.giftDate < deploymentToday(args.now ?? new Date(), settings.timeZone)) return { kind: 'error', reason: 'gift-date-in-past' }
+	const budgetCurrency = input.budget === null ? null : settings.defaultCurrency
 
 	return inTransaction(dbx, async tx => {
 		const check = await checkAddableUsers(tx, memberUserIds)
@@ -397,21 +408,38 @@ export async function createExchangeImpl(args: {
 	})
 }
 
-export type UpdateExchangeResult = { kind: 'ok' } | NotFound | Archived
+export type UpdateExchangeResult = { kind: 'ok' } | NotFound | Archived | GiftDateInPast
 
-/** Name, budget and gift date. Allowed before and after the draw; not once archived. */
-export async function updateExchangeImpl(args: { input: UpdateExchangeInput; dbx?: SchemaDatabase }): Promise<UpdateExchangeResult> {
+/**
+ * Name, budget and gift date. Allowed before and after the draw; not once archived.
+ * A changed gift date can't be in the past; an exchange whose date has already
+ * passed can still be renamed or re-budgeted with its date left alone.
+ */
+export async function updateExchangeImpl(args: {
+	input: UpdateExchangeInput
+	dbx?: SchemaDatabase
+	now?: Date
+}): Promise<UpdateExchangeResult> {
 	const dbx = args.dbx ?? defaultDb
 	const { input } = args
 	return inTransaction(dbx, async tx => {
 		const current = await tx
-			.select({ archivedAt: giftExchanges.archivedAt, budget: giftExchanges.budget, budgetCurrency: giftExchanges.budgetCurrency })
+			.select({
+				archivedAt: giftExchanges.archivedAt,
+				budget: giftExchanges.budget,
+				budgetCurrency: giftExchanges.budgetCurrency,
+				giftDate: giftExchanges.giftDate,
+			})
 			.from(giftExchanges)
 			.where(eq(giftExchanges.id, input.exchangeId))
 			.for('update')
 			.then(found => found.at(0))
 		if (!current) return { kind: 'error', reason: 'not-found' }
 		if (current.archivedAt) return { kind: 'error', reason: 'archived' }
+		if (input.giftDate !== current.giftDate) {
+			const { timeZone } = await getAppSettings(tx)
+			if (input.giftDate < deploymentToday(args.now ?? new Date(), timeZone)) return { kind: 'error', reason: 'gift-date-in-past' }
+		}
 
 		const budget = input.budget === null ? null : input.budget.toFixed(2)
 		// The currency is copied when the budget is saved, so a later change

@@ -85,6 +85,7 @@ describe('gift exchange admin secrecy', () => {
 			const late = await makeUser(tx)
 
 			const created = await createExchangeImpl({
+				now: new Date('2026-11-01T12:00:00Z'),
 				actorId: admin.id,
 				input: { name: 'Secret', budget: 30, giftDate: '2026-12-25', memberUserIds: people.map(p => p.id) },
 				dbx: tx,
@@ -106,7 +107,11 @@ describe('gift exchange admin secrecy', () => {
 			results.push(['get', await getExchangeForAdminImpl({ exchangeId, dbx: tx })])
 			results.push([
 				'update',
-				await updateExchangeImpl({ input: { exchangeId, name: 'Secret 2', budget: 40, giftDate: '2026-12-24' }, dbx: tx }),
+				await updateExchangeImpl({
+					now: new Date('2026-11-01T12:00:00Z'),
+					input: { exchangeId, name: 'Secret 2', budget: 40, giftDate: '2026-12-24' },
+					dbx: tx,
+				}),
 			])
 			results.push(['delete (refused)', await deleteExchangeImpl({ exchangeId, dbx: tx })])
 			results.push(['send ready emails', await sendReadyEmailsImpl({ exchangeId, dbx: tx })])

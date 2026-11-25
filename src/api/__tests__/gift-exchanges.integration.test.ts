@@ -32,6 +32,7 @@ async function makeUsers(tx: SchemaDatabase, n: number) {
 
 async function create(tx: SchemaDatabase, actorId: string, userIds: Array<string>, budget: number | null = null) {
 	const res = await createExchangeImpl({
+		now: new Date('2026-11-01T12:00:00Z'),
 		actorId,
 		input: { name: 'Family', budget, giftDate: '2026-12-25', memberUserIds: userIds },
 		dbx: tx,
@@ -110,6 +111,7 @@ describe('createExchangeImpl', () => {
 			const admin = await makeUser(tx, { role: 'admin' })
 			const banned = await makeUser(tx, { banned: true })
 			const res = await createExchangeImpl({
+				now: new Date('2026-11-01T12:00:00Z'),
 				actorId: admin.id,
 				input: { name: 'X', budget: null, giftDate: '2026-12-25', memberUserIds: [banned.id] },
 				dbx: tx,
@@ -152,6 +154,7 @@ describe('updateExchangeImpl', () => {
 				20
 			)
 			const res = await updateExchangeImpl({
+				now: new Date('2026-11-01T12:00:00Z'),
 				input: { exchangeId: id, name: 'Renamed', budget: null, giftDate: '2026-12-24' },
 				dbx: tx,
 			})
@@ -161,7 +164,11 @@ describe('updateExchangeImpl', () => {
 
 			await drawExchangeImpl({ exchangeId: id, dbx: tx })
 			await archiveExchangeImpl({ exchangeId: id, dbx: tx })
-			const after = await updateExchangeImpl({ input: { exchangeId: id, name: 'Nope', budget: null, giftDate: '2026-12-24' }, dbx: tx })
+			const after = await updateExchangeImpl({
+				now: new Date('2026-11-01T12:00:00Z'),
+				input: { exchangeId: id, name: 'Nope', budget: null, giftDate: '2026-12-24' },
+				dbx: tx,
+			})
 			expect(after).toEqual({ kind: 'error', reason: 'archived' })
 		})
 	})
@@ -874,6 +881,70 @@ describe('getExchangeForAdminImpl', () => {
 				kind: 'error',
 				reason: 'not-found',
 			})
+		})
+	})
+})
+
+describe('gift date', () => {
+	const NOW = new Date('2026-11-24T12:00:00Z')
+
+	it('refuses a new exchange dated in the past, and accepts one dated today', async () => {
+		await withRollback(async tx => {
+			const admin = await makeUser(tx, { role: 'admin' })
+			const past = await createExchangeImpl({
+				now: NOW,
+				actorId: admin.id,
+				input: { name: 'Yesterday', budget: null, giftDate: '2026-11-23', memberUserIds: [] },
+				dbx: tx,
+			})
+			expect(past).toEqual({ kind: 'error', reason: 'gift-date-in-past' })
+
+			const today = await createExchangeImpl({
+				now: NOW,
+				actorId: admin.id,
+				input: { name: 'Today', budget: null, giftDate: '2026-11-24', memberUserIds: [] },
+				dbx: tx,
+			})
+			expect(today.kind).toBe('ok')
+		})
+	})
+
+	it('refuses moving the date into the past, but lets an exchange whose date has passed be renamed', async () => {
+		await withRollback(async tx => {
+			const admin = await makeUser(tx, { role: 'admin' })
+			const created = await createExchangeImpl({
+				now: NOW,
+				actorId: admin.id,
+				input: { name: 'Swap', budget: null, giftDate: '2026-11-25', memberUserIds: [] },
+				dbx: tx,
+			})
+			if (created.kind !== 'ok') throw new Error('expected the exchange to be created')
+			const later = new Date('2026-12-10T12:00:00Z')
+
+			// The date has passed and is left alone: the rename goes through.
+			const renamed = await updateExchangeImpl({
+				now: later,
+				input: { exchangeId: created.id, name: 'Swap, Late', budget: 20, giftDate: '2026-11-25' },
+				dbx: tx,
+			})
+			expect(renamed).toEqual({ kind: 'ok' })
+
+			// A different date that is also in the past is refused, and nothing changes.
+			const moved = await updateExchangeImpl({
+				now: later,
+				input: { exchangeId: created.id, name: 'Swap, Moved', budget: 20, giftDate: '2026-12-01' },
+				dbx: tx,
+			})
+			expect(moved).toEqual({ kind: 'error', reason: 'gift-date-in-past' })
+			expect(await exchangeRow(tx, created.id)).toMatchObject({ name: 'Swap, Late', giftDate: '2026-11-25' })
+
+			// A future date is fine.
+			const future = await updateExchangeImpl({
+				now: later,
+				input: { exchangeId: created.id, name: 'Swap, Late', budget: 20, giftDate: '2026-12-20' },
+				dbx: tx,
+			})
+			expect(future).toEqual({ kind: 'ok' })
 		})
 	})
 })
