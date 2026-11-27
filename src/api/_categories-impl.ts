@@ -33,6 +33,8 @@ export type AssignCategoryResult = { kind: 'ok' } | { kind: 'error'; reason: Edi
 
 export type CategoryNameSuggestionsResult = { kind: 'ok'; names: Array<string> } | { kind: 'error'; reason: EditReason }
 
+export type ListCategoriesResult = { kind: 'ok'; categories: Array<CategorySummary> } | { kind: 'error'; reason: EditReason }
+
 // ===============================
 // Input schemas
 // ===============================
@@ -68,6 +70,10 @@ export const AssignCategoryInputSchema = z
 	.refine(d => d.itemIds.length + d.groupIds.length > 0, { message: 'At least one item or group is required' })
 
 export const CategoryNameSuggestionsInputSchema = z.object({
+	listId: z.number().int().positive(),
+})
+
+export const ListCategoriesInputSchema = z.object({
 	listId: z.number().int().positive(),
 })
 
@@ -262,6 +268,21 @@ export async function assignCategoryImpl(args: {
 
 	notifyListEvent({ kind: 'item', listId, itemId: -1 })
 	return { kind: 'ok' }
+}
+
+// One list's categories, for a form that is not under that list's edit view
+// (the Add Item dialog, where the list is picked in the form). Gated on edit
+// access like every other category call, so it is not a second way for a
+// gifter to read category names: theirs come through `categoriesForViewer`.
+export async function getListCategoriesImpl(args: {
+	userId: string
+	input: z.infer<typeof ListCategoriesInputSchema>
+	dbx?: SchemaDatabase
+}): Promise<ListCategoriesResult> {
+	const { userId, input: data, dbx = db } = args
+	const perm = await loadListForCategories(userId, data.listId, dbx)
+	if (!perm.ok) return { kind: 'error', reason: perm.reason }
+	return { kind: 'ok', categories: await loadCategoriesForList(dbx, data.listId) }
 }
 
 // Names the caller has used on the other lists they own, minus the ones

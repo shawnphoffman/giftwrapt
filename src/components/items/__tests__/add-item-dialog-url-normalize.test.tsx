@@ -24,6 +24,7 @@ vi.mock('@tanstack/react-query', () => ({
 	useQuery: () => ({ data: { public: [], private: [], giftIdeas: [], editable: [], children: [] } }),
 	useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }))
+vi.mock('@/api/categories', () => ({ getListCategories: vi.fn() }))
 vi.mock('@/api/items', () => ({ createItem: vi.fn() }))
 vi.mock('@/api/lists', () => ({ getMyLists: vi.fn() }))
 vi.mock('@/api/uploads', () => ({ uploadItemImage: vi.fn() }))

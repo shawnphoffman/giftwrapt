@@ -24,6 +24,9 @@ import {
 	DeleteCategoryInputSchema,
 	type DeleteCategoryResult,
 	getCategoryNameSuggestionsImpl,
+	getListCategoriesImpl,
+	ListCategoriesInputSchema,
+	type ListCategoriesResult,
 	reorderCategoriesImpl,
 	ReorderCategoriesInputSchema,
 	type ReorderCategoriesResult,
@@ -45,6 +48,7 @@ export type {
 	CategoryNameSuggestionsResult,
 	CreateCategoryResult,
 	DeleteCategoryResult,
+	ListCategoriesResult,
 	ReorderCategoriesResult,
 	UpdateCategoryResult,
 } from './_categories-impl'
@@ -82,6 +86,11 @@ export const getCategoryNameSuggestions = createServerFn({ method: 'GET' })
 		({ context, data }): Promise<CategoryNameSuggestionsResult> =>
 			getCategoryNameSuggestionsImpl({ userId: context.session.user.id, input: data })
 	)
+
+export const getListCategories = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof ListCategoriesInputSchema>) => ListCategoriesInputSchema.parse(data))
+	.handler(({ context, data }): Promise<ListCategoriesResult> => getListCategoriesImpl({ userId: context.session.user.id, input: data }))
 
 // One model call per press. The limit is checked here, before the impl, so
 // a refused press costs nothing.

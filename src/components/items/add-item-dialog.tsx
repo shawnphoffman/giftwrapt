@@ -4,6 +4,7 @@ import { Loader2, Lock, Sparkles, SquarePlus, Star, Trash2, Upload } from 'lucid
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import { getListCategories } from '@/api/categories'
 import { createItem } from '@/api/items'
 import { getMyLists, type MyListRow } from '@/api/lists'
 import { uploadItemImage } from '@/api/uploads'
@@ -42,6 +43,9 @@ type Props = {
 
 type ListOption = Pick<MyListRow, 'id' | 'name' | 'type' | 'isPrivate' | 'isPrimary'>
 
+// The category select's value for "no category". Radix Select has no empty value.
+const NO_CATEGORY = 'none'
+
 // Shows the expected shape of a link; not translated.
 const URL_PLACEHOLDER = 'https://...'
 
@@ -72,6 +76,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 	const [quantity, setQuantity] = useState('1')
 	const [priority, setPriority] = useState<Priority>('normal')
 	const [selectedListId, setSelectedListId] = useState('')
+	const [categoryId, setCategoryId] = useState(NO_CATEGORY)
 	const [saving, setSaving] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	// Image candidates from the scrape. `imageUrl` is the active selection
@@ -110,6 +115,19 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 		enabled: open,
 	})
 
+	// The picked list's categories. The field below shows once that list has
+	// one, the same rule as the item form on the list's own edit view.
+	const { data: categoriesResult } = useQuery({
+		queryKey: ['list-categories', selectedListId],
+		queryFn: () => getListCategories({ data: { listId: Number(selectedListId) } }),
+		enabled: open && selectedListId !== '',
+		staleTime: 0,
+	})
+	const categories = categoriesResult?.kind === 'ok' ? categoriesResult.categories : []
+	// A category belongs to one list, so a choice made for another list (or one
+	// deleted since) reads as none.
+	const pickedCategoryId = categories.some(c => String(c.id) === categoryId) ? Number(categoryId) : undefined
+
 	// Todo lists use a separate row table (todo_items) and reject gift-item
 	// creation server-side. Filter them out so they never appear in the
 	// list-picker dropdown for this gift-item dialog.
@@ -139,6 +157,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 			setPrice('')
 			setQuantity('1')
 			setPriority('normal')
+			setCategoryId(NO_CATEGORY)
 			setImageUrl('')
 			setImageCandidates([])
 			setStagedFile(null)
@@ -269,6 +288,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 					url: (normalizeHttpUrl(url) ?? url.trim()) || undefined,
 					price: price.trim() || undefined,
 					priority,
+					categoryId: pickedCategoryId,
 					quantity: qty,
 					notes: notes.trim() || undefined,
 					imageUrl: imageUrl.trim() || undefined,
@@ -354,7 +374,14 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 				>
 					<div className="grid gap-2">
 						<Label htmlFor="add-item-list">{m.items_field_list()}</Label>
-						<Select value={selectedListId} onValueChange={setSelectedListId} disabled={formLocked}>
+						<Select
+							value={selectedListId}
+							onValueChange={v => {
+								setSelectedListId(v)
+								setCategoryId(NO_CATEGORY)
+							}}
+							disabled={formLocked}
+						>
 							<SelectTrigger id="add-item-list" className="w-full">
 								<SelectValue placeholder={m.items_list_select_placeholder()} />
 							</SelectTrigger>
@@ -500,6 +527,25 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 							))}
 						</ToggleGroup>
 					</div>
+
+					{categories.length > 0 && (
+						<div className="grid gap-2">
+							<Label htmlFor="add-item-category">{m.items_field_category()}</Label>
+							<Select value={pickedCategoryId === undefined ? NO_CATEGORY : categoryId} onValueChange={setCategoryId} disabled={formLocked}>
+								<SelectTrigger id="add-item-category" className="w-full sm:w-64">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value={NO_CATEGORY}>{m.items_category_none()}</SelectItem>
+									{categories.map(c => (
+										<SelectItem key={c.id} value={String(c.id)}>
+											{c.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					)}
 
 					<div className="grid gap-4 sm:grid-cols-2">
 						<div className="grid gap-2">

@@ -12,6 +12,7 @@ import {
 	createCategoryImpl,
 	deleteCategoryImpl,
 	getCategoryNameSuggestionsImpl,
+	getListCategoriesImpl,
 	reorderCategoriesImpl,
 	updateCategoryImpl,
 } from '@/api/_categories-impl'
@@ -120,6 +121,40 @@ describe('managing categories', () => {
 			expect(await getCategoryNameSuggestionsImpl({ userId: stranger.id, input: { listId: list.id }, dbx: tx })).toEqual({
 				kind: 'error',
 				reason: 'not-authorized',
+			})
+		})
+	})
+
+	it("reads one list's categories in order for anyone who can edit it, and for nobody else", async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const editor = await makeUser(tx)
+			const stranger = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id })
+			const other = await makeList(tx, { ownerId: owner.id })
+			await makeListEditor(tx, { listId: list.id, userId: editor.id, ownerId: owner.id })
+			const toys = await makeCategory(tx, list.id, 'Toys', 1)
+			const clothes = await makeCategory(tx, list.id, 'Clothes', 0)
+			await makeCategory(tx, other.id, 'Books', 0)
+
+			const expected = {
+				kind: 'ok',
+				categories: [
+					{ id: clothes.id, name: 'Clothes', sortOrder: 0 },
+					{ id: toys.id, name: 'Toys', sortOrder: 1 },
+				],
+			}
+			expect(await getListCategoriesImpl({ userId: owner.id, input: { listId: list.id }, dbx: tx })).toEqual(expected)
+			expect(await getListCategoriesImpl({ userId: editor.id, input: { listId: list.id }, dbx: tx })).toEqual(expected)
+			// A public list's category names are not readable this way by someone
+			// who can only view it.
+			expect(await getListCategoriesImpl({ userId: stranger.id, input: { listId: list.id }, dbx: tx })).toEqual({
+				kind: 'error',
+				reason: 'not-authorized',
+			})
+			expect(await getListCategoriesImpl({ userId: owner.id, input: { listId: 999_999_999 }, dbx: tx })).toEqual({
+				kind: 'error',
+				reason: 'not-found',
 			})
 		})
 	})

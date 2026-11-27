@@ -104,6 +104,8 @@ export const deleteCategory = ok
 export const assignCategory = ok
 export const getCategoryNameSuggestions = (): Promise<{ kind: 'ok'; names: Array<string> }> =>
 	Promise.resolve({ kind: 'ok', names: ['Books', 'Home', 'Shoes'] })
+export const getListCategories = (): Promise<{ kind: 'ok'; categories: Array<{ id: number; name: string; sortOrder: number }> }> =>
+	Promise.resolve({ kind: 'ok', categories: [] })
 
 export const suggestCategories = (): Promise<{
 	kind: 'ok'
