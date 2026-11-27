@@ -1,6 +1,10 @@
+import { useQueryClient } from '@tanstack/react-query'
+import { useRouter } from '@tanstack/react-router'
 import { ArrowRightLeft, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Fragment, useState } from 'react'
+import { toast } from 'sonner'
 
+import { updateItemGroup } from '@/api/groups'
 import type { GroupSummary, ItemForEditing } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
 import { Button } from '@/components/ui/button'
@@ -11,8 +15,10 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import type { Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
+import { itemsKeys } from '@/lib/queries/items'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
@@ -21,6 +27,7 @@ import { GroupConnector } from './group-connector'
 import { GroupEditDialog } from './group-edit-dialog'
 import { ItemEditRow } from './item-edit-row'
 import { MoveGroupDialog } from './move-group-dialog'
+import { PriorityQuickPicker } from './priority-quick-picker'
 
 type Props = {
 	group: GroupSummary
@@ -36,11 +43,28 @@ type Props = {
 export function GroupBlock({ group, items, groups, listId, onAddItem, onDelete, onMoveItem, onReorder }: Props) {
 	const [editOpen, setEditOpen] = useState(false)
 	const [moveOpen, setMoveOpen] = useState(false)
+	// Controlled so the inline priority buttons can close it (see PriorityQuickPicker).
+	const [menuOpen, setMenuOpen] = useState(false)
+	const router = useRouter()
+	const queryClient = useQueryClient()
 	// Both group types reorder: "in order" for the claim sequence, "pick one"
 	// so the recipient can put the one they want most on top.
 	const showReorder = items.length > 1
 
 	const hasPriorityTab = group.priority !== 'normal'
+
+	const handleSetPriority = async (priority: Priority) => {
+		if (priority === group.priority) return
+		const result = await updateItemGroup({ data: { groupId: group.id, priority } })
+		if (result.kind === 'ok') {
+			toast.success(m.items_priority_toast_updated())
+			// Group rows come from the route loader, and group priority flips the
+			// items' effective sort order, so both refetch (same as GroupEditDialog).
+			await Promise.all([router.invalidate(), queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })])
+		} else {
+			toast.error(m.items_priority_toast_failed())
+		}
+	}
 
 	return (
 		<div id={`group-${group.id}`} className="relative scroll-mt-24">
@@ -85,7 +109,7 @@ export function GroupBlock({ group, items, groups, listId, onAddItem, onDelete, 
 					>
 						<Plus />
 					</Button>
-					<DropdownMenu>
+					<DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
 						<DropdownMenuTrigger asChild>
 							<Button variant="outline" size="icon-xs" title={m.items_group_actions_label()} aria-label={m.items_group_actions_label()}>
 								<MoreHorizontal className="size-4" />
@@ -98,6 +122,14 @@ export function GroupBlock({ group, items, groups, listId, onAddItem, onDelete, 
 							<DropdownMenuItem onClick={() => setMoveOpen(true)}>
 								<ArrowRightLeft className="size-4" /> {m.items_action_move_to()}
 							</DropdownMenuItem>
+							<DropdownMenuSeparator />
+							<PriorityQuickPicker
+								value={group.priority}
+								onSelect={priority => {
+									setMenuOpen(false)
+									void handleSetPriority(priority)
+								}}
+							/>
 							<DropdownMenuSeparator />
 							<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(group.id)}>
 								<Trash2 className="size-4" /> {m.action_delete()}

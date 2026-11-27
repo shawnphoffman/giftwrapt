@@ -1,15 +1,12 @@
 import { useIsMutating } from '@tanstack/react-query'
 import { useLocation } from '@tanstack/react-router'
 import {
-	ArrowBigDown,
-	ArrowBigUp,
 	ArrowDown,
 	ArrowRightLeft,
 	ArrowUp,
 	Group,
 	ListOrdered,
 	Loader2,
-	Minus,
 	MoreHorizontal,
 	PackageCheck,
 	PackageX,
@@ -17,7 +14,6 @@ import {
 	Shuffle,
 	Trash2,
 	Ungroup,
-	Zap,
 } from 'lucide-react'
 import { memo, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -52,7 +48,6 @@ import {
 import type { GroupType, Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { useSession } from '@/lib/auth-client'
-import { priorityLabel } from '@/lib/i18n/labels'
 import { useAssignItemsToGroup } from '@/lib/mutations/assign-items-to-group'
 import { useCreateGroupAndAssignItems } from '@/lib/mutations/create-group-and-assign'
 import { useDeleteItem } from '@/lib/mutations/delete-item'
@@ -69,17 +64,8 @@ import { ItemComments } from './item-comments'
 import { ItemFormDialog } from './item-form-dialog'
 import { ItemImage } from './item-image'
 import { PriceQuantityBadge } from './price-quantity-badge'
+import { PriorityQuickPicker } from './priority-quick-picker'
 import { QuantityRemainingBadge } from './quantity-remaining-badge'
-
-// Highest-to-lowest so the inline row reads left-to-right like the priority
-// scale. Icons/colors mirror PriorityIcon; 'normal' has no PriorityIcon glyph,
-// so it gets a neutral dash to stay visible in the icon picker.
-const PRIORITY_OPTIONS: ReadonlyArray<{ value: Priority; icon: typeof Zap; colorClass: string }> = [
-	{ value: 'very-high', icon: Zap, colorClass: 'text-yellow-500' },
-	{ value: 'high', icon: ArrowBigUp, colorClass: 'text-orange-500' },
-	{ value: 'normal', icon: Minus, colorClass: 'text-muted-foreground' },
-	{ value: 'low', icon: ArrowBigDown, colorClass: 'text-blue-500' },
-]
 
 type Props = {
 	item: Item
@@ -288,33 +274,13 @@ export const ItemEditRow = memo(function ItemEditRow({
 						{!grouped && (
 							<>
 								<DropdownMenuSeparator />
-								<div className="flex items-center justify-center gap-1 px-1 py-1">
-									{PRIORITY_OPTIONS.map(option => {
-										const OptionIcon = option.icon
-										const selected = item.priority === option.value
-										return (
-											<button
-												key={option.value}
-												type="button"
-												onClick={() => {
-													setMenuOpen(false)
-													void handleSetPriority(option.value)
-												}}
-												title={priorityLabel(option.value)}
-												aria-label={m.items_row_set_priority_label({ priority: priorityLabel(option.value) })}
-												aria-pressed={selected}
-												className={cn(
-													'flex size-7 items-center justify-center rounded-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-hidden',
-													selected
-														? cn('bg-accent ring-1 ring-inset', priorityRingClass[option.value] || 'ring-border')
-														: 'opacity-60 hover:opacity-100'
-												)}
-											>
-												<OptionIcon className={cn('size-4', option.colorClass)} />
-											</button>
-										)
-									})}
-								</div>
+								<PriorityQuickPicker
+									value={item.priority}
+									onSelect={priority => {
+										setMenuOpen(false)
+										void handleSetPriority(priority)
+									}}
+								/>
 							</>
 						)}
 						<DropdownMenuSeparator />
