@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.18.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.17.0...v1.18.0) (2026-11-27)
+
+
+### Features
+
+* **lists:** let list owners sort items into categories ([4c9d3ba](https://github.com/shawnphoffman/giftwrapt/commit/4c9d3ba74e642286d95c394e5fa692b143aace21))
+* **lists:** show gifters how gifts are spread across categories ([3d2beac](https://github.com/shawnphoffman/giftwrapt/commit/3d2beac05c7de20da590873ca758183f56e86cc9))
+* **lists:** suggest categories for items that have none ([f490f6c](https://github.com/shawnphoffman/giftwrapt/commit/f490f6cdc9e979e84ca547e61a7c6152ae860850))
+
+
+### Bug Fixes
+
+* **items:** offer the category field in the quick Add Item dialog ([843485b](https://github.com/shawnphoffman/giftwrapt/commit/843485bfa1eebb5da07953c454e1bd15331b739e))
+* **items:** refuse copying an item onto a todo list ([06d3c2a](https://github.com/shawnphoffman/giftwrapt/commit/06d3c2aa0924f8c4e7b33018f789bca442307f8b))
+
 ## [1.17.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.16.0...v1.17.0) (2026-11-27)
 
 
