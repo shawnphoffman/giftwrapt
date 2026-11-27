@@ -240,6 +240,7 @@
 	"lists_addon_error_not_visible": "Vous n’avez plus accès à cette liste.",
 	"lists_addon_error_own_list": "Vous ne pouvez pas ajouter de cadeaux hors liste à votre propre liste.",
 	"lists_addon_error_list_gone": "Cette liste n’existe plus.",
+	"lists_addon_error_idea_out_of_order": "Une idée précédente de ce groupe doit être utilisée d’abord.",
 	"lists_addon_idea_claimed": "Idée réservée",
 	"lists_addon_added": "Cadeau hors liste ajouté",
 	"lists_addon_save_failed": "Échec de l’enregistrement",

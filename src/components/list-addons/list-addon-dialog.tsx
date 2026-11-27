@@ -187,6 +187,11 @@ export function ListAddonDialog(props: Props) {
 								applyListEventLocally({ kind: 'addon', listId, addonId: 0 }, { queryClient, router })
 								onOpenChange(false)
 								break
+							case 'group-out-of-order':
+								// The view was stale: an earlier idea in the set is still on the list.
+								setError(m.lists_addon_error_idea_out_of_order())
+								applyListEventLocally({ kind: 'addon', listId, addonId: 0 }, { queryClient, router })
+								break
 							case 'not-allowed':
 								setError(m.lists_addon_error_ideas_not_allowed())
 								break

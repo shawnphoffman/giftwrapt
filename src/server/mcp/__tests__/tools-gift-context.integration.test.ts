@@ -69,7 +69,11 @@ type ContextData = {
 		groups: Array<{ id: number; type: string }>
 		offListGifts: Array<{ description: string; byMe: boolean; totalCost: string | null }>
 	}>
-	myGiftIdeas: Array<{ listName: string; ideas: Array<{ title: string; source: string }> }>
+	myGiftIdeas: Array<{
+		listName: string
+		ideas: Array<{ title: string; source: string; priority: string; groupId: number | null }>
+		groups: Array<{ id: number; type: string; name: string | null; priority: string; itemIds: Array<number> }>
+	}>
 	myPastGifts: Array<{ kind: string; title: string; cost: number | null }>
 	spend: { giftCount: number; allTime: number; last12Months: number }
 	interests: Array<{ category: string; count: number }>
@@ -112,6 +116,9 @@ describe('MCP get_gift_context', () => {
 			giftIdeasTargetUserId: friend.id,
 		})
 		await makeItem(db, { listId: ideas.id, title: 'Board Game' })
+		const [ideaGroup] = await db.insert(itemGroups).values({ listId: ideas.id, type: 'or', name: 'Switches', priority: 'high' }).returning()
+		const kvmA = await makeItem(db, { listId: ideas.id, title: 'KVM A', groupId: ideaGroup.id, groupSortOrder: 0 })
+		const kvmB = await makeItem(db, { listId: ideas.id, title: 'KVM B', groupId: ideaGroup.id, groupSortOrder: 1 })
 		await db.insert(itemAiAnalysis).values([
 			{ itemId: scarf.id, contentHash: 'a', analysisVersion: 1, category: 'clothing' },
 			{ itemId: gloves.id, contentHash: 'b', analysisVersion: 1, category: 'clothing' },
@@ -153,9 +160,20 @@ describe('MCP get_gift_context', () => {
 			)
 
 			// Ideas are a separate key, labelled as mine in both forms.
+			// In the ideas list's order: the High group first, its ideas taking its priority.
 			expect(data.myGiftIdeas).toMatchObject([
-				{ listName: 'Ideas for Friend', ideas: [{ title: 'Board Game', source: 'my-private-idea' }] },
+				{
+					listName: 'Ideas for Friend',
+					ideas: [
+						{ title: 'KVM A', source: 'my-private-idea', priority: 'high', groupId: ideaGroup.id },
+						{ title: 'KVM B', source: 'my-private-idea', priority: 'high', groupId: ideaGroup.id },
+						{ title: 'Board Game', source: 'my-private-idea', priority: 'normal', groupId: null },
+					],
+					groups: [{ id: ideaGroup.id, type: 'or', name: 'Switches', priority: 'high', itemIds: [kvmA.id, kvmB.id] }],
+				},
 			])
+			expect(text(res)).toContain(`idea #${kvmA.id} KVM A (high, group ${ideaGroup.id})`)
+			expect(text(res)).toContain(`Idea Group #${ideaGroup.id} "Switches" (pick one): #${kvmA.id}, #${kvmB.id}`)
 			expect(main.items.map(i => i.title)).not.toContain('Board Game')
 			expect(text(res)).toMatch(/your own private gift ideas for Friend \(NOT on their list/u)
 

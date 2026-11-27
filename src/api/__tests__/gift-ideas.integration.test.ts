@@ -13,12 +13,12 @@ import {
 	makeUserRelationship,
 } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { copyGiftIdeaToAddonImpl, getGiftIdeasForListImpl } from '@/api/_gift-ideas-impl'
 import type { SchemaDatabase } from '@/db'
-import { itemComments, items, itemScrapes, listAddons, lists } from '@/db/schema'
+import { itemComments, itemGroups, items, itemScrapes, listAddons, lists } from '@/db/schema'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 
 afterEach(() => {
@@ -61,6 +61,20 @@ describe('getGiftIdeasForListImpl', () => {
 			expect(result.sources[0]).toMatchObject({ list: { id: ideas.id, name: 'Ideas for Linda' }, viewerIsOwner: true })
 			expect(result.sources[0].items.map(i => i.title)).toEqual(['Pottery class'])
 			expect(result.sources[0].items[0].gifts).toEqual([])
+		})
+	})
+
+	it("returns the ideas list's groups so grouped ideas keep the group's priority", async () => {
+		await withRollback(async tx => {
+			const { viewer, christmas, ideas, idea } = await scenario(tx)
+			const [group] = await tx.insert(itemGroups).values({ listId: ideas.id, type: 'or', name: 'KVM switch', priority: 'high' }).returning()
+			const [emptyGroup] = await tx.insert(itemGroups).values({ listId: ideas.id, type: 'order' }).returning()
+			await tx.update(items).set({ groupId: group.id, groupSortOrder: 0 }).where(eq(items.id, idea.id))
+
+			const result = await getGiftIdeasForListImpl({ userId: viewer.id, listId: christmas.id, dbx: tx })
+			expect(result.sources[0].groups).toEqual([{ id: group.id, type: 'or', name: 'KVM switch', priority: 'high', sortOrder: null }])
+			expect(result.sources[0].groups.some(g => g.id === emptyGroup.id)).toBe(false)
+			expect(result.sources[0].items[0]).toMatchObject({ groupId: group.id, priority: 'normal' })
 		})
 	})
 
@@ -305,6 +319,65 @@ describe('copyGiftIdeaToAddonImpl', () => {
 					})
 				).kind
 			).toBe('ok')
+		})
+	})
+
+	describe('group rules', () => {
+		async function groupedScenario(tx: SchemaDatabase, type: 'or' | 'order') {
+			const base = await scenario(tx)
+			const [group] = await tx.insert(itemGroups).values({ listId: base.ideas.id, type, name: 'Set' }).returning()
+			const first = await makeItem(tx, { listId: base.ideas.id, title: 'First', groupId: group.id, groupSortOrder: 0 })
+			const second = await makeItem(tx, { listId: base.ideas.id, title: 'Second', groupId: group.id, groupSortOrder: 1 })
+			const third = await makeItem(tx, { listId: base.ideas.id, title: 'Third', groupId: group.id, groupSortOrder: 2 })
+			const use = (ideaItemId: number) =>
+				copyGiftIdeaToAddonImpl({
+					userId: base.viewer.id,
+					input: { ideaItemId, listId: base.christmas.id, description: 'x', totalCost: undefined },
+					dbx: tx,
+				})
+			return { ...base, group, first, second, third, use }
+		}
+
+		it('refuses an in-order idea while an earlier one is still listed, and allows it once that one is used', async () => {
+			await withRollback(async tx => {
+				const { first, second, use } = await groupedScenario(tx, 'order')
+				expect(await use(second.id)).toMatchObject({ kind: 'error', reason: 'group-out-of-order' })
+				expect(await tx.$count(listAddons)).toBe(0)
+				expect(await tx.$count(items, eq(items.id, second.id))).toBe(1)
+
+				expect((await use(first.id)).kind).toBe('ok')
+				expect((await use(second.id)).kind).toBe('ok')
+			})
+		})
+
+		it('archives the rest of a pick-one group and deletes the emptied group', async () => {
+			await withRollback(async tx => {
+				const { group, first, second, third, idea, use } = await groupedScenario(tx, 'or')
+				expect((await use(second.id)).kind).toBe('ok')
+
+				expect(await tx.$count(items, eq(items.id, second.id))).toBe(0)
+				const rest = await tx.query.items.findMany({ where: inArray(items.id, [first.id, third.id]) })
+				expect(rest.map(i => ({ isArchived: i.isArchived, groupId: i.groupId, groupSortOrder: i.groupSortOrder }))).toEqual([
+					{ isArchived: true, groupId: null, groupSortOrder: null },
+					{ isArchived: true, groupId: null, groupSortOrder: null },
+				])
+				expect(rest.every(i => i.archivedAt !== null)).toBe(true)
+				expect(await tx.$count(itemGroups, eq(itemGroups.id, group.id))).toBe(0)
+				// Ungrouped ideas are untouched.
+				expect(await tx.query.items.findFirst({ where: eq(items.id, idea.id) })).toMatchObject({ isArchived: false })
+			})
+		})
+
+		it('leaves a pick-one sibling that has its own claim, and keeps the group for it', async () => {
+			await withRollback(async tx => {
+				const { group, first, third, use } = await groupedScenario(tx, 'or')
+				const someone = await makeUser(tx)
+				await makeGiftedItem(tx, { itemId: third.id, gifterId: someone.id })
+				expect((await use(first.id)).kind).toBe('ok')
+
+				expect(await tx.query.items.findFirst({ where: eq(items.id, third.id) })).toMatchObject({ isArchived: false, groupId: group.id })
+				expect(await tx.$count(itemGroups, eq(itemGroups.id, group.id))).toBe(1)
+			})
 		})
 	})
 })

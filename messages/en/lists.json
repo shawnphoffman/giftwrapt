@@ -240,6 +240,7 @@
 	"lists_addon_error_not_visible": "You no longer have access to this list.",
 	"lists_addon_error_own_list": "You can't add off-list gifts to your own list.",
 	"lists_addon_error_list_gone": "This list no longer exists.",
+	"lists_addon_error_idea_out_of_order": "An earlier idea in this group has to be used first.",
 	"lists_addon_idea_claimed": "Idea claimed",
 	"lists_addon_added": "Off-list gift added",
 	"lists_addon_save_failed": "Failed to save",

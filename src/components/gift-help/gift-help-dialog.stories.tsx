@@ -223,6 +223,7 @@ const myIdeas: GiftIdeasSource = {
 	list: { id: 201, name: 'Ideas for Linda' },
 	owner: viewerUser,
 	viewerIsOwner: true,
+	groups: [],
 	items: [
 		makeItemWithGifts({
 			id: 301,

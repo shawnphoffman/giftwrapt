@@ -440,6 +440,7 @@
 	"items_availability_toast_available": "Marked as available",
 	"items_availability_toast_failed": "Failed to update availability",
 	"items_row_saving_label": "Saving",
+	"items_row_gift_idea_label": "Gift idea",
 	"items_row_actions_label": "Item actions",
 	"items_row_copy_to_list": "Copy to Your List",
 	"items_row_mark_available": "Mark as available",

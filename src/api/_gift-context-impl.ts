@@ -25,9 +25,11 @@ import { getPurchaseSummaryImpl } from '@/api/_purchases-impl'
 import { getUpcomingHolidaysImpl } from '@/api/_widgets-impl'
 import { db, type SchemaDatabase } from '@/db'
 import { type BirthMonth, itemAiAnalysis, itemGroups, items, listAddons, lists, users } from '@/db/schema'
+import type { Priority } from '@/db/schema/enums'
 import { loadAlreadyHasTitles } from '@/lib/gift-suggestions/feedback'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { buildListEntries } from '@/lib/list-entries'
 import { getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
 
@@ -77,7 +79,19 @@ export type WishlistAddon = {
 export type GiftIdeasSource = {
 	listId: number
 	listName: string
-	ideas: Array<{ id: number; title: string; url: string | null; price: string | null; notes: string | null }>
+	// In the ideas list's own order (priority, then the owner's reorder, group
+	// members together). `priority` is the effective one: a grouped idea
+	// takes its group's.
+	ideas: Array<{
+		id: number
+		title: string
+		url: string | null
+		price: string | null
+		notes: string | null
+		priority: Priority
+		groupId: number | null
+	}>
+	groups: Array<{ id: number; type: string; name: string | null; priority: Priority; itemIds: Array<number> }>
 }
 
 export type RecipientRef = { kind: 'user' | 'dependent'; id: string; name: string | null }
@@ -152,11 +166,29 @@ export async function getWishlistViewImpl(args: { userId: string; listId: number
 	}))
 
 	const ideas = await getGiftIdeasForListImpl({ userId, listId, dbx })
-	const myGiftIdeas: Array<GiftIdeasSource> = ideas.sources.map(s => ({
-		listId: s.list.id,
-		listName: s.list.name,
-		ideas: s.items.map(i => ({ id: i.id, title: i.title, url: i.url, price: i.price, notes: i.notes })),
-	}))
+	const myGiftIdeas: Array<GiftIdeasSource> = ideas.sources.map(s => {
+		const entries = buildListEntries({ items: s.items, groups: s.groups }).filter(e => e.kind !== 'group' || e.items.length > 0)
+		return {
+			listId: s.list.id,
+			listName: s.list.name,
+			ideas: entries.flatMap(e =>
+				(e.kind === 'item' ? [e.item] : e.items).map(i => ({
+					id: i.id,
+					title: i.title,
+					url: i.url,
+					price: i.price,
+					notes: i.notes,
+					priority: e.priority,
+					groupId: i.groupId,
+				}))
+			),
+			groups: entries.flatMap(e =>
+				e.kind === 'group'
+					? [{ id: e.group.id, type: e.group.type, name: e.group.name, priority: e.group.priority, itemIds: e.items.map(i => i.id) }]
+					: []
+			),
+		}
+	})
 
 	const recipient: RecipientRef = list.subjectDependent
 		? { kind: 'dependent', id: list.subjectDependent.id, name: list.subjectDependent.name }

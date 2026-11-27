@@ -1,5 +1,5 @@
 import { useIsMutating } from '@tanstack/react-query'
-import { Copy, Gift, Loader2, MoreHorizontal, PackageCheck, PackageX } from 'lucide-react'
+import { Copy, Gift, Lightbulb, Loader2, MoreHorizontal, PackageCheck, PackageX } from 'lucide-react'
 import { memo, type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -175,6 +175,13 @@ function ItemRowImpl({ item, lockReason, grouped = false, giftIdea }: Props) {
 		<div className="flex flex-col w-full gap-2 scroll-mt-24" id={`item-${item.id}`}>
 			{/* HEADER */}
 			<div className="flex items-center gap-2 font-medium leading-tight">
+				{giftIdea && (
+					<Lightbulb
+						className={cn('size-4 shrink-0 text-teal-500', dimmed && 'opacity-60')}
+						role="img"
+						aria-label={m.items_row_gift_idea_label()}
+					/>
+				)}
 				<span className={cn('truncate min-w-0', dimmed && 'opacity-60')}>{item.title}</span>
 				{internalListSummary ? (
 					<ListLinkBadge listId={internalListSummary.id} name={internalListSummary.name} from={item.listId} />

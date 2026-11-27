@@ -4,7 +4,7 @@ import { Suspense } from 'react'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 
 import type { GiftIdeasSource } from '@/api/gift-ideas'
-import type { AddonOnList, ItemWithGifts } from '@/api/lists'
+import type { AddonOnList, GroupSummary, ItemWithGifts } from '@/api/lists'
 import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeTile from '@/components/common/list-type-tile'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
@@ -118,6 +118,7 @@ const myIdeas: GiftIdeasSource = {
 	list: { id: IDEAS_MINE, name: 'Ideas for Linda' },
 	owner: viewerUser,
 	viewerIsOwner: true,
+	groups: [],
 	items: [pottery, watercolor, cashmere],
 }
 
@@ -125,6 +126,7 @@ const jamiesIdeas: GiftIdeasSource = {
 	list: { id: IDEAS_JAMIE, name: 'Linda stocking stuffers' },
 	owner: otherGifter,
 	viewerIsOwner: false,
+	groups: [],
 	items: [idea({ id: 311, listId: IDEAS_JAMIE, title: 'Olive wood salad servers', price: '28' })],
 }
 
@@ -309,6 +311,7 @@ export const DependentRecipient: Story = {
 					list: { id: 205, name: 'Mochi ideas' },
 					owner: viewerUser,
 					viewerIsOwner: true,
+					groups: [],
 					items: [
 						idea({ id: 351, listId: 205, title: 'Salmon training treats', price: '12' }),
 						idea({ id: 352, listId: 205, title: 'Heated cat bed' }),
@@ -340,6 +343,7 @@ export const ManySourcesAndLongNames: Story = {
 				},
 				owner: { id: 'friend-4', name: 'Robin Cousin-With-A-Long-Hyphenated-Name', email: 'robin@example.com', image: null },
 				viewerIsOwner: false,
+				groups: [],
 				items: [
 					idea({
 						id: 361,
@@ -351,4 +355,142 @@ export const ManySourcesAndLongNames: Story = {
 			},
 		]),
 	],
+}
+
+// Shaped like a real ideas list: a High "pick one" group, an ordered set,
+// an unnamed "pick one" pair, and two loose ideas. Every idea is Normal on
+// its own; grouped ideas take the group's priority, as on the list itself.
+const IDEAS_GROUPED = 207
+const kvmGroup: GroupSummary = { id: 71, type: 'or', name: 'KVM switch', priority: 'high', sortOrder: null }
+const penGroup: GroupSummary = { id: 72, type: 'order', name: 'Fountain pen setup', priority: 'normal', sortOrder: null }
+const capsGroup: GroupSummary = { id: 73, type: 'or', name: null, priority: 'normal', sortOrder: null }
+
+function groupedIdea(overrides: Partial<ItemWithGifts>): ItemWithGifts {
+	return idea({ listId: IDEAS_GROUPED, ...overrides })
+}
+
+const groupedIdeas: GiftIdeasSource = {
+	list: { id: IDEAS_GROUPED, name: 'Ideas for Linda' },
+	owner: viewerUser,
+	viewerIsOwner: true,
+	groups: [kvmGroup, penGroup, capsGroup],
+	items: [
+		groupedIdea({
+			id: 401,
+			title: 'USB-C KVM switch',
+			price: '36',
+			groupId: 71,
+			groupSortOrder: 0,
+			url: 'https://www.amazon.com/dp/B0GRLND84J',
+			vendorId: 'amazon',
+			imageUrl: placeholderImages.square,
+		}),
+		groupedIdea({
+			id: 402,
+			title: 'MINIX K1 USB-C KVM switch',
+			price: '40',
+			groupId: 71,
+			groupSortOrder: 1,
+			url: 'https://www.amazon.com/dp/B0GGRDYYBS',
+			vendorId: 'amazon',
+			imageUrl: placeholderImages.square,
+		}),
+		groupedIdea({
+			id: 411,
+			title: 'Safari fountain pen, green, fine nib',
+			price: '29.60',
+			groupId: 72,
+			groupSortOrder: 0,
+			notes: 'Fine nib is best for letters and cards.',
+		}),
+		groupedIdea({
+			id: 412,
+			title: 'Ink converter',
+			price: '6',
+			groupId: 72,
+			groupSortOrder: 1,
+			notes: 'Lets the pen use bottled ink instead of cartridges.',
+		}),
+		groupedIdea({ id: 413, title: 'Bottled ink, 50ml', price: '12', groupId: 72, groupSortOrder: 2 }),
+		groupedIdea({
+			id: 421,
+			title: 'Glow in the dark mushroom valve caps',
+			price: null,
+			groupId: 73,
+			groupSortOrder: 0,
+			url: 'https://www.amazon.com/dp/B0CTDPY7QF',
+			vendorId: 'amazon',
+			imageUrl: placeholderImages.square,
+		}),
+		groupedIdea({
+			id: 422,
+			title: 'Mushroom valve stem caps (set of 4)',
+			price: null,
+			groupId: 73,
+			groupSortOrder: 1,
+			url: 'https://www.etsy.com/listing/1771244903',
+			vendorId: 'etsy',
+			imageUrl: placeholderImages.square,
+		}),
+		groupedIdea({ id: 431, title: 'Layered Design for Ruby on Rails Applications', price: '35.99' }),
+		groupedIdea({ id: 432, title: 'Backpacking solar panel', price: null }),
+	],
+}
+
+export const GroupedIdeas: Story = {
+	decorators: [seeded([groupedIdeas])],
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'Ideas keep their list\'s groups and order. The High "KVM switch" group sorts first with its priority tab; the fountain pen set follows its order, so only the pen can be claimed until it is used. Each idea carries a lightbulb before its title.',
+			},
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		const rowFor = async (title: string) => (await canvas.findByText(title)).closest('[id^="item-"]') as HTMLElement
+		await expect(within(await rowFor('Safari fountain pen, green, fine nib')).getByRole('button', { name: /claim/i })).toBeInTheDocument()
+		await expect(within(await rowFor('Ink converter')).queryByRole('button', { name: /claim/i })).not.toBeInTheDocument()
+		await expect(within(await rowFor('USB-C KVM switch')).getByRole('img', { name: 'Gift idea' })).toBeInTheDocument()
+	},
+}
+
+export const OrderedGroupAfterFirstIdeaUsed: Story = {
+	decorators: [seeded([{ ...groupedIdeas, items: groupedIdeas.items.filter(i => i.id !== 411) }])],
+	parameters: {
+		docs: {
+			description: { story: 'The pen was claimed (and so deleted): the converter is now first in the set and can be claimed.' },
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		const row = (await canvas.findByText('Ink converter')).closest('[id^="item-"]') as HTMLElement
+		await expect(within(row).getByRole('button', { name: /claim/i })).toBeInTheDocument()
+	},
+}
+
+export const PickOneGroupAfterIdeaUsed: Story = {
+	decorators: [
+		seeded([
+			{
+				...groupedIdeas,
+				groups: groupedIdeas.groups.filter(g => g.id !== kvmGroup.id),
+				items: groupedIdeas.items.filter(i => i.groupId !== kvmGroup.id),
+			},
+		]),
+	],
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"One KVM switch idea was claimed. That was the pick, so the other was archived (it stays in the ideas list's organize view) and the emptied group is gone.",
+			},
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		await canvas.findByText('Safari fountain pen, green, fine nib')
+		await expect(canvas.queryByText('KVM switch')).not.toBeInTheDocument()
+	},
 }

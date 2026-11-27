@@ -145,8 +145,17 @@ const myGiftIdeasSchema = z
 					url: z.string().nullable(),
 					price: z.string().nullable(),
 					notes: z.string().nullable(),
+					priority: z.string().describe('How much the user wants to give this one; a grouped idea takes its group’s'),
+					groupId: z.number().nullable(),
 				})
 			),
+			groups: z
+				.array(
+					z.object({ id: z.number(), type: z.string(), name: z.string().nullable(), priority: z.string(), itemIds: z.array(z.number()) })
+				)
+				.describe(
+					'Groups on the ideas list. "or" = pick one: using one idea archives the others. "order" = use in order: only the first idea still listed can be used.'
+				),
 		})
 	)
 	.describe(
@@ -204,7 +213,15 @@ function wishlistLines(
 
 function ideasLine(ideas: z.infer<typeof myGiftIdeasSchema>, recipientName: string | null): string {
 	if (!ideas.some(s => s.ideas.length)) return ''
-	return `Separately, your own private gift ideas for ${recipientName ?? 'them'} (NOT on their list; they did not ask for these and cannot see them): ${ideas.flatMap(s => s.ideas.map(i => `idea #${i.id} ${i.title}`)).join('; ')}.`
+	const ideaText = (i: z.infer<typeof myGiftIdeasSchema>[number]['ideas'][number]) => {
+		const bits = [i.priority !== 'normal' ? i.priority : '', i.groupId ? `group ${i.groupId}` : ''].filter(Boolean)
+		return `idea #${i.id} ${i.title}${bits.length ? ` (${bits.join(', ')})` : ''}`
+	}
+	const groups = ideas.flatMap(s => s.groups).map(g => `Idea ${groupLine(g)}`)
+	return [
+		`Separately, your own private gift ideas for ${recipientName ?? 'them'} (NOT on their list; they did not ask for these and cannot see them): ${ideas.flatMap(s => s.ideas.map(ideaText)).join('; ')}.`,
+		...groups,
+	].join('\n')
 }
 
 export function registerShoppingTools(server: McpServer, ctx: ToolContext): void {
@@ -627,7 +644,7 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 		name: 'use_gift_idea',
 		title: 'Use a Gift Idea',
 		description:
-			'Turn one of the user’s gift ideas for a person into an off-list gift on that person’s list (the idea is removed from the ideas list). Ideas come from get_wishlist’s myGiftIdeas.',
+			'Turn one of the user’s gift ideas for a person into an off-list gift on that person’s list (the idea is removed from the ideas list). Ideas come from get_wishlist’s myGiftIdeas. Group rules apply: using one idea in a pick-one group archives the rest of that group, and an in-order group’s ideas must be used in order.',
 		inputSchema: {
 			idea_item_id: z.number().int().positive(),
 			list_id: z.number().int().positive().describe('The recipient’s list the gift goes on'),

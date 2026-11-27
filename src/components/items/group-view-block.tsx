@@ -13,9 +13,15 @@ import ItemRow, { type LockReason } from './item-row'
 type Props = {
 	group: GroupSummary
 	items: Array<ItemWithGifts>
+	/**
+	 * Renders the members as gift ideas (see ItemRow's `giftIdea`). The group
+	 * rules still apply: a claimed idea is deleted, so the next idea in an
+	 * `order` group unlocks once the one before it is used.
+	 */
+	giftIdea?: { onClaim: (item: ItemWithGifts) => void }
 }
 
-export function GroupViewBlock({ group, items }: Props) {
+export function GroupViewBlock({ group, items, giftIdea }: Props) {
 	if (items.length === 0) return null
 
 	// Group locking rules, mirroring the server guards in api/gifts.ts.
@@ -79,7 +85,12 @@ export function GroupViewBlock({ group, items }: Props) {
 						{items.map((item, index) => (
 							<Fragment key={item.id}>
 								{index > 0 && <GroupConnector type={group.type} />}
-								<ItemRow item={item} lockReason={lockByItemId.get(item.id)} grouped />
+								<ItemRow
+									item={item}
+									lockReason={lockByItemId.get(item.id)}
+									grouped
+									giftIdea={giftIdea ? { onClaim: () => giftIdea.onClaim(item) } : undefined}
+								/>
 							</Fragment>
 						))}
 					</div>

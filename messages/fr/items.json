@@ -440,6 +440,7 @@
 	"items_availability_toast_available": "Marqué comme disponible",
 	"items_availability_toast_failed": "Impossible de modifier la disponibilité",
 	"items_row_saving_label": "Enregistrement",
+	"items_row_gift_idea_label": "Idée cadeau",
 	"items_row_actions_label": "Actions de l’article",
 	"items_row_copy_to_list": "Copier dans votre liste",
 	"items_row_mark_available": "Marquer comme disponible",

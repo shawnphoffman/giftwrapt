@@ -346,7 +346,7 @@
 	{
 		"name": "use_gift_idea",
 		"title": "Use a Gift Idea",
-		"description": "Turn one of the user’s gift ideas for a person into an off-list gift on that person’s list (the idea is removed from the ideas list). Ideas come from get_wishlist’s myGiftIdeas.",
+		"description": "Turn one of the user’s gift ideas for a person into an off-list gift on that person’s list (the idea is removed from the ideas list). Ideas come from get_wishlist’s myGiftIdeas. Group rules apply: using one idea in a pick-one group archives the rest of that group, and an in-order group’s ideas must be used in order.",
 		"access": "write",
 		"destructive": true,
 		"readsTheWeb": false

@@ -7,10 +7,12 @@ import type { GiftIdeasSource } from '@/api/gift-ideas'
 import type { ItemWithGifts } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import UserAvatar from '@/components/common/user-avatar'
+import { GroupViewBlock } from '@/components/items/group-view-block'
 import ItemRow from '@/components/items/item-row'
 import { ListAddonDialog, type ListAddonInitialValues } from '@/components/list-addons/list-addon-dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { parseAmount } from '@/lib/i18n/format'
+import { buildListEntries } from '@/lib/list-entries'
 import { listGiftIdeasQueryOptions } from '@/lib/queries/lists'
 import { LIMITS } from '@/lib/validation/limits'
 import { m } from '@/paraglide/messages.js'
@@ -82,6 +84,9 @@ function GiftIdeasSection({ listId, recipientName, sources }: SectionProps) {
 
 function GiftIdeasSourceGroup({ source, onClaim }: { source: GiftIdeasSource; onClaim: (item: ItemWithGifts) => void }) {
 	const ownerName = source.owner.name || source.owner.email
+	// Same order and grouping as the ideas list itself: group priority, then
+	// the owner's reorder.
+	const entries = buildListEntries({ items: source.items, groups: source.groups }).filter(e => e.kind !== 'group' || e.items.length > 0)
 	return (
 		<div className="flex flex-col gap-2">
 			<div className="xs:pl-6 flex items-center gap-1.5 min-w-0 text-sm text-muted-foreground">
@@ -101,11 +106,15 @@ function GiftIdeasSourceGroup({ source, onClaim }: { source: GiftIdeasSource; on
 					</span>
 				)}
 			</div>
-			{source.items.map(item => (
-				<div key={item.id} className="xs:pl-6">
-					<ItemRow item={item} giftIdea={{ onClaim: () => onClaim(item) }} />
-				</div>
-			))}
+			{entries.map(entry =>
+				entry.kind === 'item' ? (
+					<div key={`item-${entry.item.id}`} className="xs:pl-6">
+						<ItemRow item={entry.item} giftIdea={{ onClaim: () => onClaim(entry.item) }} />
+					</div>
+				) : (
+					<GroupViewBlock key={`group-${entry.group.id}`} group={entry.group} items={entry.items} giftIdea={{ onClaim }} />
+				)
+			)}
 		</div>
 	)
 }
