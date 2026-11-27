@@ -526,5 +526,13 @@
 	"admin_analyzer_relation_labels_label": "Mes destinataires",
 	"admin_analyzer_enrichment_label": "Enrichissement des articles",
 	"admin_digest_send_email_not_configured": "L’e-mail n’est pas configuré. Définissez d’abord une clé API Resend et l’e-mail de l’expéditeur.",
-	"admin_digest_send_no_recipients": "Aucun destinataire : il n’y a aucun administrateur et aucun destinataire de remplacement n’est défini."
+	"admin_digest_send_no_recipients": "Aucun destinataire : il n’y a aucun administrateur et aucun destinataire de remplacement n’est défini.",
+	"admin_ai_feature_category_suggestions_label": "Suggestions de catégories",
+	"admin_ai_feature_category_suggestions_description": "Un bouton « Suggérer des catégories » dans la fenêtre « Catégories » d’une liste. Il propose des catégories pour les articles qui n’en ont pas, et rien ne change tant que la personne n’a pas confirmé. Les comptes enfant ne le voient jamais.",
+	"admin_ai_feature_category_suggestions_sent_titles": "Les titres des articles de la liste qui n’ont pas de catégorie, et le nom de leurs groupes",
+	"admin_ai_feature_category_suggestions_sent_existing": "Le nom des catégories que la liste possède déjà",
+	"admin_ai_feature_category_suggestions_sent_basic": "Une liste fixe de noms de catégories courants",
+	"admin_ai_feature_category_suggestions_never_claims": "Le fait qu’un article soit réservé, ni par qui",
+	"admin_ai_feature_category_suggestions_never_details": "Les notes, liens, prix et images des articles",
+	"admin_ai_feature_category_suggestions_never_people": "Les noms, les adresses e-mail, ni le nom de la liste"
 }

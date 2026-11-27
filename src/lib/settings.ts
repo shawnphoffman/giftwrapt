@@ -627,6 +627,10 @@ export const appSettingsSchema = z.object({
 	// Thank-you note drafts on the received-gifts page. Off by default.
 	// Only first names and the titles of already-revealed gifts are sent.
 	aiThankYouDraftsEnabled: z.boolean(),
+	// Suggest Categories in a list's Categories dialog. Off by default.
+	// Only the titles of the list's uncategorized items and its existing
+	// category names are sent. Never available to child accounts.
+	aiCategorySuggestionsEnabled: z.boolean(),
 	// Relationship reminder emails (Mother's / Father's Day, Valentine's,
 	// anniversary) include up to three things still open on the person's
 	// lists. Plain ranking, no AI. Off by default.
@@ -760,6 +764,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	giftSuggestionRetentionDays: 90,
 	aiPasteToItemsEnabled: false,
 	aiThankYouDraftsEnabled: false,
+	aiCategorySuggestionsEnabled: false,
 	enableReminderPicks: false,
 	barcode: {
 		enabled: false,

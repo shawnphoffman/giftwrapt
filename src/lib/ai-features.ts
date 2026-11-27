@@ -118,6 +118,22 @@ const REGISTRY_ENTRIES: ReadonlyArray<Omit<AiFeatureInfo, 'slots'>> = [
 		],
 	},
 	{
+		id: 'category-suggestions',
+		label: o => m.admin_ai_feature_category_suggestions_label({}, o),
+		description: o => m.admin_ai_feature_category_suggestions_description({}, o),
+		settingKey: 'aiCategorySuggestionsEnabled',
+		sent: [
+			o => m.admin_ai_feature_category_suggestions_sent_titles({}, o),
+			o => m.admin_ai_feature_category_suggestions_sent_existing({}, o),
+			o => m.admin_ai_feature_category_suggestions_sent_basic({}, o),
+		],
+		neverSent: [
+			o => m.admin_ai_feature_category_suggestions_never_claims({}, o),
+			o => m.admin_ai_feature_category_suggestions_never_details({}, o),
+			o => m.admin_ai_feature_category_suggestions_never_people({}, o),
+		],
+	},
+	{
 		id: 'gift-suggestions',
 		label: o => m.admin_ai_feature_gift_suggestions_label({}, o),
 		description: o => m.admin_ai_feature_gift_suggestions_description({}, o),

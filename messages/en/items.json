@@ -680,5 +680,26 @@
 	"items_overview_untouched": "Nothing claimed yet in {categories}.",
 	"items_overview_all_touched": "Every category has at least one claim.",
 	"items_overview_showing": "Showing {name}",
-	"items_overview_show_all": "Show All"
+	"items_overview_show_all": "Show All",
+	"items_categories_suggest": "Suggest Categories",
+	"items_categories_suggest_working": "Suggesting...",
+	"items_categories_suggest_title": "Suggested Categories",
+	"items_categories_suggest_description": "Based on the titles of the items that have no category yet.",
+	"items_categories_suggest_new": "New",
+	"items_categories_suggest_hint": "Only items with no category are sorted. Anything you already placed stays where it is.",
+	"items_categories_suggest_unplaced": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} item did not fit anywhere and stays without a category.",
+				"countPlural=*": "{count} items did not fit anywhere and stay without a category."
+			}
+		}
+	],
+	"items_categories_suggest_none_fit": "No suggestions for these items.",
+	"items_categories_suggest_nothing": "Every item already has a category.",
+	"items_categories_suggest_apply": "Use These",
+	"items_categories_suggest_failed": "Could not suggest categories. Try again later.",
+	"items_categories_suggest_rate_limited": "That is a lot of suggestions. Try again in a little while."
 }

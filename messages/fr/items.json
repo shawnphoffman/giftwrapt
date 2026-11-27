@@ -680,5 +680,26 @@
 	"items_overview_untouched": "Rien de réservé pour l’instant dans {categories}.",
 	"items_overview_all_touched": "Chaque catégorie a au moins une réservation.",
 	"items_overview_showing": "Affichage : {name}",
-	"items_overview_show_all": "Tout afficher"
+	"items_overview_show_all": "Tout afficher",
+	"items_categories_suggest": "Suggérer des catégories",
+	"items_categories_suggest_working": "Suggestion en cours…",
+	"items_categories_suggest_title": "Catégories suggérées",
+	"items_categories_suggest_description": "D’après les titres des articles qui n’ont pas encore de catégorie.",
+	"items_categories_suggest_new": "Nouvelle",
+	"items_categories_suggest_hint": "Seuls les articles sans catégorie sont classés. Ceux que vous avez déjà classés ne bougent pas.",
+	"items_categories_suggest_unplaced": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} article ne correspond à aucune catégorie et reste sans catégorie.",
+				"countPlural=*": "{count} articles ne correspondent à aucune catégorie et restent sans catégorie."
+			}
+		}
+	],
+	"items_categories_suggest_none_fit": "Aucune suggestion pour ces articles.",
+	"items_categories_suggest_nothing": "Tous les articles ont déjà une catégorie.",
+	"items_categories_suggest_apply": "Utiliser ces catégories",
+	"items_categories_suggest_failed": "Impossible de suggérer des catégories. Réessayez plus tard.",
+	"items_categories_suggest_rate_limited": "Cela fait beaucoup de suggestions. Réessayez dans un petit moment."
 }

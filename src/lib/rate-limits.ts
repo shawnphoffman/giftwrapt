@@ -68,6 +68,15 @@ export const thankYouDraftLimiter = createRateLimiter({
 	windowMs: 60 * 60_000,
 })
 
+// Suggest Categories per user. One model call per press; 20 an hour covers
+// someone sorting several lists and retrying, without a stuck client
+// running up a bill.
+export const categorySuggestionsLimiter = createRateLimiter({
+	name: 'category-suggestions',
+	max: 20,
+	windowMs: 60 * 60_000,
+})
+
 export const barcodeLookupLimiter = createRateLimiter({
 	name: 'barcode-lookup',
 	max: 30,

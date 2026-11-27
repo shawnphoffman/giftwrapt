@@ -1,9 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { type ReactNode, useState } from 'react'
-import { expect, within } from 'storybook/test'
+import { expect, userEvent, within } from 'storybook/test'
 
 import type { GroupSummary } from '@/api/lists'
+import { appSettingsQueryOptions } from '@/hooks/use-app-settings'
 import type { CategoryKey, CategorySummary } from '@/lib/item-categories'
+import { DEFAULT_APP_SETTINGS } from '@/lib/settings'
 
 import { withGalleryFrame } from './_stories/decorators'
 import { makeItem, makeItemForEditing } from './_stories/fixtures'
@@ -69,6 +72,40 @@ export const Dialog: Story = {
 		await expect(await body.findByDisplayValue('Clothes')).toBeInTheDocument()
 		// Names from the person's other lists are offered to add with a tap.
 		await expect(await body.findByRole('button', { name: 'Books' })).toBeInTheDocument()
+		// The admin switch is off by default, so there is no Suggest button.
+		await expect(body.queryByRole('button', { name: /suggest categories/i })).not.toBeInTheDocument()
+	},
+}
+
+// App settings with the admin's Category Suggestions switch on. The story
+// frame's settings are the defaults, where every AI feature is off.
+function WithSuggestionsOn({ children }: { children: ReactNode }) {
+	const [client] = useState(() => {
+		const qc = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } })
+		qc.setQueryData(appSettingsQueryOptions.queryKey, { ...DEFAULT_APP_SETTINGS, aiCategorySuggestionsEnabled: true })
+		return qc
+	})
+	return <QueryClientProvider client={client}>{children}</QueryClientProvider>
+}
+
+/**
+ * With the admin's Category Suggestions switch on, the dialog offers Suggest
+ * Categories. It shows what it would create and how many items go in each,
+ * and nothing changes until Use These.
+ */
+export const DialogSuggest: Story = {
+	render: () => (
+		<WithSuggestionsOn>
+			<CategoriesDialog open onOpenChange={() => {}} listId={LIST_ID} categories={categories.slice(0, 1)} itemCounts={itemCounts} />
+		</WithSuggestionsOn>
+	),
+	play: async () => {
+		const body = within(document.body)
+		await userEvent.click(await body.findByRole('button', { name: /suggest categories/i }))
+		await expect(await body.findByText('Kids: toys')).toBeInTheDocument()
+		await expect(body.getByRole('button', { name: 'Use These' })).toBeInTheDocument()
+		// Two of the proposed categories are new; the existing one is not marked.
+		await expect(body.getAllByText('New')).toHaveLength(2)
 	},
 }
 

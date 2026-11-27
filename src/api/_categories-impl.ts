@@ -78,7 +78,7 @@ export const CategoryNameSuggestionsInputSchema = z.object({
 // Anyone who can edit the list can manage its categories, the same as its
 // groups. Todo lists use a different row table and have no categories, so
 // they read as not-found here.
-async function loadListForCategories(
+export async function loadListForCategories(
 	userId: string,
 	listId: number,
 	dbx: SchemaDatabase

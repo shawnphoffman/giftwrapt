@@ -39,6 +39,7 @@ export const AI_FEATURES = [
 	'gift-suggestions',
 	'paste-to-items',
 	'thank-you-draft',
+	'category-suggestions',
 	'admin-test',
 ] as const
 export type AiFeature = (typeof AI_FEATURES)[number]

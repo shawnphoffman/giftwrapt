@@ -105,6 +105,22 @@ export const assignCategory = ok
 export const getCategoryNameSuggestions = (): Promise<{ kind: 'ok'; names: Array<string> }> =>
 	Promise.resolve({ kind: 'ok', names: ['Books', 'Home', 'Shoes'] })
 
+export const suggestCategories = (): Promise<{
+	kind: 'ok'
+	suggestions: Array<{ name: string; isNew: boolean; itemIds: Array<number>; groupIds: Array<number> }>
+	unplaced: number
+}> =>
+	Promise.resolve({
+		kind: 'ok',
+		suggestions: [
+			{ name: 'Clothes', isNew: false, itemIds: [1, 2], groupIds: [] },
+			{ name: 'Kids: toys', isNew: true, itemIds: [3, 4, 5], groupIds: [10] },
+			{ name: 'Home & kitchen', isNew: true, itemIds: [6, 7], groupIds: [] },
+		],
+		unplaced: 2,
+	})
+export const applyCategorySuggestions = (): Promise<{ kind: 'ok'; assigned: number }> => Promise.resolve({ kind: 'ok', assigned: 8 })
+
 // @/api/gifts
 export const getGiftsForItems = emptyArray
 export const claimItemGift = ok

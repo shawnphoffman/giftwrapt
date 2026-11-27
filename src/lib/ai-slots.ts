@@ -49,6 +49,8 @@ export const AI_FEATURE_SLOTS: Record<AiFeature, AiSlot> = {
 	'gift-suggestions': 'default',
 	'paste-to-items': 'fast',
 	'thank-you-draft': 'default',
+	// Sorting titles into a few buckets is mechanical.
+	'category-suggestions': 'fast',
 	// The connection test names the slot it is testing.
 	'admin-test': 'default',
 }

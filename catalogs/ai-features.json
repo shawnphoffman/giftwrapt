@@ -107,6 +107,26 @@
 		]
 	},
 	{
+		"id": "category-suggestions",
+		"label": "Category Suggestions",
+		"description": "A “Suggest Categories” button in a list’s Categories dialog. It proposes categories for the items that have none, and nothing changes until the person confirms. Child accounts never see it.",
+		"settingKey": "aiCategorySuggestionsEnabled",
+		"managedAt": null,
+		"sent": [
+			"The titles of the list’s items that have no category, and the names of their groups",
+			"The names of the categories the list already has",
+			"A fixed list of common category names"
+		],
+		"neverSent": [
+			"Whether anything is claimed, or by whom",
+			"Item notes, links, prices, and images",
+			"Names, email addresses, or the list’s own name"
+		],
+		"slots": [
+			"Fast"
+		]
+	},
+	{
 		"id": "gift-suggestions",
 		"label": "Gift Suggestions",
 		"description": "Adds a Need Ideas? button to other people’s lists. It asks for a budget, then shows new gift ideas based on that person’s lists, each of which can be saved to the user’s private Gift Ideas or added to the list as an off-list gift. The AI runs only when a user asks, and never for a child account. The last set of ideas is kept for the user who asked, and nobody else, so reopening shows it without asking the AI again. Off removes the button.",

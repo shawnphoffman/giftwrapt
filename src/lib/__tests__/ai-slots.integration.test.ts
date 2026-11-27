@@ -155,6 +155,7 @@ describe('AI model slots', () => {
 			'gift-suggestions': 'default',
 			'paste-to-items': 'fast',
 			'thank-you-draft': 'default',
+			'category-suggestions': 'fast',
 			'admin-test': 'default',
 		})
 	})

@@ -526,5 +526,13 @@
 	"admin_analyzer_relation_labels_label": "People I Shop For",
 	"admin_analyzer_enrichment_label": "Item enrichment",
 	"admin_digest_send_email_not_configured": "Email is not configured. Set a Resend API key and From Email first.",
-	"admin_digest_send_no_recipients": "No recipients: there are no admin users and no recipient override is set."
+	"admin_digest_send_no_recipients": "No recipients: there are no admin users and no recipient override is set.",
+	"admin_ai_feature_category_suggestions_label": "Category Suggestions",
+	"admin_ai_feature_category_suggestions_description": "A “Suggest Categories” button in a list’s Categories dialog. It proposes categories for the items that have none, and nothing changes until the person confirms. Child accounts never see it.",
+	"admin_ai_feature_category_suggestions_sent_titles": "The titles of the list’s items that have no category, and the names of their groups",
+	"admin_ai_feature_category_suggestions_sent_existing": "The names of the categories the list already has",
+	"admin_ai_feature_category_suggestions_sent_basic": "A fixed list of common category names",
+	"admin_ai_feature_category_suggestions_never_claims": "Whether anything is claimed, or by whom",
+	"admin_ai_feature_category_suggestions_never_details": "Item notes, links, prices, and images",
+	"admin_ai_feature_category_suggestions_never_people": "Names, email addresses, or the list’s own name"
 }

@@ -8,6 +8,7 @@ import { createServerFn } from '@tanstack/react-start'
 import type { z } from 'zod'
 
 import { loggingMiddleware } from '@/lib/logger'
+import { categorySuggestionsLimiter } from '@/lib/rate-limits'
 import { authMiddleware } from '@/middleware/auth'
 
 import {
@@ -30,6 +31,14 @@ import {
 	UpdateCategoryInputSchema,
 	type UpdateCategoryResult,
 } from './_categories-impl'
+import {
+	applyCategorySuggestionsImpl,
+	ApplyCategorySuggestionsInputSchema,
+	type ApplyCategorySuggestionsResult,
+	suggestCategoriesImpl,
+	SuggestCategoriesInputSchema,
+	type SuggestCategoriesResult,
+} from './_category-suggestions-impl'
 
 export type {
 	AssignCategoryResult,
@@ -39,6 +48,7 @@ export type {
 	ReorderCategoriesResult,
 	UpdateCategoryResult,
 } from './_categories-impl'
+export type { ApplyCategorySuggestionsResult, CategorySuggestion, SuggestCategoriesResult } from './_category-suggestions-impl'
 
 export const createCategory = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
@@ -71,4 +81,23 @@ export const getCategoryNameSuggestions = createServerFn({ method: 'GET' })
 	.handler(
 		({ context, data }): Promise<CategoryNameSuggestionsResult> =>
 			getCategoryNameSuggestionsImpl({ userId: context.session.user.id, input: data })
+	)
+
+// One model call per press. The limit is checked here, before the impl, so
+// a refused press costs nothing.
+export const suggestCategories = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof SuggestCategoriesInputSchema>) => SuggestCategoriesInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<SuggestCategoriesResult> => {
+		const limit = categorySuggestionsLimiter.consume(`user:${context.session.user.id}`)
+		if (!limit.allowed) return { kind: 'error', reason: 'rate-limited' }
+		return suggestCategoriesImpl({ actor: { id: context.session.user.id, isChild: context.session.user.isChild }, input: data })
+	})
+
+export const applyCategorySuggestions = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof ApplyCategorySuggestionsInputSchema>) => ApplyCategorySuggestionsInputSchema.parse(data))
+	.handler(
+		({ context, data }): Promise<ApplyCategorySuggestionsResult> =>
+			applyCategorySuggestionsImpl({ userId: context.session.user.id, input: data })
 	)

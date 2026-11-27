@@ -1,13 +1,24 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { ArrowDown, ArrowUp, X } from 'lucide-react'
-import { type FormEvent, useState } from 'react'
+import { ArrowDown, ArrowUp, Sparkles, X } from 'lucide-react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-import { createCategory, deleteCategory, getCategoryNameSuggestions, reorderCategories, updateCategory } from '@/api/categories'
+import {
+	applyCategorySuggestions,
+	type CategorySuggestion,
+	createCategory,
+	deleteCategory,
+	getCategoryNameSuggestions,
+	reorderCategories,
+	suggestCategories,
+	updateCategory,
+} from '@/api/categories'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { useAppSetting } from '@/hooks/use-app-settings'
+import { useSession } from '@/lib/auth-client'
 import type { CategorySummary } from '@/lib/item-categories'
 import { itemsKeys } from '@/lib/queries/items'
 import { LIMITS } from '@/lib/validation/limits'
@@ -32,6 +43,19 @@ export function CategoriesDialog({ open, onOpenChange, listId, categories, itemC
 	const queryClient = useQueryClient()
 	const [newName, setNewName] = useState('')
 	const [busy, setBusy] = useState(false)
+
+	// Suggest Categories (docs/logic.md "Item categories"): one model call
+	// that proposes categories for the items that have none. Shown only when
+	// the admin switch is on, and never to a child account; the server
+	// refuses both as well. Nothing is saved until Use These.
+	const suggestEnabled = useAppSetting('aiCategorySuggestionsEnabled')
+	const { data: session } = useSession()
+	const canSuggest = suggestEnabled && session?.user.isChild !== true
+	const [suggesting, setSuggesting] = useState(false)
+	const [preview, setPreview] = useState<{ suggestions: Array<CategorySuggestion>; unplaced: number } | null>(null)
+	useEffect(() => {
+		if (!open) setPreview(null)
+	}, [open])
 
 	// Names from the person's other lists, so a second list gets the same
 	// categories with a tap each.
@@ -91,6 +115,27 @@ export function CategoriesDialog({ open, onOpenChange, listId, categories, itemC
 		if (!ok) input.value = category.name
 	}
 
+	const handleSuggest = async () => {
+		setSuggesting(true)
+		try {
+			const result = await suggestCategories({ data: { listId } })
+			if (result.kind === 'ok') setPreview({ suggestions: result.suggestions, unplaced: result.unplaced })
+			else if (result.reason === 'nothing-to-sort') toast.info(m.items_categories_suggest_nothing())
+			else if (result.reason === 'rate-limited') toast.error(m.items_categories_suggest_rate_limited())
+			else toast.error(m.items_categories_suggest_failed())
+		} catch {
+			toast.error(m.items_categories_suggest_failed())
+		} finally {
+			setSuggesting(false)
+		}
+	}
+
+	const handleApply = async () => {
+		if (!preview) return
+		const assignments = preview.suggestions.map(s => ({ name: s.name, itemIds: s.itemIds, groupIds: s.groupIds }))
+		if (await run(() => applyCategorySuggestions({ data: { listId, assignments } }))) setPreview(null)
+	}
+
 	const handleMove = (index: number, direction: -1 | 1) => {
 		const next = categories.map(c => c.id)
 		const to = index + direction
@@ -103,117 +148,164 @@ export function CategoriesDialog({ open, onOpenChange, listId, categories, itemC
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle>{m.items_categories_dialog_title()}</DialogTitle>
-					<DialogDescription>{m.items_categories_dialog_description()}</DialogDescription>
+					<DialogTitle>{preview ? m.items_categories_suggest_title() : m.items_categories_dialog_title()}</DialogTitle>
+					<DialogDescription>
+						{preview ? m.items_categories_suggest_description() : m.items_categories_dialog_description()}
+					</DialogDescription>
 				</DialogHeader>
 
-				<div className="grid gap-3">
-					{categories.length === 0 ? (
-						<p className="rounded-lg border border-dashed p-3 text-center text-sm text-muted-foreground">{m.items_categories_empty()}</p>
-					) : (
-						<ul className="grid gap-1.5">
-							{categories.map((category, index) => (
-								<li key={category.id} className="flex min-w-0 items-center gap-1.5">
-									<Button
-										type="button"
-										variant="outline"
-										size="icon-xs"
-										disabled={busy || index === 0}
-										onClick={() => handleMove(index, -1)}
-										aria-label={m.items_categories_move_up({ name: category.name })}
-									>
-										<ArrowUp className="size-4" />
-									</Button>
-									<Button
-										type="button"
-										variant="outline"
-										size="icon-xs"
-										disabled={busy || index === categories.length - 1}
-										onClick={() => handleMove(index, 1)}
-										aria-label={m.items_categories_move_down({ name: category.name })}
-									>
-										<ArrowDown className="size-4" />
-									</Button>
-									{/* Uncontrolled and keyed on the saved name: a rename saves on blur or Enter, and a refused one snaps back. */}
-									<Input
-										key={`${category.id}:${category.name}`}
-										id={`category-name-${category.id}`}
-										name="category-name"
-										defaultValue={category.name}
-										aria-label={m.items_categories_name_label()}
-										maxLength={LIMITS.CATEGORY_NAME}
-										autoComplete="off"
-										data-1p-ignore
-										data-lpignore="true"
-										disabled={busy}
-										className="h-8 min-w-0 flex-1 font-medium"
-										onBlur={e => void handleRename(category, e.currentTarget)}
-										onKeyDown={e => {
-											if (e.key === 'Enter') e.currentTarget.blur()
-										}}
-									/>
-									<span className="w-16 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
-										{m.items_categories_item_count({ count: itemCounts.get(category.id) ?? 0 })}
-									</span>
-									<Button
-										type="button"
-										variant="outline"
-										size="icon-xs"
-										disabled={busy}
-										onClick={() => void run(() => deleteCategory({ data: { categoryId: category.id } }))}
-										aria-label={m.items_categories_delete({ name: category.name })}
-									>
-										<X className="size-4" />
-									</Button>
-								</li>
-							))}
-						</ul>
-					)}
-
-					{suggestions && suggestions.length > 0 && (
-						<div className="grid gap-2 border-t pt-3">
-							<p className="text-xs text-muted-foreground">{m.items_categories_other_lists()}</p>
-							<div className="flex flex-wrap gap-1.5">
-								{suggestions.map(name => (
-									<button
-										key={name}
-										type="button"
-										disabled={busy}
-										onClick={() => void add(name)}
-										className="inline-flex h-7 max-w-full items-center rounded-4xl border border-dashed px-3 text-xs font-semibold text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
-									>
-										<span className="truncate">{name}</span>
-									</button>
+				{preview ? (
+					<div className="grid gap-3">
+						{preview.suggestions.length === 0 ? (
+							<p className="rounded-lg border border-dashed p-3 text-center text-sm text-muted-foreground">
+								{m.items_categories_suggest_none_fit()}
+							</p>
+						) : (
+							<ul className="grid divide-y">
+								{preview.suggestions.map(s => (
+									<li key={s.name} className="flex min-w-0 items-baseline gap-2 py-2">
+										<span className="min-w-0 flex-1 truncate text-sm font-semibold">{s.name}</span>
+										{s.isNew && <span className="shrink-0 text-xs font-semibold text-primary">{m.items_categories_suggest_new()}</span>}
+										<span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+											{m.items_categories_item_count({ count: s.itemIds.length + s.groupIds.length })}
+										</span>
+									</li>
 								))}
+							</ul>
+						)}
+						<p className="text-xs text-muted-foreground">
+							{m.items_categories_suggest_hint()}
+							{preview.unplaced > 0 && <> {m.items_categories_suggest_unplaced({ count: preview.unplaced })}</>}
+						</p>
+					</div>
+				) : (
+					<div className="grid gap-3">
+						{categories.length === 0 ? (
+							<p className="rounded-lg border border-dashed p-3 text-center text-sm text-muted-foreground">{m.items_categories_empty()}</p>
+						) : (
+							<ul className="grid gap-1.5">
+								{categories.map((category, index) => (
+									<li key={category.id} className="flex min-w-0 items-center gap-1.5">
+										<Button
+											type="button"
+											variant="outline"
+											size="icon-xs"
+											disabled={busy || index === 0}
+											onClick={() => handleMove(index, -1)}
+											aria-label={m.items_categories_move_up({ name: category.name })}
+										>
+											<ArrowUp className="size-4" />
+										</Button>
+										<Button
+											type="button"
+											variant="outline"
+											size="icon-xs"
+											disabled={busy || index === categories.length - 1}
+											onClick={() => handleMove(index, 1)}
+											aria-label={m.items_categories_move_down({ name: category.name })}
+										>
+											<ArrowDown className="size-4" />
+										</Button>
+										{/* Uncontrolled and keyed on the saved name: a rename saves on blur or Enter, and a refused one snaps back. */}
+										<Input
+											key={`${category.id}:${category.name}`}
+											id={`category-name-${category.id}`}
+											name="category-name"
+											defaultValue={category.name}
+											aria-label={m.items_categories_name_label()}
+											maxLength={LIMITS.CATEGORY_NAME}
+											autoComplete="off"
+											data-1p-ignore
+											data-lpignore="true"
+											disabled={busy}
+											className="h-8 min-w-0 flex-1 font-medium"
+											onBlur={e => void handleRename(category, e.currentTarget)}
+											onKeyDown={e => {
+												if (e.key === 'Enter') e.currentTarget.blur()
+											}}
+										/>
+										<span className="w-16 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+											{m.items_categories_item_count({ count: itemCounts.get(category.id) ?? 0 })}
+										</span>
+										<Button
+											type="button"
+											variant="outline"
+											size="icon-xs"
+											disabled={busy}
+											onClick={() => void run(() => deleteCategory({ data: { categoryId: category.id } }))}
+											aria-label={m.items_categories_delete({ name: category.name })}
+										>
+											<X className="size-4" />
+										</Button>
+									</li>
+								))}
+							</ul>
+						)}
+
+						{suggestions && suggestions.length > 0 && (
+							<div className="grid gap-2 border-t pt-3">
+								<p className="text-xs text-muted-foreground">{m.items_categories_other_lists()}</p>
+								<div className="flex flex-wrap gap-1.5">
+									{suggestions.map(name => (
+										<button
+											key={name}
+											type="button"
+											disabled={busy}
+											onClick={() => void add(name)}
+											className="inline-flex h-7 max-w-full items-center rounded-4xl border border-dashed px-3 text-xs font-semibold text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+										>
+											<span className="truncate">{name}</span>
+										</button>
+									))}
+								</div>
 							</div>
-						</div>
-					)}
+						)}
 
-					<form onSubmit={handleAdd} className="flex items-center gap-2 border-t pt-3">
-						<Input
-							id={`category-new-${listId}`}
-							name="category-new"
-							value={newName}
-							onChange={e => setNewName(e.target.value)}
-							placeholder={m.items_categories_new_placeholder()}
-							aria-label={m.items_categories_new_label()}
-							maxLength={LIMITS.CATEGORY_NAME}
-							autoComplete="off"
-							data-1p-ignore
-							data-lpignore="true"
-							disabled={busy}
-							className="h-8 min-w-0 flex-1"
-						/>
-						<Button type="submit" variant="outline" size="sm" disabled={busy || newName.trim() === ''}>
-							{m.action_add()}
+						<form onSubmit={handleAdd} className="flex items-center gap-2 border-t pt-3">
+							<Input
+								id={`category-new-${listId}`}
+								name="category-new"
+								value={newName}
+								onChange={e => setNewName(e.target.value)}
+								placeholder={m.items_categories_new_placeholder()}
+								aria-label={m.items_categories_new_label()}
+								maxLength={LIMITS.CATEGORY_NAME}
+								autoComplete="off"
+								data-1p-ignore
+								data-lpignore="true"
+								disabled={busy}
+								className="h-8 min-w-0 flex-1"
+							/>
+							<Button type="submit" variant="outline" size="sm" disabled={busy || newName.trim() === ''}>
+								{m.action_add()}
+							</Button>
+						</form>
+						<p className="text-xs text-muted-foreground">{m.items_categories_hint()}</p>
+					</div>
+				)}
+
+				{preview ? (
+					<DialogFooter className="sm:justify-between">
+						<Button variant="outline" onClick={() => setPreview(null)} disabled={busy}>
+							{m.action_back()}
 						</Button>
-					</form>
-					<p className="text-xs text-muted-foreground">{m.items_categories_hint()}</p>
-				</div>
-
-				<DialogFooter>
-					<Button onClick={() => onOpenChange(false)}>{m.action_done()}</Button>
-				</DialogFooter>
+						{preview.suggestions.length > 0 && (
+							<Button onClick={() => void handleApply()} disabled={busy}>
+								{m.items_categories_suggest_apply()}
+							</Button>
+						)}
+					</DialogFooter>
+				) : (
+					<DialogFooter className={canSuggest ? 'sm:justify-between' : undefined}>
+						{canSuggest && (
+							<Button variant="outline" onClick={() => void handleSuggest()} disabled={busy || suggesting}>
+								<Sparkles className="size-4" />
+								{suggesting ? m.items_categories_suggest_working() : m.items_categories_suggest()}
+							</Button>
+						)}
+						<Button onClick={() => onOpenChange(false)}>{m.action_done()}</Button>
+					</DialogFooter>
+				)}
 			</DialogContent>
 		</Dialog>
 	)
