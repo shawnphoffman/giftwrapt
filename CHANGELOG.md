@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.17.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.16.0...v1.17.0) (2026-11-27)
+
+
+### Features
+
+* **auth:** let admins limit password sign-in to admins when OIDC is on ([ac04805](https://github.com/shawnphoffman/giftwrapt/commit/ac048053c03936b4e20ede1cba341e41c65c8e7d))
+
+
+### Bug Fixes
+
+* **gift-ideas:** show ideas grouped and in priority order on a list ([3936ea0](https://github.com/shawnphoffman/giftwrapt/commit/3936ea0d9e876cd6fd4f2189eb4f03717852ed24))
+* **items:** add priority quick-change to group overflow menu ([a9782bd](https://github.com/shawnphoffman/giftwrapt/commit/a9782bd39dd641bcbe367af62aadf164c626ee28))
+* **observability:** ignore extension messaging errors in Sentry ([#116](https://github.com/shawnphoffman/giftwrapt/issues/116)) ([0d2d209](https://github.com/shawnphoffman/giftwrapt/commit/0d2d209c46ec6fd51ab6ac18ac655e49f39e16c4))
+
 ## [1.16.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.15.0...v1.16.0) (2026-11-25)
 
 
