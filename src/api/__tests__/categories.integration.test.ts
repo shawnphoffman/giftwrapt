@@ -2,7 +2,7 @@
 // belong to one list, managed by anyone who can edit it, and carried by name
 // when a row moves or is copied to another list.
 
-import { makeItem, makeList, makeListEditor, makeUser } from '@test/integration/factories'
+import { makeGiftedItem, makeItem, makeList, makeListEditor, makeUser, makeUserRelationship } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
 import { asc, eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
@@ -18,7 +18,7 @@ import {
 import { moveGroupToListImpl } from '@/api/_groups-impl'
 import { copyItemToListImpl, moveItemsToListImpl } from '@/api/_items-extra-impl'
 import { createItemImpl, updateItemImpl } from '@/api/_items-impl'
-import { getListForEditingImpl } from '@/api/_lists-impl'
+import { getListForEditingImpl, getListForViewingImpl, getListHeaderImpl } from '@/api/_lists-impl'
 import { itemCategories, itemGroups, items } from '@/db/schema'
 
 type Tx = Parameters<Parameters<typeof withRollback>[0]>[0]
@@ -420,6 +420,76 @@ describe('lists that have no categories', () => {
 			expect(copied).toEqual({ kind: 'error', reason: 'todo-list-rejects-items' })
 			expect(await categoriesOf(tx, todos.id)).toHaveLength(0)
 			expect(await tx.select({ id: items.id }).from(items).where(eq(items.listId, todos.id))).toHaveLength(0)
+		})
+	})
+})
+
+describe('the gifter view', () => {
+	it('is sent only the categories that hold an item, with the group category kept', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const gifter = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id })
+			const toys = await makeCategory(tx, list.id, 'Toys', 0)
+			const clothes = await makeCategory(tx, list.id, 'Clothes', 1)
+			await makeCategory(tx, list.id, 'Empty', 2)
+			await makeItem(tx, { listId: list.id, categoryId: clothes.id })
+			const group = await makeGroup(tx, list.id, toys.id)
+			await makeItem(tx, { listId: list.id, groupId: group.id, groupSortOrder: 0 })
+
+			const header = await getListHeaderImpl({ userId: gifter.id, listId: String(list.id), dbx: tx })
+			if (header?.kind !== 'ok') throw new Error('expected the header')
+			// In the owner's order, and without the empty one.
+			expect(header.list.categories.map(c => c.name)).toEqual(['Toys', 'Clothes'])
+			expect(header.list.groups.find(g => g.id === group.id)?.categoryId).toBe(toys.id)
+
+			const viewing = await getListForViewingImpl({ userId: gifter.id, listId: String(list.id), dbx: tx })
+			if (viewing?.kind !== 'ok') throw new Error('expected the list')
+			expect(viewing.list.categories.map(c => c.name)).toEqual(['Toys', 'Clothes'])
+		})
+	})
+
+	it('sends no categories for a list that has none in use', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const gifter = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id })
+			await makeCategory(tx, list.id, 'Clothes')
+			await makeItem(tx, { listId: list.id })
+
+			const header = await getListHeaderImpl({ userId: gifter.id, listId: String(list.id), dbx: tx })
+			if (header?.kind !== 'ok') throw new Error('expected the header')
+			expect(header.list.categories).toEqual([])
+		})
+	})
+
+	it('never sends a restricted viewer a category whose items are all hidden from them', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const restricted = await makeUser(tx)
+			const outsider = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id })
+			await makeUserRelationship(tx, { ownerUserId: owner.id, viewerUserId: restricted.id, accessLevel: 'restricted' })
+			const secret = await makeCategory(tx, list.id, 'Surprise party', 0)
+			const clothes = await makeCategory(tx, list.id, 'Clothes', 1)
+			// Fully claimed by someone else: hidden from a restricted viewer.
+			const hiddenItem = await makeItem(tx, { listId: list.id, categoryId: secret.id })
+			await makeGiftedItem(tx, { itemId: hiddenItem.id, gifterId: outsider.id })
+			const hiddenGroup = await makeGroup(tx, list.id, secret.id)
+			const groupedHidden = await makeItem(tx, { listId: list.id, groupId: hiddenGroup.id, groupSortOrder: 0 })
+			await makeGiftedItem(tx, { itemId: groupedHidden.id, gifterId: outsider.id })
+			await makeItem(tx, { listId: list.id, categoryId: clothes.id })
+
+			const forRestricted = await getListHeaderImpl({ userId: restricted.id, listId: String(list.id), dbx: tx })
+			if (forRestricted?.kind !== 'ok') throw new Error('expected the header')
+			expect(forRestricted.list.categories.map(c => c.name)).toEqual(['Clothes'])
+			// The hidden group's category id is not sent either.
+			expect(forRestricted.list.groups.find(g => g.id === hiddenGroup.id)?.categoryId).toBeNull()
+
+			// Someone with full view sees both.
+			const forOutsider = await getListHeaderImpl({ userId: outsider.id, listId: String(list.id), dbx: tx })
+			if (forOutsider?.kind !== 'ok') throw new Error('expected the header')
+			expect(forOutsider.list.categories.map(c => c.name)).toEqual(['Surprise party', 'Clothes'])
 		})
 	})
 })

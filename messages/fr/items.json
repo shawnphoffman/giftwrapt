@@ -674,5 +674,11 @@
 	"items_arrange_label": "Classer par",
 	"items_arrange_priority": "Priorité",
 	"items_arrange_category": "Catégorie",
-	"items_field_category": "Catégorie"
+	"items_field_category": "Catégorie",
+	"items_category_claimed_count": "{claimed} sur {total} réservés",
+	"items_overview_title": "Ce que contient cette liste",
+	"items_overview_untouched": "Rien de réservé pour l’instant dans {categories}.",
+	"items_overview_all_touched": "Chaque catégorie a au moins une réservation.",
+	"items_overview_showing": "Affichage : {name}",
+	"items_overview_show_all": "Tout afficher"
 }

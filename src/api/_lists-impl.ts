@@ -30,7 +30,7 @@ import type { ArchiveBannerInfo } from '@/lib/archive-schedule-loader'
 import { loadArchiveBannerInfo } from '@/lib/archive-schedule-loader'
 import { customHolidayDisplayDate } from '@/lib/custom-holidays'
 import { computeListItemCounts } from '@/lib/gifts'
-import type { CategorySummary } from '@/lib/item-categories'
+import { type CategorySummary, effectiveCategoryId } from '@/lib/item-categories'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { notifyListEvent } from '@/lib/list-event-bus'
 import { listsCreatedTotal } from '@/lib/observability/metrics'
@@ -41,6 +41,7 @@ import { isListTypeDisabled } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
 
 import { loadCategoriesForList } from './_categories-impl'
+import { getItemsForListViewImpl } from './_items-extra-impl'
 
 // =====================================================================
 // Public types
@@ -65,7 +66,8 @@ export type GroupSummary = {
 	priority: Priority
 	sortOrder: number | null
 	// The category every member shows under (docs/logic.md "Item categories").
-	// Sent on the edit view only, so it is absent elsewhere.
+	// Sent on the edit view, and on the gifter view only when the viewer can
+	// see an item in that category. Absent on other surfaces.
 	categoryId?: number | null
 }
 
@@ -88,6 +90,10 @@ export type ListForViewing = {
 	}
 	subjectDependent: ListForViewingSubjectDependent | null
 	groups: Array<GroupSummary>
+	// The list's categories that hold at least one item this viewer can
+	// see, in the owner's order. A category whose items are all hidden from
+	// the viewer, or that is empty, is never sent.
+	categories: Array<CategorySummary>
 	addons: Array<AddonOnList>
 	// True when the viewer can edit this list (owner / guardian / dependent
 	// guardian / explicit listEditors row, all with the restricted-wins
@@ -342,6 +348,37 @@ export const SetPrimaryListInputSchema = z.object({
 })
 
 // =====================================================================
+// Helpers
+// =====================================================================
+
+// The gifter view's categories: only the ones holding at least one item
+// this viewer can see, so the name of an empty category, or of one whose
+// items are all hidden from a restricted viewer, never leaves the server.
+// "Can see" is decided by the same function that serves the gifter's
+// items, so the two cannot drift. A group's categoryId is nulled when its
+// category is not in that set. Lists with no categories skip the item read.
+async function categoriesForViewer(
+	dbx: SchemaDatabase,
+	args: { userId: string; listId: number; groups: Array<GroupSummary> }
+): Promise<{ categories: Array<CategorySummary>; groups: Array<GroupSummary> }> {
+	const all = await loadCategoriesForList(dbx, args.listId)
+	if (all.length === 0) return { categories: [], groups: args.groups.map(g => ({ ...g, categoryId: null })) }
+
+	const visible = await getItemsForListViewImpl({ userId: args.userId, listId: String(args.listId), dbx })
+	const visibleItems = visible.kind === 'ok' ? visible.items : []
+	const groupCategoryById = new Map(args.groups.map(g => [g.id, g.categoryId ?? null]))
+	const used = new Set<number>()
+	for (const item of visibleItems) {
+		const id = effectiveCategoryId(item, groupCategoryById)
+		if (id !== null) used.add(id)
+	}
+	return {
+		categories: all.filter(c => used.has(c.id)),
+		groups: args.groups.map(g => ({ ...g, categoryId: g.categoryId != null && used.has(g.categoryId) ? g.categoryId : null })),
+	}
+}
+
+// =====================================================================
 // Impls
 // =====================================================================
 
@@ -409,7 +446,7 @@ export async function getListForViewingImpl(args: {
 
 	const accessLevel = await getViewerAccessLevelForList(args.userId, list, dbx)
 
-	const [rawAddons, viewGroups] = await Promise.all([
+	const [rawAddons, allGroups] = await Promise.all([
 		// Restricted viewers see ONLY their own addons - they can still
 		// volunteer extras, and need to see what they've offered, but they
 		// don't get to see other gifters' addons (same spoiler-protection
@@ -440,9 +477,11 @@ export async function getListForViewingImpl(args: {
 		}),
 		dbx.query.itemGroups.findMany({
 			where: eq(itemGroups.listId, list.id),
-			columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
+			columns: { id: true, type: true, name: true, priority: true, sortOrder: true, categoryId: true },
 		}),
 	])
+	const forViewer = await categoriesForViewer(dbx, { userId: args.userId, listId: list.id, groups: allGroups })
+	const viewGroups = forViewer.groups
 
 	// What a gifter paid is their own business; strip totalCost from any
 	// addon the viewer doesn't own. The recipient sees prices via the
@@ -474,6 +513,7 @@ export async function getListForViewingImpl(args: {
 					}
 				: null,
 			groups: viewGroups,
+			categories: forViewer.categories,
 			addons,
 			canEdit,
 			archiveInfo,
@@ -549,10 +589,12 @@ export async function getListHeaderImpl(args: { userId: string; listId: string; 
 		}
 	}
 
-	const viewGroups = await dbx.query.itemGroups.findMany({
+	const allGroups = await dbx.query.itemGroups.findMany({
 		where: eq(itemGroups.listId, list.id),
-		columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
+		columns: { id: true, type: true, name: true, priority: true, sortOrder: true, categoryId: true },
 	})
+	const forViewer = await categoriesForViewer(dbx, { userId: args.userId, listId: list.id, groups: allGroups })
+	const viewGroups = forViewer.groups
 
 	const canEdit = (await canEditListAsAnyone(args.userId, list, dbx)).ok
 
@@ -570,6 +612,7 @@ export async function getListHeaderImpl(args: { userId: string; listId: string; 
 				? { id: list.subjectDependent.id, name: list.subjectDependent.name, image: list.subjectDependent.image }
 				: null,
 			groups: viewGroups,
+			categories: forViewer.categories,
 			canEdit,
 			archiveInfo,
 		},

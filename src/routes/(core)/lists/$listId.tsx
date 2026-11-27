@@ -27,6 +27,7 @@ import { listHeaderQueryOptions } from '@/lib/queries/lists' // used by useSuspe
 import { useListAutoRefresh } from '@/lib/use-list-auto-refresh'
 import { useListSSE } from '@/lib/use-list-sse'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
+import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
@@ -102,7 +103,11 @@ function ListDetailPage() {
 	useScrollToHash([listId])
 
 	return (
-		<div className="wish-page">
+		// A list with categories the viewer can see gets a wider page, to fit the
+		// overview panel beside the items. The body marks itself with
+		// data-list-categories once its header has loaded, so this is CSS only:
+		// no second read of the header here, and nothing for hydration to disagree on.
+		<div className="wish-page has-[[data-list-categories]]:max-w-[66rem]">
 			<div className="flex flex-col flex-1 gap-6">
 				<BackToParentList from={from} />
 				<SkeletonSuspense id={`list-detail-${listId}`} label={m.lists_detail_loading()} skeleton={<ListDetailSkeleton />}>
@@ -165,7 +170,7 @@ function ListDetailBody({ listId }: { listId: number }) {
 	// Its own gap-6 column: skullet wraps this body in block-level elements,
 	// so it can't lean on the page column's gap.
 	return (
-		<div className="flex flex-col gap-6">
+		<div className="flex flex-col gap-6" data-list-categories={list.type !== 'todos' && list.categories.length > 0 ? '' : undefined}>
 			<ListHeading
 				list={list}
 				edit={
@@ -199,6 +204,7 @@ function ListDetailBody({ listId }: { listId: number }) {
 						<ItemList
 							listId={list.id}
 							groups={list.groups}
+							categories={list.categories}
 							filterBarLeading={
 								<>
 									<ArchiveRevealBadge archiveInfo={list.archiveInfo} recipientName={recipientName} />
@@ -210,14 +216,18 @@ function ListDetailBody({ listId }: { listId: number }) {
 							}
 						/>
 					</SkeletonSuspense>
-					{/* GIFT IDEAS: the viewer's ideas for this recipient (renders nothing without any) */}
-					<Suspense fallback={null}>
-						<GiftIdeasOnList listId={list.id} recipientName={recipientName} />
-					</Suspense>
-					{/* OFF-LIST GIFTS */}
-					<Suspense fallback={<ListAddonsSectionSkeleton />}>
-						<ListAddonsSection listId={list.id} />
-					</Suspense>
+					{/* On a list with categories the page is wider, for the overview panel
+					    beside the items. These sections keep to the items' column. */}
+					<div className={cn('flex flex-col gap-6', list.categories.length > 0 && '@min-[58rem]/page:pr-[18.5rem]')}>
+						{/* GIFT IDEAS: the viewer's ideas for this recipient (renders nothing without any) */}
+						<Suspense fallback={null}>
+							<GiftIdeasOnList listId={list.id} recipientName={recipientName} />
+						</Suspense>
+						{/* OFF-LIST GIFTS */}
+						<Suspense fallback={<ListAddonsSectionSkeleton />}>
+							<ListAddonsSection listId={list.id} />
+						</Suspense>
+					</div>
 				</>
 			)}
 		</div>

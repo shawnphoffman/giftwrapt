@@ -674,5 +674,11 @@
 	"items_arrange_label": "Arrange by",
 	"items_arrange_priority": "Priority",
 	"items_arrange_category": "Category",
-	"items_field_category": "Category"
+	"items_field_category": "Category",
+	"items_category_claimed_count": "{claimed} of {total} claimed",
+	"items_overview_title": "What's on This List",
+	"items_overview_untouched": "Nothing claimed yet in {categories}.",
+	"items_overview_all_touched": "Every category has at least one claim.",
+	"items_overview_showing": "Showing {name}",
+	"items_overview_show_all": "Show All"
 }

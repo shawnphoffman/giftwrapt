@@ -17,13 +17,17 @@ import {
 import { Input } from '@/components/ui/input'
 import type { Priority } from '@/db/schema/enums'
 import { useMoney } from '@/hooks/use-money'
+import { claimStatsByCategory } from '@/lib/category-claims'
 import { parseAmount } from '@/lib/i18n/format'
+import { type CategoryKey, categoryKeyOfEntry, type CategorySummary } from '@/lib/item-categories'
 import { buildListEntries, compareWithinPriority, type ListEntry } from '@/lib/list-entries'
 import { listItemsViewQueryOptions } from '@/lib/queries/items'
 import { getVendorFromUrl, isKnownVendor, parseInternalListLink, vendorIdToName } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
+import { ArrangeByToggle, type Arrangement } from './arrange-by-toggle'
+import { CategoryOverview, type CategoryOverviewRow, ClaimMeter } from './category-overview'
 import { GroupViewBlock } from './group-view-block'
 import { InternalListLinksProvider } from './internal-list-links-context'
 import ItemRow from './item-row'
@@ -32,6 +36,9 @@ import { VendorFilterDropdown, type VendorOption } from './vendor-filter-dropdow
 type Props = {
 	listId: number
 	groups?: Array<GroupSummary>
+	// The list's categories this viewer can see (docs/logic.md "Item
+	// categories"). Empty for most lists, and then nothing here changes.
+	categories?: ReadonlyArray<CategorySummary>
 	// Rendered inline with the right-aligned filter controls (just before
 	// them). Used for the reveal-date badge.
 	filterBarLeading?: ReactNode
@@ -133,10 +140,12 @@ function sortIsDescending(sort: SortValue): boolean {
 	return sort === 'priority-desc' || sort === 'date-desc'
 }
 
-export default function ItemList({ listId, groups, filterBarLeading }: Props) {
+export default function ItemList({ listId, groups, categories, filterBarLeading }: Props) {
 	const { data: items } = useSuspenseQuery(listItemsViewQueryOptions(listId))
-	return <ItemListView items={items} groups={groups} filterBarLeading={filterBarLeading} />
+	return <ItemListView items={items} groups={groups} categories={categories} filterBarLeading={filterBarLeading} />
 }
+
+const NO_CATEGORIES: ReadonlyArray<CategorySummary> = []
 
 type ViewProps = Omit<Props, 'listId'> & {
 	items: Array<ItemWithGifts>
@@ -144,7 +153,7 @@ type ViewProps = Omit<Props, 'listId'> & {
 
 // The list body without its query, so a loading skeleton can render the
 // real layout from sample items (see list-detail-sample.ts).
-export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps) {
+export function ItemListView({ items, groups = [], categories = NO_CATEGORIES, filterBarLeading }: ViewProps) {
 	const money = useMoney()
 	const [filter, setFilter] = useState<FilterValue>('all')
 	const [vendorFilter, setVendorFilter] = useState<ReadonlySet<string>>(() => new Set())
@@ -244,9 +253,49 @@ export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps
 		return [...base].sort(compareEntries(sort))
 	}, [filteredItems, groups, sort])
 
+	// Categories. Nothing below renders unless the viewer can see an item
+	// that has one. Like the filters, the arrangement is not saved: it
+	// lands on Priority, which is today's list.
+	const [arrangement, setArrangement] = useState<Arrangement>('priority')
+	const [narrowTo, setNarrowTo] = useState<CategoryKey | null>(null)
+	const knownCategoryIds = useMemo(() => new Set(categories.map(c => c.id)), [categories])
+	// Claimed counts come from every entry the viewer was sent, not from the
+	// filtered ones, so a filter never changes how claimed a category reads.
+	const claimStats = useMemo(
+		() =>
+			claimStatsByCategory(
+				buildListEntries({ items, groups }).filter(e => e.kind !== 'group' || e.items.length > 0),
+				knownCategoryIds
+			),
+		[items, groups, knownCategoryIds]
+	)
+	const hasCategorized = [...claimStats.keys()].some(key => key !== 'none')
+
 	if (items.length === 0) {
 		return <EmptyMessage message={m.items_empty()} className="xs:ml-6" />
 	}
+
+	// In the owner's order, then the entries with no category.
+	const categorySections: Array<{ key: CategoryKey; name: string }> = [
+		...categories.map(c => ({ key: c.id as CategoryKey, name: c.name })),
+		{ key: 'none', name: m.items_category_none() },
+	]
+	const overviewRows: Array<CategoryOverviewRow> = categorySections.flatMap(section => {
+		const stats = claimStats.get(section.key)
+		return stats ? [{ ...section, ...stats }] : []
+	})
+	// A category that has gone (deleted, or its last item removed) stops narrowing.
+	const activeNarrow = hasCategorized && narrowTo !== null && claimStats.has(narrowTo) ? narrowTo : null
+	const shownEntries = activeNarrow === null ? entries : entries.filter(e => categoryKeyOfEntry(e, knownCategoryIds) === activeNarrow)
+
+	const renderEntry = (entry: ListEntry<ItemWithGifts>) =>
+		entry.kind === 'item' ? (
+			<div key={`item-${entry.item.id}`} className="xs:pl-6">
+				<ItemRow item={entry.item} />
+			</div>
+		) : (
+			<GroupViewBlock key={`group-${entry.group.id}`} group={entry.group} items={entry.items} />
+		)
 
 	const toggleVendor = (id: string) => {
 		setVendorFilter(prev => {
@@ -273,7 +322,10 @@ export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps
 				    cell is always child 1, so an odd filter count ends on an even
 				    child. From sm up: one right-aligned row. */}
 				<div className="grid grid-cols-2 gap-1 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-end [&>:last-child:nth-child(even)]:col-span-2">
-					<div className="col-span-full flex flex-wrap items-center justify-end gap-1 empty:hidden sm:contents">{filterBarLeading}</div>
+					<div className="col-span-full flex flex-wrap items-center justify-end gap-1 empty:hidden sm:contents">
+						{hasCategorized && <ArrangeByToggle value={arrangement} onChange={setArrangement} className="mr-auto" />}
+						{filterBarLeading}
+					</div>
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button variant="outline" size="xs" className={cn('text-muted-foreground', filter !== 'all' && 'text-foreground')}>
@@ -391,21 +443,63 @@ export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps
 					</DropdownMenu>
 				</div>
 
-				{entries.length === 0 ? (
-					<EmptyMessage message={m.items_empty_filtered()} className="xs:ml-6" />
-				) : (
-					<div className="flex flex-col gap-2">
-						{entries.map(entry =>
-							entry.kind === 'item' ? (
-								<div key={`item-${entry.item.id}`} className="xs:pl-6">
-									<ItemRow item={entry.item} />
-								</div>
-							) : (
-								<GroupViewBlock key={`group-${entry.group.id}`} group={entry.group} items={entry.items} />
-							)
+				{/* With categories, the overview panel sits beside the list once the
+				    page is wide enough (a rem container query, so it follows the text
+				    size). Narrower than that, and on a phone, the panel is not shown. */}
+				<div
+					className={cn(
+						hasCategorized &&
+							'@min-[58rem]/page:grid @min-[58rem]/page:grid-cols-[minmax(0,1fr)_17rem] @min-[58rem]/page:items-start @min-[58rem]/page:gap-6'
+					)}
+				>
+					<div className="flex min-w-0 flex-col gap-2">
+						{activeNarrow !== null && (
+							<div className="flex items-center gap-2 text-sm text-muted-foreground xs:pl-6">
+								<span className="min-w-0 truncate">
+									{m.items_overview_showing({ name: categorySections.find(s => s.key === activeNarrow)?.name ?? '' })}
+								</span>
+								<Button variant="outline" size="xs" onClick={() => setNarrowTo(null)}>
+									{m.items_overview_show_all()}
+								</Button>
+							</div>
+						)}
+						{shownEntries.length === 0 ? (
+							<EmptyMessage message={m.items_empty_filtered()} className="xs:ml-6" />
+						) : arrangement === 'category' && hasCategorized ? (
+							categorySections.map(section => {
+								const rows = shownEntries.filter(e => categoryKeyOfEntry(e, knownCategoryIds) === section.key)
+								if (rows.length === 0) return null
+								const stats = claimStats.get(section.key) ?? { total: rows.length, claimed: 0 }
+								return (
+									<section key={`category-${section.key}`} className="flex flex-col gap-2 not-first:mt-3">
+										<div className="flex items-center gap-2 border-b pb-1.5 xs:ml-6">
+											<div role="heading" aria-level={2} className="truncate font-bold leading-tight">
+												{section.name}
+											</div>
+											<span className="shrink-0 text-xs font-medium text-muted-foreground tabular-nums">{stats.total}</span>
+											<span className="flex-1" />
+											<ClaimMeter total={stats.total} claimed={stats.claimed} className="w-14 shrink-0" />
+											<span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+												{m.items_category_claimed_count({ claimed: stats.claimed, total: stats.total })}
+											</span>
+										</div>
+										{rows.map(renderEntry)}
+									</section>
+								)
+							})
+						) : (
+							shownEntries.map(renderEntry)
 						)}
 					</div>
-				)}
+					{hasCategorized && (
+						<CategoryOverview
+							rows={overviewRows}
+							selected={activeNarrow}
+							onSelect={setNarrowTo}
+							className="sticky top-4 hidden @min-[58rem]/page:flex"
+						/>
+					)}
+				</div>
 			</div>
 		</InternalListLinksProvider>
 	)
