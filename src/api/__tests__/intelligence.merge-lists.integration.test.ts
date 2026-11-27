@@ -11,11 +11,11 @@ import { randomUUID } from 'node:crypto'
 
 import { makeGiftedItem, makeItem, makeList, makeListAddon, makeUser } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { applyRecommendationImpl } from '@/api/intelligence'
-import { giftedItems, itemGroups, items, listAddons, lists, recommendations } from '@/db/schema'
+import { giftedItems, itemCategories, itemGroups, items, listAddons, lists, recommendations } from '@/db/schema'
 import { listHygieneAnalyzer } from '@/lib/intelligence/analyzers/list-hygiene'
 import type { AnalyzerContext } from '@/lib/intelligence/context'
 import { DEFAULT_APP_SETTINGS } from '@/lib/settings'
@@ -256,6 +256,66 @@ describe('applyRecommendationImpl - merge-lists', () => {
 			// Rec flipped to applied.
 			const recAfter = await tx.query.recommendations.findFirst({ where: eq(recommendations.id, rec.id) })
 			expect(recAfter?.status).toBe('applied')
+		})
+	})
+
+	it('keeps the moved rows in their categories by name on the survivor', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const survivor = await makeList(tx, { ownerId: owner.id, type: 'wishlist', name: 'Keep' })
+			const source = await makeList(tx, { ownerId: owner.id, type: 'wishlist', name: 'Old' })
+
+			// The survivor already has Clothes. The source has the same name in
+			// another case, plus Toys, which the survivor lacks.
+			const [keepClothes] = await tx.insert(itemCategories).values({ listId: survivor.id, name: 'Clothes', sortOrder: 0 }).returning()
+			const [oldClothes] = await tx.insert(itemCategories).values({ listId: source.id, name: 'clothes', sortOrder: 0 }).returning()
+			const [oldToys] = await tx.insert(itemCategories).values({ listId: source.id, name: 'Toys', sortOrder: 1 }).returning()
+
+			const stays = await makeItem(tx, { listId: survivor.id, title: 'Scarf', categoryId: keepClothes.id })
+			const shirt = await makeItem(tx, { listId: source.id, title: 'Shirt', categoryId: oldClothes.id })
+			const plain = await makeItem(tx, { listId: source.id, title: 'No category' })
+			// A group carries its own category; its member's own one is ignored.
+			const [group] = await tx
+				.insert(itemGroups)
+				.values({ listId: source.id, type: 'or', priority: 'normal', categoryId: oldToys.id })
+				.returning()
+			const grouped = await makeItem(tx, { listId: source.id, title: 'Blocks', groupId: group.id, groupSortOrder: 0 })
+
+			const rec = await makeRec(tx, { userId: owner.id })
+			const result = await applyRecommendationImpl(tx, owner.id, {
+				id: rec.id,
+				apply: { kind: 'merge-lists', survivorListId: String(survivor.id), sourceListIds: [String(source.id)] },
+			})
+			expect(result.ok).toBe(true)
+
+			// Clothes is reused under the survivor's spelling; Toys is created
+			// after it.
+			const survivorCategories = await tx
+				.select({ id: itemCategories.id, name: itemCategories.name })
+				.from(itemCategories)
+				.where(eq(itemCategories.listId, survivor.id))
+				.orderBy(asc(itemCategories.sortOrder), asc(itemCategories.id))
+			expect(survivorCategories.map(c => c.name)).toEqual(['Clothes', 'Toys'])
+			const newToys = survivorCategories[1]
+			expect(newToys.id).not.toBe(oldToys.id)
+
+			const categoryOf = async (id: number) => (await tx.query.items.findFirst({ where: eq(items.id, id) }))?.categoryId
+			expect(await categoryOf(stays.id)).toBe(keepClothes.id)
+			expect(await categoryOf(shirt.id)).toBe(keepClothes.id)
+			expect(await categoryOf(plain.id)).toBeNull()
+			expect(await categoryOf(grouped.id)).toBeNull()
+			const movedGroup = await tx.query.itemGroups.findFirst({ where: eq(itemGroups.id, group.id) })
+			expect(movedGroup?.listId).toBe(survivor.id)
+			expect(movedGroup?.categoryId).toBe(newToys.id)
+
+			// Nothing on the survivor points at another list's category.
+			const own = new Set(survivorCategories.map(c => c.id))
+			const itemRows = await tx.select({ categoryId: items.categoryId }).from(items).where(eq(items.listId, survivor.id))
+			const groupRows = await tx.select({ categoryId: itemGroups.categoryId }).from(itemGroups).where(eq(itemGroups.listId, survivor.id))
+			expect(itemRows).toHaveLength(4)
+			for (const row of [...itemRows, ...groupRows]) {
+				if (row.categoryId !== null) expect(own.has(row.categoryId)).toBe(true)
+			}
 		})
 	})
 
