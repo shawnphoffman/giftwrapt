@@ -61,7 +61,9 @@ export type ItemForEditing = Item & { commentCount: number }
 
 export type SortOption = 'priority-asc' | 'priority-desc' | 'date-asc' | 'date-desc'
 
-export type CopyItemResult = { kind: 'ok'; item: Item } | { kind: 'error'; reason: 'not-found' | 'source-not-visible' | 'not-authorized' }
+export type CopyItemResult =
+	| { kind: 'ok'; item: Item }
+	| { kind: 'error'; reason: 'not-found' | 'source-not-visible' | 'not-authorized' | 'todo-list-rejects-items' }
 
 export type ArchiveItemResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
@@ -291,16 +293,17 @@ export async function copyItemToListImpl(args: {
 	const perm = await canEditListAsAnyone(userId, targetList, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
+	// A todo list holds rows of a different table and takes no gift items.
+	// Every path that inserts into `items` carries this gate (docs/logic.md
+	// "Todo lists are type-locked"); the copy path was missing it.
+	if (targetList.type === 'todos') return { kind: 'error', reason: 'todo-list-rejects-items' }
+
 	const vendor = sourceItem.url ? getVendorFromUrl(sourceItem.url) : null
 
 	// The copy keeps the category the source showed under, by name, on the
 	// target list (docs/logic.md "Item categories").
 	const sourceCategoryId = (await loadEffectiveCategoryIds(dbx, [sourceItem.id])).get(sourceItem.id) ?? null
-	// A todo list has no categories, so nothing is carried onto one.
-	const categoryId =
-		targetList.type === 'todos'
-			? null
-			: await resolveCategoryForList(dbx, { categoryId: sourceCategoryId, targetListId: data.targetListId })
+	const categoryId = await resolveCategoryForList(dbx, { categoryId: sourceCategoryId, targetListId: data.targetListId })
 
 	const [inserted] = await dbx
 		.insert(items)

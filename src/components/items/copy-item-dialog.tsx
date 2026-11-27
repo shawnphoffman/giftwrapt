@@ -54,11 +54,13 @@ export function CopyItemDialog({ open, onOpenChange, itemId, itemTitle }: Props)
 		enabled: open,
 	})
 
-	const publicLists = myLists?.public ?? []
-	const privateLists = myLists?.private ?? []
+	// A todo list takes no gift items (the server refuses the copy), so it
+	// is never offered as a target. Same filter as the Add Item dialog.
+	const publicLists = (myLists?.public ?? []).filter(l => l.type !== 'todos')
+	const privateLists = (myLists?.private ?? []).filter(l => l.type !== 'todos')
 	const giftIdeasLists = myLists?.giftIdeas ?? []
-	const editableLists = myLists?.editable ?? []
-	const children = myLists?.children ?? []
+	const editableLists = (myLists?.editable ?? []).filter(l => l.type !== 'todos')
+	const children = (myLists?.children ?? []).map(c => ({ ...c, lists: c.lists.filter(l => l.type !== 'todos') }))
 
 	useEffect(() => {
 		if (selectedListId || !myLists) return
@@ -92,6 +94,7 @@ export function CopyItemDialog({ open, onOpenChange, itemId, itemTitle }: Props)
 			if (result.kind === 'error') {
 				if (result.reason === 'not-authorized') setError(m.items_copy_error_not_authorized())
 				else if (result.reason === 'source-not-visible') setError(m.items_copy_error_source_not_visible())
+				else if (result.reason === 'todo-list-rejects-items') setError(m.items_error_todo_list())
 				else setError(m.items_copy_error_not_found())
 				return
 			}

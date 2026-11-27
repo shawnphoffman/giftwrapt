@@ -407,7 +407,7 @@ describe('carrying a category to another list by name', () => {
 })
 
 describe('lists that have no categories', () => {
-	it('carries nothing onto a todo list when an item is copied there', async () => {
+	it('refuses to copy an item onto a todo list, and makes no category there', async () => {
 		await withRollback(async tx => {
 			const owner = await makeUser(tx)
 			const source = await makeList(tx, { ownerId: owner.id })
@@ -415,10 +415,11 @@ describe('lists that have no categories', () => {
 			const clothes = await makeCategory(tx, source.id, 'Clothes')
 			const item = await makeItem(tx, { listId: source.id, categoryId: clothes.id })
 
+			// The copy is refused outright: a todo list takes no gift items.
 			const copied = await copyItemToListImpl({ userId: owner.id, input: { itemId: item.id, targetListId: todos.id }, dbx: tx })
-			// Whatever the copy itself does, it must not make a category there.
-			if (copied.kind === 'ok') expect(copied.item.categoryId).toBeNull()
+			expect(copied).toEqual({ kind: 'error', reason: 'todo-list-rejects-items' })
 			expect(await categoriesOf(tx, todos.id)).toHaveLength(0)
+			expect(await tx.select({ id: items.id }).from(items).where(eq(items.listId, todos.id))).toHaveLength(0)
 		})
 	})
 })
