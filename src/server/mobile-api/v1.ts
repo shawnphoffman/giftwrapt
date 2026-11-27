@@ -16,6 +16,7 @@ import { createItemImpl, CreateItemInputSchema } from '@/api/_items-impl'
 import { getMyListsImpl, getPublicListsImpl } from '@/api/_lists-impl'
 import { db } from '@/db'
 import { auth } from '@/lib/auth'
+import { isPasswordSignInAllowedFor } from '@/lib/password-sign-in-gate'
 import { mobileSignInLimiter } from '@/lib/rate-limits'
 import { runOneShotScrape } from '@/lib/scrapers/run'
 import { LIMITS } from '@/lib/validation/limits'
@@ -62,6 +63,13 @@ v1.post('/sign-in', rateLimit(mobileSignInLimiter), async c => {
 		return jsonError(c, 400, 'invalid-input', { data: { issues: parsed.error.issues } })
 	}
 	const { email, password, deviceName } = parsed.data
+
+	// `passwordSignInAdminsOnly`: the web hook in src/lib/auth.ts only runs for
+	// HTTP requests, and the call below has none, so the same check runs here.
+	// Same generic 401 as a wrong password.
+	if (!(await isPasswordSignInAllowedFor(email))) {
+		return jsonError(c, 401, 'sign-in-failed')
+	}
 
 	// Validate credentials. `asResponse: true` returns a Response so we
 	// can pull the Set-Cookie session header and forward it to the next

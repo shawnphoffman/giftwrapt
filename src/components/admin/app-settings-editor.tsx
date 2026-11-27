@@ -20,6 +20,7 @@ import { COMMON_CURRENCIES } from '@/lib/i18n/currency'
 import { currencySymbol } from '@/lib/i18n/format'
 import { listTypeLabel } from '@/lib/i18n/labels'
 import { fallbackLocale, localeDisplayName, matchLocale, offeredLocales } from '@/lib/i18n/locales'
+import { LOCAL_SIGN_IN_PATH } from '@/lib/local-sign-in-path'
 import type { AppSettings } from '@/lib/settings'
 import { m } from '@/paraglide/messages.js'
 
@@ -783,6 +784,31 @@ export function AuthSettingsSection() {
 					id="enablePasskeys"
 					checked={settings.enablePasskeys}
 					onCheckedChange={checked => handleSettingChange('enablePasskeys', checked)}
+				/>
+			</div>
+
+			<div className="flex items-start justify-between gap-4">
+				<div className="space-y-1">
+					<Label htmlFor="passwordSignInAdminsOnly" className="text-base">
+						{m.admin_settings_app_password_admins_only_label()}
+					</Label>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_app_password_admins_only_description()}</p>
+					<ul className="list-disc space-y-0.5 ps-5 text-sm text-muted-foreground">
+						<li>{m.admin_settings_app_password_admins_only_point_everyone()}</li>
+						<li>{m.admin_settings_app_password_admins_only_point_hidden()}</li>
+						<li>
+							<RichMessage
+								parts={m.admin_settings_app_password_admins_only_point_local.parts({ path: LOCAL_SIGN_IN_PATH })}
+								tags={{ code: codeTag }}
+							/>
+						</li>
+						<li>{m.admin_settings_app_password_admins_only_point_needs()}</li>
+					</ul>
+				</div>
+				<Switch
+					id="passwordSignInAdminsOnly"
+					checked={settings.passwordSignInAdminsOnly}
+					onCheckedChange={checked => handleSettingChange('passwordSignInAdminsOnly', checked)}
 				/>
 			</div>
 		</div>

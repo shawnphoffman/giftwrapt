@@ -53,6 +53,25 @@ export const WithPasskeyOption: Story = {
 	},
 }
 
+// Password sign-in limited to admins (plan 41): only the OIDC and passkey
+// buttons, no form, no forgot-password link.
+export const PasswordHidden: Story = {
+	args: {
+		forgotPasswordHref: '/forgot-password',
+		onSignInWithPasskey: async () => {},
+		onSignInWithOidc: async () => {},
+		oidcButtonText: 'Sign in with Authentik',
+		showPasswordForm: false,
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		await expect(canvas.queryByLabelText(/email/i)).not.toBeInTheDocument()
+		await expect(canvas.queryByLabelText(/password/i)).not.toBeInTheDocument()
+		await expect(canvas.queryByText(/forgot/i)).not.toBeInTheDocument()
+		await expect(canvas.getByRole('button', { name: /authentik/i })).toBeInTheDocument()
+	},
+}
+
 export const SubmitsCredentials: Story = {
 	args: {
 		// `fn()` records calls so the assertion below can confirm the handler

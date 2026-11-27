@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, redirect, useLocation } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { sql } from 'drizzle-orm'
 import { useEffect, useRef } from 'react'
@@ -43,6 +43,7 @@ export const Route = createFileRoute('/(auth)/sign-in')({
 
 function SignIn() {
 	const search = Route.useSearch()
+	const searchStr = useLocation({ select: location => location.searchStr })
 	const redirectRaw = resolvePostAuthRedirect(search)
 	const embedded = useEmbedded()
 	const { data: session, isPending } = useSession()
@@ -153,6 +154,14 @@ function SignIn() {
 		return <EmbeddedReconnect to={safeRedirect(redirectRaw)} />
 	}
 
+	// While password sign-in is limited to admins (plan 41) the form is hidden,
+	// except at /sign-in?local=1, the admins' break-glass route. Nothing links
+	// to it. The server refuses a non-admin's password either way.
+	// Read from the raw query: the router parses `1` as a number, which
+	// `passThroughSearch` drops.
+	const localRequested = new URLSearchParams(searchStr).get('local') === '1'
+	const showPasswordForm = !oidcInfo?.passwordSignInAdminsOnly || localRequested
+
 	return (
 		<SignInPageContent
 			onSubmit={handleSignIn}
@@ -160,6 +169,7 @@ function SignIn() {
 			onSignInWithPasskey={passkeysEnabled ? handlePasskeySignIn : undefined}
 			onSignInWithOidc={oidcInfo?.enabled ? handleOidcSignIn : undefined}
 			oidcButtonText={oidcInfo?.buttonText}
+			showPasswordForm={showPasswordForm}
 		/>
 	)
 }

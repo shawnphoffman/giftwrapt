@@ -16,6 +16,7 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { appSettings } from '@/db/schema'
 import { createLogger } from '@/lib/logger'
+import { isPasswordSignInAdminsOnly } from '@/lib/password-sign-in-gate'
 import { DEFAULT_APP_SETTINGS, type OidcClientConfig, oidcClientConfigSchema } from '@/lib/settings'
 import { encryptOidcClientSecrets, getAppSettings } from '@/lib/settings-loader'
 import { adminAuthMiddleware } from '@/middleware/auth'
@@ -99,14 +100,16 @@ export const updateOidcClientConfigAsAdmin = createServerFn({ method: 'POST' })
 /**
  * Public-readable subset for the sign-in page. No auth required;
  * surfaces only the bits used to render the "Sign in with OpenID"
- * button (or hide it entirely).
+ * button (or hide it entirely), and whether the password form is
+ * hidden because password sign-in is limited to admins (plan 41).
  */
 export const fetchPublicOidcClientInfo = createServerFn({ method: 'GET' }).handler(
-	async (): Promise<{ enabled: boolean; buttonText: string }> => {
+	async (): Promise<{ enabled: boolean; buttonText: string; passwordSignInAdminsOnly: boolean }> => {
 		const settings = await getAppSettings(db)
 		return {
 			enabled: settings.oidcClient.enabled && settings.oidcClient.clientId.length > 0 && settings.oidcClient.clientSecret.length > 0,
 			buttonText: settings.oidcClient.buttonText.trim() || 'Sign in with OpenID',
+			passwordSignInAdminsOnly: await isPasswordSignInAdminsOnly(settings),
 		}
 	}
 )

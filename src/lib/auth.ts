@@ -33,6 +33,7 @@ import {
 	MCP_ENDPOINT_PATH,
 	MCP_REFRESH_TOKEN_TTL_SECONDS,
 } from '@/lib/mcp-config'
+import { isPasswordSignInAllowedFor, setOidcLoadedAtBoot } from '@/lib/password-sign-in-gate'
 import { sendPasswordResetEmail } from '@/lib/resend'
 import type { OidcClientConfig } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -104,6 +105,7 @@ async function loadOidcClientConfig(): Promise<OidcClientConfig | null> {
 }
 
 const oidcClientConfig = await loadOidcClientConfig()
+setOidcLoadedAtBoot(oidcClientConfig !== null)
 
 /** Build the `genericOAuth` plugin args from the admin-managed config. */
 function buildGenericOAuthPlugins(cfg: OidcClientConfig | null) {
@@ -258,11 +260,25 @@ const options = {
 	// so no spelling of the path gets around it. Only HTTP requests carry
 	// `ctx.request`: CLI scripts calling `auth.api.signUpEmail` directly still
 	// work, as does an admin's /admin/create-user.
+	//
+	// The `passwordSignInAdminsOnly` setting refuses a non-admin's password
+	// sign-in here with the same answer as a wrong password. The mobile
+	// `POST /v1/sign-in` calls `auth.api.signInEmail` with no request, so it
+	// runs the same check itself (src/server/mobile-api/v1.ts).
 	hooks: {
 		before: createAuthMiddleware(async ctx => {
-			if (ctx.path !== '/sign-up/email' || !ctx.request) return
-			if (!(await isSignUpOpen())) {
-				throw new APIError('FORBIDDEN', { message: 'Sign-ups are closed on this server.', code: 'SIGNUPS_CLOSED' })
+			if (!ctx.request) return
+			if (ctx.path === '/sign-up/email') {
+				if (!(await isSignUpOpen())) {
+					throw new APIError('FORBIDDEN', { message: 'Sign-ups are closed on this server.', code: 'SIGNUPS_CLOSED' })
+				}
+				return
+			}
+			if (ctx.path === '/sign-in/email') {
+				const email = (ctx.body as { email?: unknown } | undefined)?.email
+				if (typeof email === 'string' && !(await isPasswordSignInAllowedFor(email))) {
+					throw new APIError('UNAUTHORIZED', { message: 'Invalid email or password', code: 'INVALID_EMAIL_OR_PASSWORD' })
+				}
 			}
 		}),
 		// Any endpoint that just created a session (password, passkey, OIDC,

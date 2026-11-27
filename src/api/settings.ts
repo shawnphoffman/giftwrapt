@@ -3,11 +3,14 @@ import { createServerFn } from '@tanstack/react-start'
 import { db } from '@/db'
 import { appSettings } from '@/db/schema'
 import { resetDefaultLocaleCache } from '@/lib/i18n/request-locale'
+import { LOCAL_SIGN_IN_PATH } from '@/lib/local-sign-in-path'
 import { loggingMiddleware } from '@/lib/logger'
+import { passwordAdminsOnlyEnableBlocker } from '@/lib/password-sign-in-gate'
 import { type AppSettings, appSettingsSchema, toPublicAppSettings } from '@/lib/settings'
 import { encryptBarcodeSecrets, encryptScrapeProviderSecrets, getAppSettings } from '@/lib/settings-loader'
 import { isSignUpOpen } from '@/lib/sign-up-gate'
 import { adminAuthMiddleware } from '@/middleware/auth'
+import { m } from '@/paraglide/messages.js'
 
 /**
  * Public, unauthenticated read of app settings.
@@ -70,7 +73,17 @@ export const updateAppSettings = createServerFn({
 		const partialSchema = appSettingsSchema.partial()
 		return partialSchema.parse(data)
 	})
-	.handler(async ({ data }) => {
+	.handler(async ({ data, context }) => {
+		// Turning on `passwordSignInAdminsOnly` (plan 41) needs working OIDC
+		// and a password on the admin doing it.
+		if (data.passwordSignInAdminsOnly === true) {
+			const blocker = await passwordAdminsOnlyEnableBlocker(context.session.user.id)
+			if (blocker === 'needs-oidc') throw new Error(m.admin_settings_app_password_admins_only_needs_oidc())
+			if (blocker === 'needs-password') {
+				throw new Error(m.admin_settings_app_password_admins_only_needs_password({ path: LOCAL_SIGN_IN_PATH }))
+			}
+		}
+
 		// Update each provided setting
 		for (const [key, value] of Object.entries(data)) {
 			// `scrapeProviders` carries secret fields (token / apiKey /

@@ -33,6 +33,7 @@ import { db } from '@/db'
 import { env } from '@/env'
 import { auth } from '@/lib/auth'
 import { createLogger } from '@/lib/logger'
+import { isPasswordSignInAdminsOnly } from '@/lib/password-sign-in-gate'
 import { mobileSignInLimiter } from '@/lib/rate-limits'
 import { getAppSettings } from '@/lib/settings-loader'
 import { LIMITS } from '@/lib/validation/limits'
@@ -114,17 +115,20 @@ export function registerAuthRoutes(v1: App): void {
 	// GET /v1/auth/capabilities (no auth)
 	// =================================================================
 	v1.get('/auth/capabilities', rateLimit(mobileSignInLimiter), async c => {
-		const passwordEnabled = true
+		// `false` while password sign-in is limited to admins (plan 41): iOS
+		// then hides the form. Admins sign in there with OIDC or a passkey;
+		// the password break-glass route is web-only.
+		const passwordEnabled = !(await isPasswordSignInAdminsOnly())
 		const totpEnabled = true
-		// Passkey is browser-driven now: it works as long as the
-		// admin has configured at least one mobile redirect URI (which
-		// also gates OIDC). Surface as `false` when nothing is on the
-		// whitelist, so iOS hides the button instead of letting the
-		// user tap into a "redirect-not-allowed" wall.
+		// Passkey and OIDC are browser-driven: they work as long as the
+		// admin has configured at least one mobile redirect URI. Surface
+		// both as off when nothing is on the whitelist, so iOS hides the
+		// buttons instead of letting the user tap into a
+		// "redirect-not-allowed" wall.
 		const mobileRedirectUris = await configuredMobileRedirectUris()
 		const passkeyEnabled = mobileRedirectUris.length > 0
 
-		const provider = await configuredOidcProvider()
+		const provider = mobileRedirectUris.length > 0 ? await configuredOidcProvider() : null
 		const oidc = provider ? [{ id: provider.id, label: provider.label, kind: 'generic' as const }] : []
 
 		return c.json({

@@ -27,6 +27,10 @@ export type SignInPageContentProps = {
 	// the deployment has a wired-up provider.
 	onSignInWithOidc?: () => Promise<void>
 	oidcButtonText?: string
+	// False hides the email/password form and its forgot-password link,
+	// leaving the passkey and OIDC buttons (password sign-in limited to
+	// admins, plan 41). Defaults to true.
+	showPasswordForm?: boolean
 }
 
 // "Sign in with X" as "Use X", for the narrow card (a phone with the text size
@@ -45,6 +49,7 @@ export function SignInPageContent({
 	onSignInWithPasskey,
 	onSignInWithOidc,
 	oidcButtonText,
+	showPasswordForm = true,
 }: SignInPageContentProps) {
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
@@ -112,48 +117,55 @@ export function SignInPageContent({
 				<form onSubmit={handleSubmit} className="space-y-2">
 					{error && <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">{error}</div>}
 
-					<div className="space-y-2">
-						<Label htmlFor="email">{m.auth_email_label()}</Label>
-						<Input
-							id="email"
-							type="text"
-							inputMode="email"
-							autoCapitalize="none"
-							spellCheck={false}
-							placeholder={m.auth_email_placeholder()}
-							value={email}
-							onChange={e => setEmail(e.target.value)}
-							required
-							disabled={showLoading}
-							autoComplete="email"
-						/>
-					</div>
+					{showPasswordForm && (
+						<>
+							<div className="space-y-2">
+								<Label htmlFor="email">{m.auth_email_label()}</Label>
+								<Input
+									id="email"
+									type="text"
+									inputMode="email"
+									autoCapitalize="none"
+									spellCheck={false}
+									placeholder={m.auth_email_placeholder()}
+									value={email}
+									onChange={e => setEmail(e.target.value)}
+									required
+									disabled={showLoading}
+									autoComplete="email"
+								/>
+							</div>
 
-					<div className="space-y-2">
-						<div className="flex items-baseline justify-between gap-2">
-							<Label htmlFor="password">{m.auth_password_label()}</Label>
-							{forgotPasswordHref && (
-								<a href={forgotPasswordHref} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4">
-									<SignInLabel long={m.auth_sign_in_forgot_link()} short={m.auth_sign_in_forgot_link_short()} />
-								</a>
-							)}
-						</div>
-						<PasswordInput
-							id="password"
-							placeholder="••••••••"
-							value={password}
-							onChange={e => setPassword(e.target.value)}
-							required
-							disabled={showLoading}
-							autoComplete="current-password"
-						/>
-					</div>
+							<div className="space-y-2">
+								<div className="flex items-baseline justify-between gap-2">
+									<Label htmlFor="password">{m.auth_password_label()}</Label>
+									{forgotPasswordHref && (
+										<a
+											href={forgotPasswordHref}
+											className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4"
+										>
+											<SignInLabel long={m.auth_sign_in_forgot_link()} short={m.auth_sign_in_forgot_link_short()} />
+										</a>
+									)}
+								</div>
+								<PasswordInput
+									id="password"
+									placeholder="••••••••"
+									value={password}
+									onChange={e => setPassword(e.target.value)}
+									required
+									disabled={showLoading}
+									autoComplete="current-password"
+								/>
+							</div>
 
-					<Button type="submit" className="w-full" disabled={showLoading}>
-						{showLoading && !passkeyLoading ? m.auth_sign_in_submitting() : m.auth_sign_in_button()}
-					</Button>
+							<Button type="submit" className="w-full" disabled={showLoading}>
+								{showLoading && !passkeyLoading ? m.auth_sign_in_submitting() : m.auth_sign_in_button()}
+							</Button>
+						</>
+					)}
 
-					{(onSignInWithPasskey || onSignInWithOidc) && (
+					{showPasswordForm && (onSignInWithPasskey || onSignInWithOidc) && (
 						<div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">
 							<div className="h-px flex-1 bg-border" />
 							<span>{m.auth_sign_in_or()}</span>

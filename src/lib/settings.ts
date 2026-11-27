@@ -396,6 +396,11 @@ export const appSettingsSchema = z.object({
 	// src/lib/sign-up-gate.ts). Admins and CLI scripts can always create users;
 	// OIDC has its own `autoRegister` switch.
 	enableSignUps: z.boolean(),
+	// When true and OIDC is active, only admins may sign in with a password
+	// (web and mobile), email sign-up is closed, and the sign-in page hides
+	// the form unless it is opened as /sign-in?local=1. Has no effect while
+	// OIDC is off. See src/lib/password-sign-in-gate.ts.
+	passwordSignInAdminsOnly: z.boolean(),
 	// OIDC sign-in (single external provider per deployment). Managed
 	// from /admin/auth; takes effect after a server restart because
 	// better-auth's `genericOAuth` plugin loads its provider list at
@@ -684,6 +689,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableMcp: false,
 	enablePasskeys: false,
 	enableSignUps: true,
+	passwordSignInAdminsOnly: false,
 	oidcClient: {
 		enabled: false,
 		issuerUrl: '',
