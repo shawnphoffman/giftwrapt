@@ -22,6 +22,7 @@ function makeItem(overrides: Partial<Item> = {}): Item {
 		id: 1,
 		listId: 1,
 		groupId: null,
+		categoryId: null,
 		title: 'Item',
 		status: 'incomplete',
 		availability: 'available',

@@ -23,6 +23,7 @@ function sampleItem(id: number, title: string, price: string, withImage: boolean
 		id: -id,
 		listId: 0,
 		groupId: null,
+		categoryId: null,
 		title,
 		status: 'incomplete',
 		availability: 'available',

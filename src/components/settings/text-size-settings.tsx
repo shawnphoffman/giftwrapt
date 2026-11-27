@@ -15,6 +15,7 @@ const sampleItem = (): ItemWithGifts => ({
 	id: -1,
 	listId: -1,
 	groupId: null,
+	categoryId: null,
 	title: m.settings_text_size_sample_title(),
 	status: 'incomplete',
 	availability: 'available',

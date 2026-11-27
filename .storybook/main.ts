@@ -33,6 +33,7 @@ const config: StorybookConfig = {
 			// the database or env validation into the Storybook bundle.
 			'@/api/items': path.join(mocksDir, 'api.ts'),
 			'@/api/groups': path.join(mocksDir, 'api.ts'),
+			'@/api/categories': path.join(mocksDir, 'api.ts'),
 			'@/api/gifts': path.join(mocksDir, 'api.ts'),
 			'@/api/comments': path.join(mocksDir, 'api.ts'),
 			'@/api/user': path.join(mocksDir, 'api.ts'),

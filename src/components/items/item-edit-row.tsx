@@ -48,6 +48,7 @@ import {
 import type { GroupType, Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { useSession } from '@/lib/auth-client'
+import { useAssignCategory } from '@/lib/mutations/assign-category'
 import { useAssignItemsToGroup } from '@/lib/mutations/assign-items-to-group'
 import { useCreateGroupAndAssignItems } from '@/lib/mutations/create-group-and-assign'
 import { useDeleteItem } from '@/lib/mutations/delete-item'
@@ -58,11 +59,13 @@ import { parseInternalListLink } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
+import { CategoryPicker } from './category-picker'
 import { DateAdded } from './date-added'
 import { useInternalListLinks } from './internal-list-links-context'
 import { ItemComments } from './item-comments'
 import { ItemFormDialog } from './item-form-dialog'
 import { ItemImage } from './item-image'
+import { useListCategories } from './list-categories-context'
 import { PriceQuantityBadge } from './price-quantity-badge'
 import { PriorityQuickPicker } from './priority-quick-picker'
 import { QuantityRemainingBadge } from './quantity-remaining-badge'
@@ -116,6 +119,9 @@ export const ItemEditRow = memo(function ItemEditRow({
 	const toggleAvailability = useToggleItemAvailability()
 	const updateItem = useUpdateItem()
 	const assignGroup = useAssignItemsToGroup()
+	const assignCategory = useAssignCategory()
+	// Empty outside the list edit view, and for a list with no categories.
+	const { categories } = useListCategories()
 	const createGroupAndAssign = useCreateGroupAndAssignItems()
 	const deleteOne = useDeleteItem()
 	const isSaving =
@@ -152,6 +158,12 @@ export const ItemEditRow = memo(function ItemEditRow({
 		} else {
 			toast.error(m.items_group_toast_create_failed())
 		}
+	}
+
+	const handleSetCategory = async (categoryId: number | null) => {
+		if (categoryId === item.categoryId) return
+		const result = await assignCategory.mutateAsync({ listId: item.listId, categoryId, itemIds: [item.id] })
+		if (result.kind === 'error') toast.error(m.items_category_toast_failed())
 	}
 
 	const handleSetPriority = async (priority: Priority) => {
@@ -340,7 +352,9 @@ export const ItemEditRow = memo(function ItemEditRow({
 				itemId={item.id}
 				commentCount={commentCount}
 				trailing={
-					<div className="flex items-center gap-2">
+					<div className="flex min-w-0 items-center gap-2">
+						{/* A grouped row has no label of its own: the group's category covers it (see GroupBlock's footer). */}
+						{!grouped && categories.length > 0 && <CategoryPicker value={item.categoryId} onChange={handleSetCategory} />}
 						<div className={cn('flex items-center gap-2', dimmed && 'opacity-60')}>
 							<DateAdded createdAt={item.createdAt} />
 							{item.price && <PriceQuantityBadge price={item.price} currency={item.currency} quantity={1} hideQuantity />}

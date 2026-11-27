@@ -96,6 +96,15 @@ export const reorderGroupItems = ok
 export const getGroupsForList = emptyArray
 export const moveGroupToList = ok
 
+// @/api/categories
+export const createCategory = ok
+export const updateCategory = ok
+export const reorderCategories = ok
+export const deleteCategory = ok
+export const assignCategory = ok
+export const getCategoryNameSuggestions = (): Promise<{ kind: 'ok'; names: Array<string> }> =>
+	Promise.resolve({ kind: 'ok', names: ['Books', 'Home', 'Shoes'] })
+
 // @/api/gifts
 export const getGiftsForItems = emptyArray
 export const claimItemGift = ok

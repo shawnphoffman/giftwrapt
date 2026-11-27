@@ -637,5 +637,42 @@
 			}
 		}
 	],
-	"items_price_between": "{low} – {high}"
+	"items_price_between": "{low} – {high}",
+	"items_categories_button": "Catégories",
+	"items_categories_dialog_title": "Catégories",
+	"items_categories_dialog_description": "Facultatif. Les catégories organisent cette liste pour vous et montrent à vos proches comment les cadeaux se répartissent.",
+	"items_categories_empty": "Aucune catégorie pour l’instant.",
+	"items_categories_name_label": "Nom de la catégorie",
+	"items_categories_new_placeholder": "Nouvelle catégorie",
+	"items_categories_new_label": "Nom de la nouvelle catégorie",
+	"items_categories_hint": "L’ordre affiché ici est celui que tout le monde voit. Supprimer une catégorie conserve ses articles.",
+	"items_categories_move_up": "Monter « {name} »",
+	"items_categories_move_down": "Descendre « {name} »",
+	"items_categories_delete": "Supprimer « {name} »",
+	"items_categories_item_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} article",
+				"countPlural=*": "{count} articles"
+			}
+		}
+	],
+	"items_categories_other_lists": "Dans vos autres listes. Touchez un nom pour l’ajouter ici.",
+	"items_categories_toast_name_taken": "Cette liste a déjà une catégorie de ce nom",
+	"items_categories_toast_failed": "Impossible de modifier les catégories",
+	"items_category_toast_failed": "Impossible de changer la catégorie",
+	"items_category_none": "Aucune catégorie",
+	"items_category_add": "Ajouter une catégorie",
+	"items_category_manage": "Gérer les catégories…",
+	"items_category_picker_label": "Changer de catégorie",
+	"items_category_group_footer": "Catégorie de tout le groupe",
+	"items_category_filter_label": "Filtrer par catégorie",
+	"items_category_filter_all": "Tout",
+	"items_category_filter_empty": "Rien dans les catégories choisies",
+	"items_arrange_label": "Classer par",
+	"items_arrange_priority": "Priorité",
+	"items_arrange_category": "Catégorie",
+	"items_field_category": "Catégorie"
 }

@@ -10,7 +10,7 @@ import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { type SchemaDatabase } from '@/db'
-import { giftedItems, itemGroups, items, lists } from '@/db/schema'
+import { giftedItems, itemCategories, itemGroups, items, lists } from '@/db/schema'
 import { priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { httpsUpgradeOrNull } from '@/lib/image-url'
@@ -50,6 +50,7 @@ export const CreateItemInputSchema = z.object({
 	quantity: z.number().int().positive().max(999).optional(),
 	imageUrl: z.string().max(2000).optional(),
 	groupId: z.number().int().positive().optional(),
+	categoryId: z.number().int().positive().optional(),
 })
 
 export type CreateItemResult =
@@ -106,6 +107,16 @@ export async function createItemImpl(args: {
 		}
 	}
 
+	// A category that isn't on this list is ignored, like a foreign group.
+	let categoryId: number | null = null
+	if (data.categoryId !== undefined) {
+		const category = await dbx.query.itemCategories.findFirst({
+			where: and(eq(itemCategories.id, data.categoryId), eq(itemCategories.listId, data.listId)),
+			columns: { id: true },
+		})
+		if (category) categoryId = category.id
+	}
+
 	const [inserted] = await dbx
 		.insert(items)
 		.values({
@@ -122,6 +133,7 @@ export async function createItemImpl(args: {
 			imageUrl: httpsUpgradeOrNull(data.imageUrl ?? null),
 			groupId,
 			groupSortOrder,
+			categoryId,
 			ratingValue: inheritedRating?.ratingValue ?? null,
 			ratingCount: inheritedRating?.ratingCount ?? null,
 		})
@@ -155,6 +167,8 @@ export const UpdateItemInputSchema = z.object({
 	quantity: z.number().int().positive().max(999).optional(),
 	imageUrl: z.string().max(2000).nullable().optional(),
 	status: z.enum(statusEnumValues).optional(),
+	// null clears it. Must be one of the item's own list's categories.
+	categoryId: z.number().int().positive().nullable().optional(),
 })
 
 export type UpdateItemResult = { kind: 'ok'; item: Item } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
@@ -231,6 +245,16 @@ export async function updateItemImpl(args: {
 	if (data.quantity !== undefined) updates.quantity = data.quantity
 	if (data.imageUrl !== undefined) updates.imageUrl = data.imageUrl
 	if (data.status !== undefined) updates.status = data.status
+	if (data.categoryId !== undefined) {
+		if (data.categoryId !== null) {
+			const category = await dbx.query.itemCategories.findFirst({
+				where: and(eq(itemCategories.id, data.categoryId), eq(itemCategories.listId, item.listId)),
+				columns: { id: true },
+			})
+			if (!category) return { kind: 'error', reason: 'not-found' }
+		}
+		updates.categoryId = data.categoryId
+	}
 
 	if (bumpModifiedAt) {
 		updates.modifiedAt = new Date()

@@ -12,6 +12,7 @@ import { db } from '@/db'
 import { giftedItems, itemComments, itemGroups, items, lists } from '@/db/schema'
 import { type GroupType, groupTypeEnumValues, type ListType, type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { ItemGroup } from '@/db/schema/items'
+import { carryCategoriesToList } from '@/lib/category-carry'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { notifyListEvent } from '@/lib/list-event-bus'
 import { canEditListAsAnyone } from '@/lib/permissions'
@@ -213,33 +214,37 @@ export async function deleteItemGroupImpl(args: {
 	return { kind: 'ok' }
 }
 
-export async function moveGroupToListImpl(args: { userId: string; input: z.infer<typeof MoveGroupInputSchema> }): Promise<MoveGroupResult> {
-	const { userId, input: data } = args
+export async function moveGroupToListImpl(args: {
+	userId: string
+	input: z.infer<typeof MoveGroupInputSchema>
+	dbx?: SchemaDatabase
+}): Promise<MoveGroupResult> {
+	const { userId, input: data, dbx = db } = args
 
-	const group = await db.query.itemGroups.findFirst({
+	const group = await dbx.query.itemGroups.findFirst({
 		where: eq(itemGroups.id, data.groupId),
 		columns: { id: true, listId: true },
 	})
 	if (!group) return { kind: 'error', reason: 'not-found' }
 	if (group.listId === data.targetListId) return { kind: 'error', reason: 'same-list' }
 
-	const sourceList = await db.query.lists.findFirst({
+	const sourceList = await dbx.query.lists.findFirst({
 		where: eq(lists.id, group.listId),
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
 	})
 	if (!sourceList) return { kind: 'error', reason: 'not-found' }
-	const sourcePerm = await loadListForEdit(userId, sourceList.id)
+	const sourcePerm = await loadListForEdit(userId, sourceList.id, dbx)
 	if (!sourcePerm.ok) return { kind: 'error', reason: sourcePerm.reason }
 
-	const targetList = await db.query.lists.findFirst({
+	const targetList = await dbx.query.lists.findFirst({
 		where: eq(lists.id, data.targetListId),
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
 	})
 	if (!targetList) return { kind: 'error', reason: 'not-found' }
-	const targetPerm = await loadListForEdit(userId, targetList.id)
+	const targetPerm = await loadListForEdit(userId, targetList.id, dbx)
 	if (!targetPerm.ok) return { kind: 'error', reason: targetPerm.reason }
 
-	const groupItems = await db.query.items.findMany({
+	const groupItems = await dbx.query.items.findMany({
 		where: eq(items.groupId, data.groupId),
 		columns: { id: true },
 	})
@@ -247,12 +252,14 @@ export async function moveGroupToListImpl(args: { userId: string; input: z.infer
 
 	const destructive = isCrossTypeMoveDestructive(sourceList.type, targetList.type)
 
-	const result = await db.transaction(async tx => {
+	const result = await dbx.transaction(async tx => {
 		await tx.update(itemGroups).set({ listId: data.targetListId }).where(eq(itemGroups.id, data.groupId))
 
 		if (itemIds.length > 0) {
 			await tx.update(items).set({ listId: data.targetListId }).where(inArray(items.id, itemIds))
 		}
+		// The group's category, and its members' own, follow by name.
+		await carryCategoriesToList(tx, data.targetListId)
 
 		let claimsCleared = 0
 		if (destructive && itemIds.length > 0) {

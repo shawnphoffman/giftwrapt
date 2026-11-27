@@ -49,6 +49,7 @@ export function makeItem(overrides: Partial<Item> = {}): Item {
 		id: nextItemId(),
 		listId: 1,
 		groupId: null,
+		categoryId: null,
 		title: 'Bluetooth headphones',
 		status: 'incomplete',
 		availability: 'available',

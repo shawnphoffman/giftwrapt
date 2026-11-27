@@ -30,6 +30,7 @@ import type { ArchiveBannerInfo } from '@/lib/archive-schedule-loader'
 import { loadArchiveBannerInfo } from '@/lib/archive-schedule-loader'
 import { customHolidayDisplayDate } from '@/lib/custom-holidays'
 import { computeListItemCounts } from '@/lib/gifts'
+import type { CategorySummary } from '@/lib/item-categories'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { notifyListEvent } from '@/lib/list-event-bus'
 import { listsCreatedTotal } from '@/lib/observability/metrics'
@@ -38,6 +39,8 @@ import { canEditListAsAnyone, canViewList, getViewerAccessLevelForList } from '@
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
 import { isListTypeDisabled } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
+
+import { loadCategoriesForList } from './_categories-impl'
 
 // =====================================================================
 // Public types
@@ -61,6 +64,9 @@ export type GroupSummary = {
 	name: string | null
 	priority: Priority
 	sortOrder: number | null
+	// The category every member shows under (docs/logic.md "Item categories").
+	// Sent on the edit view only, so it is absent elsewhere.
+	categoryId?: number | null
 }
 
 export type ListForViewingSubjectDependent = {
@@ -273,6 +279,8 @@ export type ListForEditing = {
 	subjectDependentId: string | null
 	customHolidayId: string | null
 	groups: Array<GroupSummary>
+	// This list's categories in the owner's order. Empty for most lists.
+	categories: Array<CategorySummary>
 	isOwner: boolean
 	owner: {
 		id: string
@@ -1698,8 +1706,9 @@ export async function getListForEditingImpl(args: {
 
 	const groups = await dbx.query.itemGroups.findMany({
 		where: eq(itemGroups.listId, list.id),
-		columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
+		columns: { id: true, type: true, name: true, priority: true, sortOrder: true, categoryId: true },
 	})
+	const categories = await loadCategoriesForList(dbx, list.id)
 
 	const archiveInfo = await loadArchiveBannerInfo(list.id, dbx)
 
@@ -1718,6 +1727,7 @@ export async function getListForEditingImpl(args: {
 			subjectDependentId: list.subjectDependentId,
 			customHolidayId: list.customHolidayId,
 			groups,
+			categories,
 			isOwner,
 			archiveInfo,
 			owner: {

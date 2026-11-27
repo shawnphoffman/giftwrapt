@@ -16,6 +16,7 @@ export type UpdateItemInput = {
 	priority?: Item['priority']
 	quantity?: number
 	imageUrl?: string | null
+	categoryId?: number | null
 }
 
 export function useUpdateItem() {
@@ -38,6 +39,8 @@ export function useUpdateItem() {
 				priority: input.priority,
 				quantity: input.quantity,
 				imageUrl: httpsUpgradeOrNull(input.imageUrl ?? null),
+				// Only when sent, so a priority-only edit doesn't blank the label.
+				...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
 			}
 			transformItemCache(queryClient, input.listId, patchItemById(input.itemId, patch))
 			return { snapshot }

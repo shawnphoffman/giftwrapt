@@ -31,6 +31,7 @@ const TABLE_ORDER: Array<keyof BackupFileTables> = [
 	'recommendations',
 	'recommendationSubItemDismissals',
 	'lists',
+	'itemCategories',
 	'itemGroups',
 	'items',
 	'itemScrapeJobs',

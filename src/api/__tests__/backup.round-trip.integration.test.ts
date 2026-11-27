@@ -25,6 +25,7 @@ import {
 	giftExchanges,
 	giftSuggestionFeedback,
 	guardianships,
+	itemCategories,
 	itemComments,
 	itemGroups,
 	items,
@@ -280,11 +281,15 @@ async function seedEveryColumn(tx: SchemaDatabase) {
 		customHolidayId: HOLIDAY_ID,
 		...stamps,
 	})
-	await tx.insert(itemGroups).values({ id: 701, listId: 601, type: 'order', priority: 'high', name: 'Set', sortOrder: 3, ...stamps })
+	await tx.insert(itemCategories).values({ id: 651, listId: 601, name: 'Clothes', sortOrder: 2, ...stamps })
+	await tx
+		.insert(itemGroups)
+		.values({ id: 701, listId: 601, categoryId: 651, type: 'order', priority: 'high', name: 'Set', sortOrder: 3, ...stamps })
 	await tx.insert(items).values({
 		id: 801,
 		listId: 601,
 		groupId: 701,
+		categoryId: 651,
 		title: 'Widget',
 		status: 'complete',
 		availability: 'unavailable',

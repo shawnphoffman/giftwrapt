@@ -118,9 +118,19 @@ const dependentGuardianshipRowSchema = z.object({
 	createdAt: dateField,
 })
 
+const itemCategoryRowSchema = z.object({
+	id: z.number().int(),
+	listId: z.number().int(),
+	name: z.string(),
+	sortOrder: z.number().int(),
+	updatedAt: dateField,
+	createdAt: dateField,
+})
+
 const itemGroupRowSchema = z.object({
 	id: z.number().int(),
 	listId: z.number().int(),
+	categoryId: z.number().int().nullable().optional(),
 	type: z.enum(groupTypeEnumValues),
 	priority: z.enum(priorityEnumValues),
 	name: z.string().nullable(),
@@ -133,6 +143,7 @@ const itemRowSchema = z.object({
 	id: z.number().int(),
 	listId: z.number().int(),
 	groupId: z.number().int().nullable(),
+	categoryId: z.number().int().nullable().optional(),
 	title: z.string(),
 	status: z.enum(statusEnumValues),
 	availability: z.enum(availabilityEnumValues),
@@ -390,6 +401,7 @@ export const BACKUP_ROW_SCHEMAS = {
 	recommendations: recommendationRowSchema,
 	recommendationSubItemDismissals: recommendationSubItemDismissalRowSchema,
 	lists: listRowSchema,
+	itemCategories: itemCategoryRowSchema,
 	itemGroups: itemGroupRowSchema,
 	items: itemRowSchema,
 	itemScrapeJobs: itemScrapeJobRowSchema,
@@ -434,6 +446,8 @@ export const BackupFileSchema = z.object({
 		recommendations: z.array(recommendationRowSchema).default([]),
 		recommendationSubItemDismissals: z.array(recommendationSubItemDismissalRowSchema).default([]),
 		lists: z.array(listRowSchema),
+		// Defaulted so backup files written before categories existed import.
+		itemCategories: z.array(itemCategoryRowSchema).default([]),
 		itemGroups: z.array(itemGroupRowSchema),
 		items: z.array(itemRowSchema),
 		itemScrapeJobs: z.array(itemScrapeJobRowSchema).default([]),

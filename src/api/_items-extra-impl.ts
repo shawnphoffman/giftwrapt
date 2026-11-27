@@ -13,6 +13,7 @@ import { giftedItems, itemComments, itemGroups, items, lists, users } from '@/db
 import { availabilityEnumValues, type ListType, type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
+import { carryCategoriesToList, loadEffectiveCategoryIds, resolveCategoryForList } from '@/lib/category-carry'
 import { buildGifterUnits, type GifterUnit, type GifterUserMeta } from '@/lib/gifter-units'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { notifyListEvent } from '@/lib/list-event-bus'
@@ -202,7 +203,8 @@ type ItemRow = { id: number; listId: number }
 
 async function loadAndAuthorizeItems(
 	userId: string,
-	itemIds: ReadonlyArray<number>
+	itemIds: ReadonlyArray<number>,
+	dbx: SchemaDatabase = db
 ): Promise<
 	| { ok: true; rows: Array<ItemRow>; lists: Map<number, ListForPermCheck & { type: ListType }> }
 	| { ok: false; reason: 'not-found' | 'not-authorized' }
@@ -210,14 +212,14 @@ async function loadAndAuthorizeItems(
 	// Pending-deletion items are excluded so the recipient's bulk
 	// mutations (organize / move / etc.) treat them as not-found, matching
 	// the per-item 404 contract.
-	const rows = await db.query.items.findMany({
+	const rows = await dbx.query.items.findMany({
 		where: and(inArray(items.id, [...itemIds]), visibleItemsWhere('editable')),
 		columns: { id: true, listId: true },
 	})
 	if (rows.length !== itemIds.length) return { ok: false, reason: 'not-found' }
 
 	const listIds = [...new Set(rows.map(r => r.listId))]
-	const listRows = await db.query.lists.findMany({
+	const listRows = await dbx.query.lists.findMany({
 		where: inArray(lists.id, listIds),
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
 	})
@@ -225,7 +227,7 @@ async function loadAndAuthorizeItems(
 
 	const map = new Map<number, ListForPermCheck & { type: ListType }>()
 	for (const l of listRows) {
-		const perm = await canEditListAsAnyone(userId, l)
+		const perm = await canEditListAsAnyone(userId, l, dbx)
 		if (!perm.ok) return { ok: false, reason: 'not-authorized' }
 		map.set(l.id, l)
 	}
@@ -282,7 +284,7 @@ export async function copyItemToListImpl(args: {
 
 	const targetList = await dbx.query.lists.findFirst({
 		where: eq(lists.id, data.targetListId),
-		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
 	})
 	if (!targetList) return { kind: 'error', reason: 'not-found' }
 
@@ -290,6 +292,15 @@ export async function copyItemToListImpl(args: {
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	const vendor = sourceItem.url ? getVendorFromUrl(sourceItem.url) : null
+
+	// The copy keeps the category the source showed under, by name, on the
+	// target list (docs/logic.md "Item categories").
+	const sourceCategoryId = (await loadEffectiveCategoryIds(dbx, [sourceItem.id])).get(sourceItem.id) ?? null
+	// A todo list has no categories, so nothing is carried onto one.
+	const categoryId =
+		targetList.type === 'todos'
+			? null
+			: await resolveCategoryForList(dbx, { categoryId: sourceCategoryId, targetListId: data.targetListId })
 
 	const [inserted] = await dbx
 		.insert(items)
@@ -305,6 +316,7 @@ export async function copyItemToListImpl(args: {
 			priority: sourceItem.priority,
 			quantity: sourceItem.quantity,
 			imageUrl: sourceItem.imageUrl,
+			categoryId,
 		})
 		.returning()
 
@@ -383,18 +395,22 @@ export async function setItemAvailabilityImpl(args: {
 	return { kind: 'ok', item: updated }
 }
 
-export async function moveItemsToListImpl(args: { userId: string; input: z.infer<typeof MoveItemsInputSchema> }): Promise<MoveItemsResult> {
-	const { userId, input: data } = args
+export async function moveItemsToListImpl(args: {
+	userId: string
+	input: z.infer<typeof MoveItemsInputSchema>
+	dbx?: SchemaDatabase
+}): Promise<MoveItemsResult> {
+	const { userId, input: data, dbx = db } = args
 
-	const loaded = await loadAndAuthorizeItems(userId, data.itemIds)
+	const loaded = await loadAndAuthorizeItems(userId, data.itemIds, dbx)
 	if (!loaded.ok) return { kind: 'error', reason: loaded.reason }
 
-	const targetList = await db.query.lists.findFirst({
+	const targetList = await dbx.query.lists.findFirst({
 		where: eq(lists.id, data.targetListId),
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
 	})
 	if (!targetList) return { kind: 'error', reason: 'not-found' }
-	const targetPerm = await canEditListAsAnyone(userId, targetList)
+	const targetPerm = await canEditListAsAnyone(userId, targetList, dbx)
 	if (!targetPerm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	// Todo lists are isolated: an item from a todo list can't move to a
@@ -415,11 +431,19 @@ export async function moveItemsToListImpl(args: { userId: string; input: z.infer
 		})
 		.map(r => r.id)
 
-	const result = await db.transaction(async tx => {
+	const result = await dbx.transaction(async tx => {
+		// A moved item leaves its group, so the category it showed under (its
+		// group's, while grouped) is written onto the item first. Then the
+		// category is carried to the target list by name.
+		const effective = await loadEffectiveCategoryIds(tx, data.itemIds)
+		for (const [itemId, categoryId] of effective) {
+			await tx.update(items).set({ categoryId }).where(eq(items.id, itemId))
+		}
 		await tx
 			.update(items)
 			.set({ listId: data.targetListId, groupId: null, groupSortOrder: null })
 			.where(inArray(items.id, [...data.itemIds]))
+		await carryCategoriesToList(tx, data.targetListId)
 
 		let claimsCleared = 0
 		if (destructiveItemIds.length > 0) {

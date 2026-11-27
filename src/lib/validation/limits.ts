@@ -9,6 +9,9 @@ export const LIMITS = {
 	// fromName, profile name. Tight on purpose because these surface in
 	// dialog headers and other small UI chrome.
 	SHORT_NAME: 60,
+	// An item category on a list ("Clothes", "Kids: toys"). Short: it renders
+	// as a chip on every row and in a filter row.
+	CATEGORY_NAME: 40,
 	// RFC 5321 addr-spec cap for email addresses.
 	EMAIL: 254,
 	PRICE: 50,

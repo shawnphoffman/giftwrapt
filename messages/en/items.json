@@ -637,5 +637,42 @@
 			}
 		}
 	],
-	"items_price_between": "{low} – {high}"
+	"items_price_between": "{low} – {high}",
+	"items_categories_button": "Categories",
+	"items_categories_dialog_title": "Categories",
+	"items_categories_dialog_description": "Optional. Categories sort this list for you, and show people shopping for you how gifts are spread.",
+	"items_categories_empty": "No categories yet.",
+	"items_categories_name_label": "Category name",
+	"items_categories_new_placeholder": "New category",
+	"items_categories_new_label": "New category name",
+	"items_categories_hint": "The order here is the order everyone sees. Deleting a category keeps its items.",
+	"items_categories_move_up": "Move {name} up",
+	"items_categories_move_down": "Move {name} down",
+	"items_categories_delete": "Delete {name}",
+	"items_categories_item_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} item",
+				"countPlural=*": "{count} items"
+			}
+		}
+	],
+	"items_categories_other_lists": "From your other lists. Tap one to add it here.",
+	"items_categories_toast_name_taken": "This list already has a category with that name",
+	"items_categories_toast_failed": "Failed to update categories",
+	"items_category_toast_failed": "Failed to change the category",
+	"items_category_none": "No category",
+	"items_category_add": "Add category",
+	"items_category_manage": "Manage Categories...",
+	"items_category_picker_label": "Change category",
+	"items_category_group_footer": "Category for the whole group",
+	"items_category_filter_label": "Filter by category",
+	"items_category_filter_all": "All",
+	"items_category_filter_empty": "Nothing in the chosen categories",
+	"items_arrange_label": "Arrange by",
+	"items_arrange_priority": "Priority",
+	"items_arrange_category": "Category",
+	"items_field_category": "Category"
 }

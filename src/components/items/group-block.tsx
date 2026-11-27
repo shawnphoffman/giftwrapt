@@ -17,15 +17,18 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
+import { useAssignCategory } from '@/lib/mutations/assign-category'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { itemsKeys } from '@/lib/queries/items'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
+import { CategoryPicker } from './category-picker'
 import { GroupBadge } from './group-badge'
 import { GroupConnector } from './group-connector'
 import { GroupEditDialog } from './group-edit-dialog'
 import { ItemEditRow } from './item-edit-row'
+import { useListCategories } from './list-categories-context'
 import { MoveGroupDialog } from './move-group-dialog'
 import { PriorityQuickPicker } from './priority-quick-picker'
 
@@ -52,6 +55,15 @@ export function GroupBlock({ group, items, groups, listId, onAddItem, onDelete, 
 	const showReorder = items.length > 1
 
 	const hasPriorityTab = group.priority !== 'normal'
+
+	// A group has one category for all of its members, set here.
+	const { categories } = useListCategories()
+	const assignCategory = useAssignCategory()
+	const handleSetCategory = async (categoryId: number | null) => {
+		if (categoryId === (group.categoryId ?? null)) return
+		const result = await assignCategory.mutateAsync({ listId, categoryId, groupIds: [group.id] })
+		if (result.kind === 'error') toast.error(m.items_category_toast_failed())
+	}
 
 	const handleSetPriority = async (priority: Priority) => {
 		if (priority === group.priority) return
@@ -155,6 +167,19 @@ export function GroupBlock({ group, items, groups, listId, onAddItem, onDelete, 
 								/>
 							</Fragment>
 						))}
+					</div>
+				)}
+				{/* Same band as the header, so the two frame the items. The label sits bottom right, where a row carries its own. */}
+				{categories.length > 0 && (
+					<div className="flex min-w-0 items-center gap-2 border-t bg-accent px-2 py-1 ps-4">
+						<span className="min-w-0 truncate text-xs text-muted-foreground">{m.items_category_group_footer()}</span>
+						<span className="flex-1" />
+						<CategoryPicker
+							value={group.categoryId ?? null}
+							onChange={handleSetCategory}
+							disabled={assignCategory.isPending}
+							className="bg-card"
+						/>
 					</div>
 				)}
 			</div>

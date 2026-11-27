@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
@@ -37,6 +38,7 @@ import { LIMITS } from '@/lib/validation/limits'
 import { m } from '@/paraglide/messages.js'
 
 import { ImagePicker } from './image-picker'
+import { useListCategories } from './list-categories-context'
 import { ScrapeProgressAlert } from './scrape-progress-alert'
 
 type BaseProps = {
@@ -79,6 +81,9 @@ function makeSchema() {
 	})
 }
 
+// The category select's value for "no category". Radix Select has no empty value.
+const NO_CATEGORY = 'none'
+
 // Shows the expected shape of a link; not translated.
 const URL_PLACEHOLDER = 'https://...'
 
@@ -92,6 +97,13 @@ export function ItemFormDialog(props: Props) {
 	const initialFocusRef = useRef<HTMLInputElement>(null)
 	const queryClient = useQueryClient()
 	const updateMutation = useUpdateItem()
+	// The category field shows once the list has a category. It is hidden for
+	// an item in a group, since the group's category covers it, and anywhere
+	// the form is not under this list's edit view (the context is empty there).
+	const listCategories = useListCategories()
+	const formListId = isEdit ? props.item.listId : props.listId
+	const inGroup = isEdit ? props.item.groupId !== null : props.groupId != null
+	const showCategory = listCategories.listId === formListId && listCategories.categories.length > 0 && !inGroup
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [uploadingImage, setUploadingImage] = useState(false)
@@ -153,6 +165,7 @@ export function ItemFormDialog(props: Props) {
 			price: isEdit ? (props.item.price ?? '') : '',
 			notes: isEdit ? (props.item.notes ?? '') : '',
 			priority: isEdit ? props.item.priority : 'normal',
+			categoryId: isEdit && props.item.categoryId !== null ? String(props.item.categoryId) : NO_CATEGORY,
 			quantity: isEdit ? String(props.item.quantity) : '1',
 			imageUrl: isEdit ? (props.item.imageUrl ?? '') : '',
 		},
@@ -188,6 +201,7 @@ export function ItemFormDialog(props: Props) {
 						priority: parsed.data.priority,
 						quantity: parsed.data.quantity,
 						imageUrl: trimmedImageUrl,
+						...(showCategory ? { categoryId: value.categoryId === NO_CATEGORY ? null : Number(value.categoryId) } : {}),
 					})
 					if (result.kind === 'error') {
 						toast.error(result.reason === 'not-authorized' ? m.items_edit_error_not_authorized() : m.items_error_item_not_found())
@@ -215,6 +229,7 @@ export function ItemFormDialog(props: Props) {
 						quantity: parsed.data.quantity,
 						imageUrl: parsed.data.imageUrl?.trim() || undefined,
 						groupId: props.groupId ?? undefined,
+						categoryId: showCategory && value.categoryId !== NO_CATEGORY ? Number(value.categoryId) : undefined,
 					},
 				})
 
@@ -605,6 +620,29 @@ export function ItemFormDialog(props: Props) {
 								</div>
 							)}
 						</form.Field>
+
+						{showCategory && (
+							<form.Field name="categoryId">
+								{field => (
+									<div className="grid gap-2">
+										<Label htmlFor={field.name}>{m.items_field_category()}</Label>
+										<Select value={field.state.value} onValueChange={field.handleChange} disabled={submitting}>
+											<SelectTrigger id={field.name} className="w-full sm:w-64">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value={NO_CATEGORY}>{m.items_category_none()}</SelectItem>
+												{listCategories.categories.map(c => (
+													<SelectItem key={c.id} value={String(c.id)}>
+														{c.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
+								)}
+							</form.Field>
+						)}
 
 						<form.Field name="notes">
 							{field => (

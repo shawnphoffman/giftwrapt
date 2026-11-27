@@ -1,5 +1,5 @@
 import { relations, sql } from 'drizzle-orm'
-import { boolean, index, integer, json, pgEnum, pgTable, real, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, json, pgEnum, pgTable, real, serial, smallint, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 
 import { availabilityEnum, groupTypeEnum, priorityEnum, statusEnum } from './enums'
 import { giftedItems } from './gifts'
@@ -18,6 +18,11 @@ export const items = pgTable(
 			.notNull()
 			.references(() => lists.id, { onDelete: 'cascade' }),
 		groupId: integer('group_id').references(() => itemGroups.id, { onDelete: 'set null' }),
+		// The owner's category for this item, or null. Always one of this
+		// list's categories. Ignored while the item is in a group: the
+		// group's category applies, the same way its priority does. Applies
+		// again when the item leaves the group.
+		categoryId: integer('category_id').references(() => itemCategories.id, { onDelete: 'set null' }),
 		title: text('title').notNull(),
 		status: statusEnum('status').default('incomplete').notNull(),
 		// Product-state, orthogonal to status. Marks items that are sold out/discontinued.
@@ -76,6 +81,7 @@ export const items = pgTable(
 		index('items_listId_isArchived_idx').on(table.listId, table.isArchived),
 		index('items_listId_vendorId_idx').on(table.listId, table.vendorId),
 		index('items_groupId_idx').on(table.groupId),
+		index('items_categoryId_idx').on(table.categoryId),
 		index('items_pendingDeletionAt_idx').on(table.pendingDeletionAt),
 		// index('items_status_idx').on(table.status),
 	]
@@ -99,15 +105,47 @@ export const itemGroups = pgTable(
 		type: groupTypeEnum('type').default('or').notNull(),
 		priority: priorityEnum('priority').default('normal').notNull(),
 		name: text('name'),
+		// The category every member shows under, or null. Always one of this
+		// list's categories. Overrides the members' own categoryId.
+		categoryId: integer('category_id').references(() => itemCategories.id, { onDelete: 'set null' }),
 		// Manual position within its priority bucket on the list. Lower first; nulls last.
 		sortOrder: integer('sort_order'),
 		...timestamps,
 	},
-	table => [index('item_groups_listId_idx').on(table.listId)]
+	table => [index('item_groups_listId_idx').on(table.listId), index('item_groups_categoryId_idx').on(table.categoryId)]
 )
 
 export type ItemGroup = typeof itemGroups.$inferSelect
 export type NewItemGroup = typeof itemGroups.$inferInsert
+
+// ===============================
+// ITEM CATEGORIES
+// ===============================
+// Optional, owner-made labels that sort a list ("Clothes", "Kids: toys").
+// They belong to one list. They are not groups: they never gate claiming.
+// Deleting one leaves its items and groups in place with no category.
+export const itemCategories = pgTable(
+	'item_categories',
+	{
+		id: serial('id').primaryKey(),
+		listId: integer('list_id')
+			.notNull()
+			.references(() => lists.id, { onDelete: 'cascade' }),
+		name: text('name').notNull(),
+		// Position among the list's categories. Lower first. This is the order
+		// everyone sees: the owner's filter row and the Category arrangement.
+		sortOrder: integer('sort_order').default(0).notNull(),
+		...timestamps,
+	},
+	table => [
+		index('item_categories_listId_idx').on(table.listId),
+		// One name per list, ignoring case. Moves and copies match on this.
+		uniqueIndex('item_categories_listId_name_unique').on(table.listId, sql`lower(${table.name})`),
+	]
+)
+
+export type ItemCategory = typeof itemCategories.$inferSelect
+export type NewItemCategory = typeof itemCategories.$inferInsert
 
 // ===============================
 // ITEM COMMENTS
@@ -274,6 +312,10 @@ export const itemRelations = relations(items, ({ one, many }) => ({
 		fields: [items.groupId],
 		references: [itemGroups.id],
 	}),
+	category: one(itemCategories, {
+		fields: [items.categoryId],
+		references: [itemCategories.id],
+	}),
 	comments: many(itemComments),
 	scrapes: many(itemScrapes),
 	gifts: many(giftedItems),
@@ -284,7 +326,20 @@ export const itemGroupRelations = relations(itemGroups, ({ one, many }) => ({
 		fields: [itemGroups.listId],
 		references: [lists.id],
 	}),
+	category: one(itemCategories, {
+		fields: [itemGroups.categoryId],
+		references: [itemCategories.id],
+	}),
 	items: many(items),
+}))
+
+export const itemCategoryRelations = relations(itemCategories, ({ one, many }) => ({
+	list: one(lists, {
+		fields: [itemCategories.listId],
+		references: [lists.id],
+	}),
+	items: many(items),
+	groups: many(itemGroups),
 }))
 
 export const itemCommentRelations = relations(itemComments, ({ one }) => ({

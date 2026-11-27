@@ -16,6 +16,7 @@ import {
 	users,
 } from '@/db/schema'
 import { listTypeEnumValues } from '@/db/schema/enums'
+import { carryCategoriesToList } from '@/lib/category-carry'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { isCrossTypeMoveDestructive } from '@/lib/list-type-moves'
 import { loggingMiddleware } from '@/lib/logger'
@@ -794,6 +795,10 @@ async function applyMergeLists(
 	// unchanged — a critical guarantee because group priority overrides
 	// item priority (logic.md "Items in a group inherit the group's priority").
 	await tx.update(itemGroups).set({ listId: survivorIdNum }).where(inArray(itemGroups.listId, sourceIdsResolved))
+
+	// Step 5b: the moved items and groups keep their categories by name on
+	// the survivor (docs/logic.md "Item categories").
+	await carryCategoriesToList(tx, survivorIdNum)
 
 	// Step 6: re-point list addons. `listAddons.userId` (the gifter) is
 	// untouched; addon ownership is a gifter-side concept and doesn't

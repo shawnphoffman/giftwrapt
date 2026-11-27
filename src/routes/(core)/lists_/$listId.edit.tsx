@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router'
-import { Group as GroupIcon, ListOrdered, Settings, Settings2, Shuffle } from 'lucide-react'
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { Group as GroupIcon, ListOrdered, Settings, Settings2, Shuffle, Tag } from 'lucide-react'
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Skeleton, SkeletonSuspense } from 'skullet/react'
 import { toast } from 'sonner'
 
@@ -12,11 +12,15 @@ import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeTile from '@/components/common/list-type-tile'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import UserAvatar from '@/components/common/user-avatar'
+import { ArrangeByToggle, type Arrangement } from '@/components/items/arrange-by-toggle'
+import { CategoriesDialog } from '@/components/items/categories-dialog'
+import { CategoryFilterChips } from '@/components/items/category-filter-chips'
 import { GroupBlock } from '@/components/items/group-block'
 import { AddItemSplitButton } from '@/components/items/import/add-item-split-button'
 import { InternalListLinksProvider } from '@/components/items/internal-list-links-context'
 import { ItemEditRow } from '@/components/items/item-edit-row'
 import { ItemFormDialog } from '@/components/items/item-form-dialog'
+import { ListCategoriesProvider } from '@/components/items/list-categories-context'
 import { MoveItemDialog } from '@/components/items/move-item-dialog'
 import { AddBirthdayBanner } from '@/components/lists/add-birthday-banner'
 import { ArchiveManagerBadge } from '@/components/lists/archive-manager-badge'
@@ -29,7 +33,8 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import type { GroupType } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
-import { buildListEntries } from '@/lib/list-entries'
+import { type CategoryKey, categoryKeyOfEntry, type CategorySummary, countEntriesByCategory } from '@/lib/item-categories'
+import { buildListEntries, type ListEntry } from '@/lib/list-entries'
 import { itemsKeys, listItemsEditQueryOptions } from '@/lib/queries/items'
 import { parseInternalListLink } from '@/lib/urls'
 import { useListAutoRefresh } from '@/lib/use-list-auto-refresh'
@@ -99,6 +104,40 @@ function ListEditPage() {
 	const [moveItem, setMoveItem] = useState<Item | null>(null)
 	useScrollToHash([list.id])
 
+	// Categories (docs/logic.md "Item categories"). The arrangement and the
+	// filter are view state, like the gifter view's filters: not saved.
+	const [categoriesOpen, setCategoriesOpen] = useState(false)
+	const [arrangement, setArrangement] = useState<Arrangement>('priority')
+	const [categoryFilter, setCategoryFilter] = useState<ReadonlySet<CategoryKey>>(() => new Set())
+	const toggleCategoryFilter = useCallback((key: CategoryKey) => {
+		setCategoryFilter(prev => {
+			const next = new Set(prev)
+			if (next.has(key)) next.delete(key)
+			else next.add(key)
+			return next
+		})
+	}, [])
+	const clearCategoryFilter = useCallback(() => setCategoryFilter(new Set()), [])
+	const openCategories = useCallback(() => setCategoriesOpen(true), [])
+	const categoriesValue = useMemo(
+		() => ({ listId: list.id, categories: list.categories, onManage: openCategories }),
+		[list.id, list.categories, openCategories]
+	)
+	// Same query the items body suspends on; read here without suspending so
+	// the toolbar and the dialog can count rows per category.
+	const { data: loadedItems } = useQuery(listItemsEditQueryOptions(list.id))
+	const categoryCounts = useMemo(() => {
+		const known = new Set(list.categories.map(c => c.id))
+		return countEntriesByCategory(buildListEntries({ items: loadedItems ?? [], groups: list.groups }), known)
+	}, [loadedItems, list.groups, list.categories])
+	const itemCountsByCategory = useMemo(() => {
+		const map = new Map<number, number>()
+		for (const [key, n] of categoryCounts) if (key !== 'none') map.set(key, n)
+		return map
+	}, [categoryCounts])
+	// Arrange By appears only once something on the list has a category.
+	const hasCategorized = itemCountsByCategory.size > 0
+
 	const initialSettingsOpen = useRef(settings === true).current
 	useEffect(() => {
 		if (settings) {
@@ -167,7 +206,8 @@ function ListEditPage() {
 		setAddItemOpen(true)
 	}
 
-	return (
+	// Held in a variable so the provider can wrap it without re-indenting the page.
+	const page = (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
 				<EditListHeading
@@ -214,6 +254,8 @@ function ListEditPage() {
 									recipientName={list.subjectDependent ? list.subjectDependent.name : list.owner.name || list.owner.email}
 								/>
 							}
+							arrange={hasCategorized ? <ArrangeByToggle value={arrangement} onChange={setArrangement} /> : null}
+							onManageCategories={openCategories}
 							onCreateGroup={handleCreateGroup}
 							onAddItem={() => openAddItemDialog(null)}
 							onAddItemFromPhoto={openAddItemFromPhoto}
@@ -221,6 +263,10 @@ function ListEditPage() {
 						<SkeletonSuspense id={`list-edit-items-${list.id}`} label={m.lists_items_loading()} skeleton={<EditItemsSkeleton />}>
 							<EditItemsBody
 								list={list}
+								arrangement={arrangement}
+								categoryFilter={categoryFilter}
+								onToggleCategory={toggleCategoryFilter}
+								onClearCategoryFilter={clearCategoryFilter}
 								onMoveItem={setMoveItem}
 								onAddItem={openAddItemDialog}
 								onDeleteGroup={handleDeleteGroup}
@@ -257,8 +303,20 @@ function ListEditPage() {
 					item={moveItem}
 				/>
 			)}
+
+			{list.type !== 'todos' && (
+				<CategoriesDialog
+					open={categoriesOpen}
+					onOpenChange={setCategoriesOpen}
+					listId={list.id}
+					categories={list.categories}
+					itemCounts={itemCountsByCategory}
+				/>
+			)}
 		</div>
 	)
+
+	return <ListCategoriesProvider value={categoriesValue}>{page}</ListCategoriesProvider>
 }
 
 type EditListHeadingProps = {
@@ -298,14 +356,26 @@ function EditListHeading({ list, back, settings }: EditListHeadingProps) {
 type EditListToolbarProps = {
 	listId: number
 	leading: ReactNode
+	// The Arrange By switch, or null while nothing on the list has a category.
+	arrange?: ReactNode
+	onManageCategories: () => void
 	onCreateGroup: (type: GroupType) => void
 	onAddItem: () => void
 	onAddItemFromPhoto: (file: File) => void
 }
 
-function EditListToolbar({ listId, leading, onCreateGroup, onAddItem, onAddItemFromPhoto }: EditListToolbarProps) {
+function EditListToolbar({
+	listId,
+	leading,
+	arrange,
+	onManageCategories,
+	onCreateGroup,
+	onAddItem,
+	onAddItemFromPhoto,
+}: EditListToolbarProps) {
 	return (
 		<div className="flex flex-wrap items-center justify-end gap-2">
+			{arrange && <div className="mr-auto">{arrange}</div>}
 			{leading}
 			<div className="flex gap-2">
 				<Button size="sm" variant="outline" asChild>
@@ -313,6 +383,10 @@ function EditListToolbar({ listId, leading, onCreateGroup, onAddItem, onAddItemF
 						<Settings2 className="size-4" />
 						<span className="sr-only xs:not-sr-only">{m.lists_edit_organize()}</span>
 					</Link>
+				</Button>
+				<Button size="sm" variant="outline" onClick={onManageCategories}>
+					<Tag className="size-4" />
+					<span className="sr-only xs:not-sr-only">{m.items_categories_button()}</span>
 				</Button>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
@@ -354,7 +428,14 @@ function ListEditSkeleton() {
 				}
 			/>
 			<div className="flex flex-col gap-2">
-				<EditListToolbar listId={0} leading={null} onCreateGroup={noop} onAddItem={noop} onAddItemFromPhoto={noop} />
+				<EditListToolbar
+					listId={0}
+					leading={null}
+					onManageCategories={noop}
+					onCreateGroup={noop}
+					onAddItem={noop}
+					onAddItemFromPhoto={noop}
+				/>
 				<EditItemsSkeleton />
 			</div>
 		</div>
@@ -376,6 +457,10 @@ function EditItemsSkeleton() {
 
 type EditItemsBodyProps = {
 	list: ListForEditing
+	arrangement?: Arrangement
+	categoryFilter?: ReadonlySet<CategoryKey>
+	onToggleCategory?: (key: CategoryKey) => void
+	onClearCategoryFilter?: () => void
 	onMoveItem: (item: Item) => void
 	onAddItem: (groupId: number | null) => void
 	onDeleteGroup: (groupId: number) => Promise<void>
@@ -388,14 +473,36 @@ function EditItemsBody(props: EditItemsBodyProps) {
 }
 
 type EditItemsViewProps = Omit<EditItemsBodyProps, 'list'> & {
-	list: Pick<ListForEditing, 'id' | 'groups'>
+	list: Pick<ListForEditing, 'id' | 'groups'> & { categories?: ReadonlyArray<CategorySummary> }
 	items: Array<ItemForEditing>
 }
 
 // The items body without its query, so the loading skeleton can render the
 // real rows from sample items (see list-detail-sample.ts).
-function EditItemsView({ list, items, onMoveItem, onAddItem, onDeleteGroup, onReorder }: EditItemsViewProps) {
+const NO_CATEGORIES: ReadonlyArray<CategorySummary> = []
+const NO_FILTER: ReadonlySet<CategoryKey> = new Set()
+
+function EditItemsView({
+	list,
+	items,
+	arrangement = 'priority',
+	categoryFilter = NO_FILTER,
+	onToggleCategory = noop,
+	onClearCategoryFilter = noop,
+	onMoveItem,
+	onAddItem,
+	onDeleteGroup,
+	onReorder,
+}: EditItemsViewProps) {
 	const entries = buildListEntries({ items, groups: list.groups })
+	const categories = list.categories ?? NO_CATEGORIES
+	const knownCategoryIds = useMemo(() => new Set(categories.map(c => c.id)), [categories])
+	const categoryCounts = countEntriesByCategory(entries, knownCategoryIds)
+	// A chip whose category was deleted, or emptied, stops filtering.
+	const activeFilter = [...categoryFilter].filter(key => (categoryCounts.get(key) ?? 0) > 0)
+	const shownEntries =
+		activeFilter.length > 0 ? entries.filter(e => activeFilter.includes(categoryKeyOfEntry(e, knownCategoryIds))) : entries
+	const hasCategorized = [...categoryCounts.keys()].some(key => key !== 'none')
 
 	const internalListIds = useMemo(() => {
 		if (typeof window === 'undefined') return [] as Array<number>
@@ -421,6 +528,29 @@ function EditItemsView({ list, items, onMoveItem, onAddItem, onDeleteGroup, onRe
 		return map
 	}, [summaryData])
 
+	const renderEntry = (entry: ListEntry<ItemForEditing>) =>
+		entry.kind === 'item' ? (
+			<ItemEditRow
+				key={`item-${entry.item.id}`}
+				item={entry.item}
+				commentCount={entry.item.commentCount}
+				onMoveClick={onMoveItem}
+				groups={list.groups}
+			/>
+		) : (
+			<GroupBlock
+				key={`group-${entry.group.id}`}
+				group={entry.group}
+				items={entry.items}
+				groups={list.groups}
+				listId={list.id}
+				onAddItem={onAddItem}
+				onDelete={onDeleteGroup}
+				onMoveItem={onMoveItem}
+				onReorder={onReorder}
+			/>
+		)
+
 	if (items.length === 0 && list.groups.length === 0) {
 		return (
 			<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
@@ -432,28 +562,43 @@ function EditItemsView({ list, items, onMoveItem, onAddItem, onDeleteGroup, onRe
 	return (
 		<InternalListLinksProvider value={internalListLinks}>
 			<div className="flex flex-col gap-2 xs:pl-6">
-				{entries.map(entry =>
-					entry.kind === 'item' ? (
-						<ItemEditRow
-							key={`item-${entry.item.id}`}
-							item={entry.item}
-							commentCount={entry.item.commentCount}
-							onMoveClick={onMoveItem}
-							groups={list.groups}
-						/>
-					) : (
-						<GroupBlock
-							key={`group-${entry.group.id}`}
-							group={entry.group}
-							items={entry.items}
-							groups={list.groups}
-							listId={list.id}
-							onAddItem={onAddItem}
-							onDelete={onDeleteGroup}
-							onMoveItem={onMoveItem}
-							onReorder={onReorder}
-						/>
-					)
+				{categories.length > 0 && (
+					<CategoryFilterChips
+						categories={categories}
+						counts={categoryCounts}
+						total={entries.length}
+						selected={new Set(activeFilter)}
+						onToggle={onToggleCategory}
+						onClear={onClearCategoryFilter}
+					/>
+				)}
+				{shownEntries.length === 0 ? (
+					<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
+						{m.items_category_filter_empty()}
+					</div>
+				) : arrangement === 'category' && hasCategorized ? (
+					// One section per category that has rows, in the owner's order, then
+					// the rows with no category. Headers show how many rows, never claims.
+					[
+						...categories.map(c => ({ key: c.id as CategoryKey, name: c.name })),
+						{ key: 'none' as CategoryKey, name: m.items_category_none() },
+					].map(section => {
+						const rows = shownEntries.filter(e => categoryKeyOfEntry(e, knownCategoryIds) === section.key)
+						if (rows.length === 0) return null
+						return (
+							<section key={`category-${section.key}`} className="flex flex-col gap-2 not-first:mt-3">
+								<div className="flex items-baseline gap-2 border-b pb-1.5">
+									<div role="heading" aria-level={2} className="truncate font-bold leading-tight">
+										{section.name}
+									</div>
+									<span className="shrink-0 text-xs font-medium text-muted-foreground tabular-nums">{rows.length}</span>
+								</div>
+								{rows.map(renderEntry)}
+							</section>
+						)
+					})
+				) : (
+					shownEntries.map(renderEntry)
 				)}
 			</div>
 		</InternalListLinksProvider>

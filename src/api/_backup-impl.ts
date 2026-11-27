@@ -22,6 +22,7 @@ import {
 	giftExchanges,
 	giftSuggestionFeedback,
 	guardianships,
+	itemCategories,
 	itemComments,
 	itemGroups,
 	items,
@@ -65,6 +66,7 @@ export async function captureFullSnapshot(dbx: SchemaDatabase = db): Promise<Bac
 		recommendationsRows,
 		recommendationSubItemDismissalsRows,
 		listsRows,
+		itemCategoriesRows,
 		itemGroupsRows,
 		itemsRows,
 		itemScrapeJobsRows,
@@ -92,6 +94,7 @@ export async function captureFullSnapshot(dbx: SchemaDatabase = db): Promise<Bac
 		dbx.select().from(recommendations),
 		dbx.select().from(recommendationSubItemDismissals),
 		dbx.select().from(lists),
+		dbx.select().from(itemCategories),
 		dbx.select().from(itemGroups),
 		dbx.select().from(items),
 		dbx.select().from(itemScrapeJobs),
@@ -124,6 +127,7 @@ export async function captureFullSnapshot(dbx: SchemaDatabase = db): Promise<Bac
 			recommendations: recommendationsRows as BackupFile['tables']['recommendations'],
 			recommendationSubItemDismissals: recommendationSubItemDismissalsRows,
 			lists: listsRows,
+			itemCategories: itemCategoriesRows,
 			itemGroups: itemGroupsRows,
 			items: itemsRows,
 			itemScrapeJobs: itemScrapeJobsRows,
@@ -532,6 +536,31 @@ export async function restoreBackupTablesImpl(args: {
 		result.lists = tables.lists.length
 	}
 
+	// -------- itemCategories --------
+	// Before itemGroups and items, which point at them.
+	if (tables.itemCategories.length > 0) {
+		if (mode === 'wipe') {
+			await tx.insert(itemCategories).values(tables.itemCategories)
+		} else {
+			for (const row of tables.itemCategories) {
+				await tx
+					.insert(itemCategories)
+					.values(row)
+					.onConflictDoUpdate({
+						target: itemCategories.id,
+						set: {
+							listId: row.listId,
+							name: row.name,
+							sortOrder: row.sortOrder,
+							createdAt: row.createdAt,
+							updatedAt: row.updatedAt,
+						},
+					})
+			}
+		}
+		result.itemCategories = tables.itemCategories.length
+	}
+
 	// -------- itemGroups --------
 	if (tables.itemGroups.length > 0) {
 		if (mode === 'wipe') {
@@ -545,6 +574,7 @@ export async function restoreBackupTablesImpl(args: {
 						target: itemGroups.id,
 						set: {
 							listId: row.listId,
+							categoryId: row.categoryId ?? null,
 							type: row.type,
 							priority: row.priority,
 							name: row.name,
@@ -572,6 +602,7 @@ export async function restoreBackupTablesImpl(args: {
 						set: {
 							listId: row.listId,
 							groupId: row.groupId,
+							categoryId: row.categoryId ?? null,
 							title: row.title,
 							status: row.status,
 							availability: row.availability,
